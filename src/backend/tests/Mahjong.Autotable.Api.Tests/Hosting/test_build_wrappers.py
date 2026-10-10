@@ -1,5 +1,6 @@
 """Execute real wrapper sources against an explicitly fabricated command harness."""
 
+import copy
 import json
 import os
 from pathlib import Path
@@ -170,6 +171,28 @@ esac
 
 
 class PipelineSourceTests(unittest.TestCase):
+    def assert_private_license_bind(self, source_mount, rendered_mount, license_source, license_target):
+        for label, mount in (("source private license mount", source_mount),
+                             ("rendered private license mount", rendered_mount)):
+            self.assertIsInstance(mount, dict, label)
+            self.assertEqual(mount.get("type"), "bind", label + " type")
+            self.assertIs(mount.get("read_only"), True, label + " read_only")
+        self.assertRegex(source_mount.get("source", ""), r"^\$\{UNITY_LICENSE_MOUNT_SOURCE:\?",
+                         "source private license mount source")
+        self.assertRegex(source_mount.get("target", ""), r"^\$\{UNITY_LICENSE_MOUNT_TARGET:-",
+                         "source private license mount target")
+        self.assertEqual(rendered_mount.get("source"), license_source, "rendered private license mount source")
+        self.assertEqual(rendered_mount.get("target"), license_target, "rendered private license mount target")
+        self.assertIsInstance(source_mount.get("bind"), dict, "source private license mount bind options")
+        self.assertIsInstance(rendered_mount.get("bind"), dict, "rendered private license mount bind options")
+        message = "source private license bind must explicitly set boolean create_host_path: false"
+        self.assertIn("create_host_path", source_mount["bind"], message)
+        self.assertIs(source_mount["bind"]["create_host_path"], False, message)
+        # compose-go 2.7.1 bool/omitempty omits false; 2.16.1 OptOut/omitzero emits it.
+        if "create_host_path" in rendered_mount["bind"]:
+            self.assertIs(rendered_mount["bind"]["create_host_path"], False,
+                          "rendered private license bind create_host_path must be boolean false")
+
     def test_unity_ignores_never_hide_nested_source_checker_projects_or_asset_meta(self):
         generated = (
             "unity/MahjongRenderer/Assembly-CSharp.csproj",
@@ -198,9 +221,14 @@ class PipelineSourceTests(unittest.TestCase):
             fixture.mkdir(parents=True)
             empty_env = fixture / ".env.example"
             empty_env.write_text("")
+            docker_config = fixture / "docker-config"
+            docker_config.mkdir()
             environment = dict(os.environ)
             environment.update({
+                "DOCKER_CONFIG": str(docker_config),
                 "JWT_SIGNING_KEY": "FABRICATED-COMPOSE-CONFIG-CHECK-NOT-A-LIVE-KEY",
+                "UNITY_BUILD_UID": "1000",
+                "UNITY_BUILD_GID": "1000",
                 "UNITY_LICENSE_MOUNT_SOURCE": str(fixture / "FABRICATED-NONEXISTENT-TEST.ulf"),
                 "UNITY_LICENSE_MOUNT_TARGET": "/workspace/artifacts/unity-builder-home/.local/share/unity3d/Unity/Unity_lic.ulf",
                 "ALLOW_SOURCE_DIRTY": "0",
@@ -214,12 +242,85 @@ class PipelineSourceTests(unittest.TestCase):
             for files in filesets:
                 with self.subTest(files=files):
                     command = ["docker", "compose", "--env-file", str(empty_env)]
+                    if files == ("docker-compose.unity-build.yml",):
+                        command.extend(("--profile", "unity-build"))
                     for name in files:
                         command.extend(("-f", str(ROOT / name)))
-                    command.extend(("config", "--quiet"))
-                    result = subprocess.run(command, text=True, capture_output=True, env=environment)
+                    result = subprocess.run([*command, "config", "--quiet"],
+                                            text=True, capture_output=True, env=environment)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout, "")
+                    if files == ("docker-compose.unity-build.yml",):
+                        rendered = subprocess.run([*command, "config", "--format", "json"],
+                                                  text=True, capture_output=True, env=environment)
+                        self.assertEqual(rendered.returncode, 0, rendered.stderr)
+                        builder = json.loads(rendered.stdout)["services"]["unity-builder"]
+                        self.assertEqual(builder.get("tmpfs"),
+                                         ["/tmp:rw,nosuid,nodev,mode=1777,size=512m"])
+                        self.assertIs(builder["read_only"], True)
+                        self.assertEqual(builder["user"], "1000:1000")
+                        self.assertEqual(builder["security_opt"], ["no-new-privileges:true"])
+                        self.assertEqual(builder["image"], "mahjong-unity-builder:6000.3.24f1-webgl-3.2.2")
+                        self.assertEqual(builder["platform"], "linux/amd64")
+                        self.assertFalse(builder.get("privileged", False))
+                        self.assertFalse(builder.get("cap_add", []))
+                        mounts = {mount["target"]: mount for mount in builder["volumes"]}
+                        license_target = environment["UNITY_LICENSE_MOUNT_TARGET"]
+                        self.assertEqual(set(mounts), {
+                            "/workspace/.git", "/workspace/.gitignore", "/workspace/scripts",
+                            "/workspace/contracts", "/workspace/unity/MahjongRenderer",
+                            "/workspace/artifacts", license_target,
+                        })
+                        for relative in (".git", ".gitignore", "scripts", "contracts",
+                                         "unity/MahjongRenderer", "artifacts"):
+                            mount = mounts["/workspace/" + relative]
+                            self.assertEqual(mount["type"], "bind")
+                            self.assertEqual(mount["source"], str(ROOT / relative))
+                            self.assertEqual(mount.get("read_only", False),
+                                             relative not in ("unity/MahjongRenderer", "artifacts"))
+                        source = subprocess.run(
+                            [*command, "config", "--no-interpolate", "--no-normalize",
+                             "--no-path-resolution", "--format", "json"],
+                            text=True, capture_output=True, env=environment)
+                        self.assertEqual(source.returncode, 0, source.stderr)
+                        source_volumes = json.loads(source.stdout)["services"]["unity-builder"]["volumes"]
+                        source_licenses = [
+                            mount for mount in source_volumes
+                            if isinstance(mount, dict) and
+                            mount.get("source", "").startswith("${UNITY_LICENSE_MOUNT_SOURCE:?")
+                        ]
+                        self.assertEqual(len(source_licenses), 1, "exactly one source private license mount")
+                        source_license = source_licenses[0]
+                        license_source = environment["UNITY_LICENSE_MOUNT_SOURCE"]
+                        self.assert_private_license_bind(source_license, mounts[license_target],
+                                                         license_source, license_target)
+                        for explicit in (True, False):
+                            with self.subTest(serialized_create_host_path="false" if explicit else "omitted"):
+                                compatible = copy.deepcopy(mounts[license_target])
+                                if explicit:
+                                    compatible["bind"]["create_host_path"] = False
+                                else:
+                                    compatible["bind"].pop("create_host_path", None)
+                                self.assert_private_license_bind(source_license, compatible,
+                                                                 license_source, license_target)
+                                for value in (True, None, 0, "false"):
+                                    for side in ("source", "rendered"):
+                                        changed_source = copy.deepcopy(source_license)
+                                        changed_rendered = copy.deepcopy(compatible)
+                                        changed = changed_source if side == "source" else changed_rendered
+                                        changed["bind"]["create_host_path"] = value
+                                        with self.subTest(side=side, create_host_path=value):
+                                            with self.assertRaisesRegex(AssertionError, "create_host_path"):
+                                                self.assert_private_license_bind(
+                                                    changed_source, changed_rendered, license_source, license_target)
+                                missing = copy.deepcopy(source_license)
+                                del missing["bind"]["create_host_path"]
+                                with self.assertRaisesRegex(AssertionError, "explicitly.*create_host_path"):
+                                    self.assert_private_license_bind(missing, compatible,
+                                                                     license_source, license_target)
+                                with self.assertRaisesRegex(AssertionError, "rendered private license mount source"):
+                                    self.assert_private_license_bind(source_license, mounts["/workspace/scripts"],
+                                                                     license_source, license_target)
         finally:
             if fixture.exists():
                 shutil.rmtree(fixture)
