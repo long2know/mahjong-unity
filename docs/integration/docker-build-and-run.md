@@ -291,6 +291,58 @@ syntax parsing**, not Unity API/shader compilation. Its authored EditMode tests
 and genuine BuildPlayer output remain unexecuted. These source tools are
 optional diagnostics, not extra host prerequisites for Docker packaging.
 
+### Portable source CI
+
+`.github/workflows/migration-build.yml` runs mandatory source jobs on `dev` and
+`main` pull requests/pushes. These jobs do **not** require Unity licensing.
+The exact commands, source hashes, tool versions, test counts and output
+hashes are recorded in `artifacts/test-results/migration-ci/<job>/receipt.json`;
+named logs, backend TRX and the Vite source-module graph are uploaded even on
+failure. Baseline stores, tool fixtures, API publish files and private
+operator/Editor inputs are not uploaded.
+
+The portable runner uses Python 3, Git, Node 20/npm and .NET 10. The
+`source-tools` job also requires Bash, native PowerShell, a running Docker
+daemon, Buildx and Compose. Missing tools, failed public pin fetches and any
+skipped mandatory tests **fail** the job. CI provisions Node/.NET explicitly
+and installs only the existing lockfile/manifests:
+
+```bash
+python3 tests/migration/run_source_ci.py source-tools --install-dependencies
+python3 tests/migration/run_source_ci.py backend --install-dependencies
+python3 tests/migration/run_source_ci.py frontend-source --install-dependencies
+python3 tests/migration/run_source_ci.py unity-source --install-dependencies
+```
+
+For already-installed/restored local backend/frontend dependencies, omit
+`--install-dependencies`; all source tests/builds still execute, without
+`dotnet test --no-build`. For `unity-source`, always pass
+`--install-dependencies`: each invocation uses a fresh scratch intermediate
+directory for the C# syntax build and must restore its assets, even when the
+normal project cache exists. Restore the existing dependency manifests if a
+missing dependency is reported.
+The source-tools runner always fetches the exact public baseline commit
+`d10d351e543aa3e341960de9800828b6c0662a82` into its owned, ignored
+`artifacts/test-results/migration-work/` Git object store and sets
+`MIGRATION_BASELINE_GIT_STORE` for the actual immutable-blob tests. No historical
+session path or cached source mirror is required.
+
+Coverage is **33 tooling + 9 import/ignore/real-Docker-context cases**,
+**147 combined backend/hosting/room/relay/continuation cases**, **80 retained,
+Unity-adapter and actual Game startup/settled-viewport source cases**, distinct
+strict primary TypeScript and Vite builds, and Unity metadata/frozen-contract,
+**5 JS bridge cases + 26-file C#9 editor/player syntax parsing**. Workflow
+contract tests also reject conditional source skips, widened evidence uploads,
+missing prerequisites and skipped actual immutable-object assertions.
+
+These are source checks, not Unity assembly/API/shader compilation, EditMode,
+WebGL, native browser or device qualification. The real Editor/build job stays
+an explicit `workflow_dispatch` opt-in behind the `licensed-unity-build`
+environment, dependent on all four source jobs. The optional native published
+API/browser checks remain separate; no skipped browser check is counted as a
+browser pass. This wiring is not evidence that the focused follow-up has
+already executed remotely.
+
 ## Troubleshooting and validation limits
 
 - **No valid licensing / activation failure:** remain blocked. Use the
