@@ -144,7 +144,7 @@ namespace Mahjong.Renderer.Rendering
         public void UpdateCue(bool selected, bool hovered)
         {
             if (placement == null) return;
-            Display source = placement.Entity.Display;
+            Contract.Display source = placement.Entity.Display;
             bool enabled = selected || hovered || source.Selected || source.Hovered || source.Held || source.Highlight > 0;
             cue.Object.SetActive(enabled);
             cue.Paint(source.Held ? new Color(0.18f, 0.84f, 0.95f, 0.7f) :

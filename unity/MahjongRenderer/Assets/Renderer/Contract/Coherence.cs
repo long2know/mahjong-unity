@@ -78,18 +78,16 @@ namespace Mahjong.Renderer.Contract
                         throw Invalid("Changsha presentation cannot contain relay sticks or alternate backs.");
                     if (entity.Interaction.CanDrag || entity.Interaction.CanFlip)
                         throw Invalid("Changsha never authorizes renderer relocation or flipping.");
+                    bool pickupTrigger = ManualPickupTrigger(frame, entity);
                     if (entity.Interaction.CanSelect &&
-                        !(entity.Group == "hand" && entity.Seat == session.ActorSeat))
-                        throw Invalid("Changsha selection must be in the owned hand.");
+                        !(entity.Group == "hand" && entity.Seat == session.ActorSeat || pickupTrigger))
+                        throw Invalid("Changsha selection must be in the owned hand or at the authorized manual pickup trigger.");
                     if (entity.Interaction.CanDiscard &&
                         !(entity.Group == "hand" && entity.Seat == session.ActorSeat &&
                           entity.Appearance.KnownFace && frame.Turn?.AwaitingDiscard == true &&
                           frame.Turn.ActiveSeat == session.ActorSeat))
                         throw Invalid("Discard eligibility is inconsistent with the current hand/turn.");
-                    if (entity.Interaction.CanPickup &&
-                        !(frame.Pickup?.CanTake == true && frame.Pickup.DealMode == "manual" &&
-                          frame.Pickup.SeatIndex == session.ActorSeat &&
-                          frame.Pickup.TriggerSlotName == entity.SlotName))
+                    if (entity.Interaction.CanPickup && !pickupTrigger)
                         throw Invalid("Pickup eligibility is inconsistent with the current source trigger.");
                 }
                 entities.Add(entity.EntityId, entity);
@@ -157,6 +155,17 @@ namespace Mahjong.Renderer.Contract
         public static bool CanInteract(RendererFrame frame) =>
             frame.Session.SnapshotReady && frame.Session.ActorSeat.HasValue &&
             (frame.Session.Mode == "offline" || frame.Session.Connected);
+
+        private static bool ManualPickupTrigger(RendererFrame frame, Entity entity)
+        {
+            PickupDisplay pickup = frame.Pickup;
+            string phase = frame.Turn?.Phase;
+            return entity.Group == "wall" && entity.Interaction.CanSelect && entity.Interaction.CanPickup &&
+                   pickup?.CanTake == true && pickup.DealMode == "manual" && pickup.Count > 0 &&
+                   pickup.SeatIndex == frame.Session.ActorSeat && pickup.TriggerSlotName == entity.SlotName &&
+                   (phase == "BreakPointMarked" || phase == "PickupRound1" || phase == "PickupRound2" ||
+                    phase == "PickupRound3" || phase == "SingleTilePickup" || phase == "DealerExtra");
+        }
 
         public static bool ForbiddenSlot(string name) =>
             name.StartsWith("hiddenpool", StringComparison.OrdinalIgnoreCase) ||

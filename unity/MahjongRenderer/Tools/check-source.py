@@ -50,7 +50,11 @@ def main():
     require(runtime["references"] == ["Unity.Newtonsoft.Json"] and not runtime["includePlatforms"],
             "Runtime assembly must explicitly reference Newtonsoft, not editor assemblies.")
     require(editor["includePlatforms"] == ["Editor"] and runtime["name"] in editor["references"], "Editor assembly drift.")
-    require(tests["includePlatforms"] == ["Editor"] and "TestAssemblies" in tests["optionalUnityReferences"], "Test assembly drift.")
+    require(tests["includePlatforms"] == ["Editor"] and tests["references"] == [
+        runtime["name"], editor["name"], "UnityEngine.TestRunner", "UnityEditor.TestRunner"
+    ] and tests["overrideReferences"] is True and tests["precompiledReferences"] == [
+        "nunit.framework.dll", "Newtonsoft.Json.dll"
+    ] and not tests.get("optionalUnityReferences"), "Test assembly runner/DLL references drift.")
     ET.parse(project / "Assets/Renderer/link.xml")
     scene = (project / "Assets/Scenes/MahjongRenderer.unity").read_text()
     require(scene.count("m_Name: MahjongBridge") == 1, "Source scene must connect exactly one bridge receiver.")
