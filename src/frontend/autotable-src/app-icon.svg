@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Mahjong">
+  <rect width="128" height="128" rx="28" fill="#0a5a3a"/>
+  <rect x="31" y="19" width="66" height="92" rx="11" fill="#d1b968"/>
+  <rect x="31" y="15" width="66" height="88" rx="11" fill="#fff9e9"/>
+  <path d="M48 38h32M48 50h32M48 62h32M48 74h32" stroke="#0a5a3a" stroke-width="7" stroke-linecap="round"/>
+</svg>

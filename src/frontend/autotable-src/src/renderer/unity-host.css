@@ -1,0 +1,42 @@
+#main.unity-table {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    background: var(--app-table-color, #0a5a3a);
+}
+#unity-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+#unity-canvas:focus-visible { outline: 3px solid #ffd75e; outline-offset: -3px; }
+#unity-status {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    background: rgba(13, 22, 30, .93);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+#unity-status[hidden] { display: none; }
+#unity-status h2 { font-size: clamp(1.1rem, 4vw, 1.8rem); }
+#unity-status p { max-width: 34rem; }
+#unity-status progress { width: min(24rem, 80%); margin: 1rem; }
+#unity-status button { min-width: 44px; min-height: 44px; }
+#sidebar { z-index: 4; }
+.dice-label { font-size: 2rem; line-height: 1; }
+.unity-inset-probe {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}

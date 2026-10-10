@@ -1,0 +1,4514 @@
+#full {
+    position: fixed;
+    top: var(--game-viewport-top, 0px);
+    bottom: var(--game-viewport-bottom, 0px);
+    left: 0;
+    right: 0;
+    background-color: #222;
+}
+
+.centered {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#main {
+    overflow: hidden;
+    /* Phase K Wave 8 — Positioned ancestor for the
+     * `.tile-highlight-overlay` (commentary tile-ref pulse) so
+     * `position: absolute; top/left/right/bottom: 0` covers the
+     * WebGL canvas exactly without re-flowing the page. */
+    position: relative;
+}
+
+#selection {
+    position: absolute;
+    /* top: 100px;
+    left: 100px;
+    width: 200px;
+    height: 200px; */
+    z-index: 1;
+    border: 1px solid rgba(160, 85, 0, 0.8);
+    background-color: rgba(160, 85, 0, 0.2);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.cursor {
+    position: absolute;
+    background: #ffd75e;
+    border-radius: 50%;
+    width: 50px;
+    height: 35px;
+    z-index: 2;
+    /* border: 1px solid red; */
+
+    margin-left: -20px;
+    margin-top: -5px;
+    transform-origin: 20px 5px;
+    pointer-events: none;
+    opacity: 0.6;
+
+    visibility: hidden;
+}
+
+.cursor.rotate-1 { transform: rotate(-90deg); }
+.cursor.rotate-2 { transform: rotate(-180deg); }
+.cursor.rotate-3 { transform: rotate(-270deg); }
+
+/*
+.cursor          { visibility: visible; top: 50%; left: 20%; }
+.cursor.rotate-1 { visibility: visible; top: 50%; left: 40%; }
+.cursor.rotate-2 { visibility: visible; top: 80%; left: 20%; }
+.cursor.rotate-3 { visibility: visible; top: 80%; left: 40%; }
+*/
+
+.mark {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: 10px;
+    height: 10px;
+    background: white;
+}
+
+#sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 220px;
+    max-height: 100%;
+    padding: 1em;
+    background: rgba(30,30,30, 0.6);
+    user-select: none;
+}
+
+.dropdown-menu {
+    background: rgba(30,30,30, 0.8) !important;
+}
+
+#server:not(.connected) .server-connected { display: none; }
+#server.connected .server-disconnected { display: none; }
+
+#center { display: none; }
+
+.btn-progress-main { position: relative; }
+.btn-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 0%;
+    transition: width 1s;
+}
+.btn-progress-text {
+    position: relative;
+}
+
+.btn-warning .btn-progress {
+    background: #fff2ca;
+}
+
+.btn-dark .btn-progress {
+    background: rgb(90, 98, 104);
+}
+
+.seat-buttons {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(30, 30, 30, 0.4);
+    display: none;
+}
+.seat-button {
+    position: absolute;
+}
+.seat-button-0 {
+    bottom: 20px;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+.seat-button-1 {
+    top: 50%;
+    right: 20%;
+    transform: translate(0, -50%);
+}
+.seat-button-2 {
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+.seat-button-3 {
+    top: 50%;
+    left: 20%;
+    transform: translate(0, -50%);
+}
+
+.dark-select {
+    background-color: #343a40 !important;
+    border-color: #343a40 !important;
+    color: #fff !important;
+    /* Dropdown readability (UAT: the native <option> popup rendered
+       white-on-light on theme-light pages and platforms that ignore author
+       option{background}). `color-scheme: dark` makes the UA render this
+       control AND its native listbox popup with a dark scheme (light text on
+       a dark surface) across Chromium / Tauri / mobile, independent of the
+       page color-scheme and per-option styling. This is the platform-
+       independent guarantee that replaces the invalid getComputedStyle(option)
+       proxy; native keyboard/touch/a11y are unchanged. */
+    color-scheme: dark;
+}
+/* Settings-drawer v2 selects share the same dark-popup guarantee. */
+.settings-v2-select { color-scheme: dark; }
+.dark-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(130, 138, 145, 0.5) !important;
+}
+
+/* Ripley Design Review C-4/C-5/C-6 — a themed <select> must paint its
+   own <option>/<optgroup> foreground AND background.  `.dark-select`
+   only recolors the CLOSED control (white text on #343a40); the native
+   listbox that opens on click inherits that white `color` but keeps a
+   transparent background, so the options render white-on-white over the
+   browser/OS default (light) popup surface — the reported unreadable
+   "setup dropdown".  Every live setup/settings select is `.dark-select`
+   (settings-drawer language/motion/theme, the rule-preset picker); the
+   lobby variant-picker already pins this in its own module CSS.  White
+   (#fff) on #343a40 ≈ 11.5:1 — clears WCAG AA (4.5:1). */
+.dark-select option,
+.dark-select optgroup,
+.settings-v2-select option,
+.settings-v2-select optgroup {
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+/* Override system setting */
+.collapsing {
+	transition:height 0.2s ease !important;
+}
+
+.modal embed {
+    width: 100%;
+    min-height: 85vh;
+}
+
+/* Phase D — claim countdown text under the claim button row. */
+#claim-countdown {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Phase D — hand-result modal styling.  Reuses Bootstrap .modal layout,
+ * paints a mahjong-felt-green border to match the table top. */
+.result-modal-content {
+    background-color: #1f3a26;
+    border: 2px solid #c8a046;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+}
+.result-modal-content .table {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+.result-modal-content #result-headline {
+    font-size: 2.5rem;
+    color: #ffd75e;
+    font-weight: bold;
+}
+.result-modal-content .result-tile {
+    flex: 0 0 auto;
+    width: 68px;
+    aspect-ratio: 4 / 5;
+    margin: 3px 2px 5px;
+    background: #fff9e9;
+    color: #193c2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    font: 700 .8rem/1.2 system-ui, sans-serif;
+    border: 2px solid #d1b968;
+    border-radius: 4px;
+    box-shadow: 0 3px 0 #d1b968;
+    cursor: default;
+    user-select: none;
+}
+.result-modal-content .result-tile-unknown {
+    background-image: none;
+    color: #2a2a2a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+#result-modal { z-index: 1600; }
+#result-modal .modal-dialog {
+    margin: calc(8px + env(safe-area-inset-top)) auto calc(8px + env(safe-area-inset-bottom));
+    width: calc(100% - 16px);
+    min-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height: auto;
+}
+#result-modal .modal-content {
+    min-height: 0;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+#result-modal .modal-body { min-height: 0; overflow-y: auto; }
+#result-modal .modal-footer { flex-shrink: 0; }
+#result-dialog-status, #result-dialog-error { width: 100%; text-align: center; overflow-wrap: anywhere; }
+#result-dialog-status { color: #fff1b8; }
+#result-dialog-error { color: #ffbdbd; }
+#result-next, #result-refresh { min-height: 44px; min-width: 144px; }
+
+/* Phase H Wave 2 — stacked-pattern chips + RobbingKong badge.
+ * Inserted dynamically by game-ui.ts after #result-winner.  Each big-win
+ * pattern (SevenPairs / AllPungs / FullFlush / NineTerminals) gets its own
+ * colour-coded chip; a single-pattern hand renders one chip, a stacked hand
+ * (e.g. 清一色 + 碰碰胡) renders the full strip.  The RobbingKong badge sits
+ * to the left of the chips when the win came via 抢杠胡. */
+#result-pattern-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: -0.25rem;
+    margin-bottom: 0.75rem;
+}
+.result-pattern-chip {
+    position: relative;
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffd75e;
+    line-height: 1.4;
+}
+.result-pattern-chip.pattern-seven-pairs    { background-color: #4a2d6e; color: #d8b9ff; border-color: #8c6dc8; }
+.result-pattern-chip.pattern-all-pungs      { background-color: #6e3a2d; color: #ffc4a8; border-color: #c87a5a; }
+.result-pattern-chip.pattern-full-flush     { background-color: #1d4a8a; color: #a8d4ff; border-color: #4a82d4; }
+.result-pattern-chip.pattern-nine-terminals { background-color: #5a4a1f; color: #ffe9a8; border-color: #c8a046; }
+/* Phase I Wave 1 — contextual Big-Win chips.  Distinct hues so a stacked
+ * hand (e.g. 清一色 + 天和) reads at a glance. */
+.result-pattern-chip.pattern-heavenly-hand  { background-color: #5a1f5a; color: #ffc8ff; border-color: #c846c8; }
+.result-pattern-chip.pattern-earthly-hand   { background-color: #2d4a1d; color: #c8ffa8; border-color: #6ec846; }
+.result-pattern-chip.pattern-last-tile      { background-color: #1d5a5a; color: #a8ffff; border-color: #46c8c8; }
+.result-pattern-chip.pattern-last-discard   { background-color: #5a3a1d; color: #ffd8a8; border-color: #c87a32; }
+.result-pattern-chip.pattern-kong-bloom     { background-color: #6e1f2d; color: #ffa8c4; border-color: #c84a5a; }
+
+/* Phase I Wave 2 — pattern-chip hover tooltip.  Positioned above the chip
+ * via `position: absolute`; pure-CSS reveal on hover.  `pointer-events: none`
+ * keeps the tooltip from blocking clicks on adjacent chips. */
+.pattern-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
+    max-width: 280px;
+    padding: 6px 10px;
+    background-color: rgba(20, 20, 30, 0.96);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: center;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    z-index: 1060; /* above bootstrap .modal (z=1050) */
+}
+.pattern-tooltip .pattern-tooltip-cn {
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #ffd75e;
+    margin-bottom: 2px;
+}
+.pattern-tooltip .pattern-tooltip-en {
+    display: block;
+    color: #e8e8e8;
+}
+.result-pattern-chip:hover .pattern-tooltip,
+.result-pattern-chip:focus .pattern-tooltip {
+    opacity: 1;
+}
+
+/* Phase I Wave 2 — shared win-type pill (自摸 / 点炮 / 抢杠).  The
+ * self-draw and discard pills render next to the winning seat name in
+ * #result-winner; the robbing-kong pill stays in #result-pattern-chips
+ * (where the Wave 2 badge already lives) so the three pills appear in
+ * two locations but speak the same visual language. */
+.result-win-type-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    margin-left: 8px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    border: 1px solid;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+.result-win-type-pill.win-type-self-draw {
+    background-color: #1d5a2d;
+    color: #d6ffbe;
+    border-color: #46c87a;
+    box-shadow: 0 0 6px rgba(70, 200, 122, 0.35);
+}
+.result-win-type-pill.win-type-discard {
+    background-color: #6e5a1f;
+    color: #ffeeb6;
+    border-color: #c8a046;
+    box-shadow: 0 0 6px rgba(200, 160, 70, 0.35);
+}
+.result-win-type-pill.win-type-robbing-kong {
+    background-color: #6e3a1d;
+    color: #ffd8a8;
+    border-color: #ff8c46;
+    box-shadow: 0 0 8px rgba(255, 140, 70, 0.45);
+}
+
+/* Phase D — dice + break-point HUD (top-center). */
+#dice-hud {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    background-color: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-family: Verdana, Arial, sans-serif;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+#dice-hud .dice-face {
+    font-size: 1.6rem;
+    margin-right: 4px;
+}
+#dice-hud .dice-sum {
+    margin: 0 6px;
+    color: #ffd75e;
+    font-weight: bold;
+}
+#dice-hud .dice-break {
+    margin-left: 8px;
+    color: #adebad;
+}
+
+/* Phase D — bot fill banner (bottom-left). */
+#bot-banner {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 50;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.85rem;
+    max-width: 260px;
+    line-height: 1.35;
+    pointer-events: none;
+}
+#bot-banner .bot-banner-title {
+    color: #ffd75e;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 2px;
+}
+#bot-banner .bot-row {
+    display: block;
+}
+#bot-banner .bot-banner-summary { display: none; }
+
+/* ---------------------------------------------------------------------- */
+/* Phase F — variant switching, manual pickup HUD, dice button.           */
+/* ---------------------------------------------------------------------- */
+
+/* Variant-driven visibility toggles — first-paint-safe mode boundary.
+   Changsha is the default variant, so Riichi-only rows AND the upstream relay
+   chrome (Deal / Setup / Dealer / manual Connect·Disconnect·GameID panel /
+   Riichi scoring links — authored with `.relay-only` in index.html) are hidden
+   whenever the body is NOT an explicit Riichi variant, INCLUDING the pre-JS
+   first paint (no variant class yet). This kills the "Riichi 4p / 4p-no-red /
+   Deal" first-paint flash the UAT flagged and keeps relay chrome absent from
+   the Changsha accessibility tree (display:none ⇒ non-operable / unfocusable).
+   Reveal is implicit: under body.variant-riichi neither :not() selector
+   matches, so each control regains its normal game-ui.ts / Bootstrap display
+   without fighting inline display toggles. */
+body:not(.variant-riichi) .riichi-only,
+body:not(.variant-riichi) .relay-only { display: none !important; }
+body.variant-riichi   .changsha-only { display: none !important; }
+
+/* Ferro P0 — persistent one-click New Game.
+   A prominent, text-labeled primary action in the authoritative top-left chrome
+   (NOT the setup/sidebar). position:fixed ⇒ phase-independent: visible during
+   seating, active hand, claim windows, disconnected/reconnecting, AND over the
+   GameComplete modal. Shown in Changsha (the P0 target); relay modes keep their
+   own Deal/new-game affordances so it is hidden there, and it yields while the
+   lobby panel owns the surface. Hicks may toggle [disabled]/aria-busy during
+   navigation to prevent double activation. */
+.new-game-primary {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1300;                 /* above sidebar, HUD, and modal backdrop */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;              /* touch target */
+    min-width: 44px;
+    padding: 8px 16px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #146c43;     /* accessible green, white text ~5:1 */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.new-game-primary:hover { background-color: #12603c; }
+.new-game-primary:focus-visible { outline: 3px solid #ffd75e; outline-offset: 2px; }
+.new-game-primary:disabled,
+.new-game-primary[aria-busy="true"] { opacity: 0.6; cursor: default; pointer-events: none; }
+body.variant-riichi .new-game-primary { display: none; }
+body.lobby-active   .new-game-primary { display: none; }
+
+/* Reserve the sidebar's top-left corner in Changsha: move it below the fixed
+   New Game button so their boxes never overlap. On phones the Changsha sidebar
+   is hidden (FE-6), so this only affects desktop/tablet. */
+body:not(.variant-riichi) #sidebar { top: 64px; max-height: calc(100% - 72px); }
+
+/* Variant badge — top-right pill always visible so players don't have to
+   open the sidebar to confirm what variant they're playing. */
+#variant-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 50;
+    max-width: 116px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background-color: rgba(0, 0, 0, 0.65);
+    color: #ffd75e;
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: bold;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}
+
+/* Pickup HUD — center-bottom banner announcing the current pickup affordance.
+   Shown only when the runtime pushes a non-empty pickup entry. */
+#pickup-hud {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    background-color: rgba(0, 0, 0, 0.78);
+    color: #ffffff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 94, 0.6);
+    display: flex;
+    align-items: center;
+}
+#pickup-hud #pickup-hud-text { margin-right: 8px; }
+#pickup-hud .btn { padding: 4px 12px; }
+
+/* Hicks postfix-verify P0 — turn indicator banner.  Floating top-center pill
+   that surfaces "your turn to discard / pick / claim" cues so the user is
+   never staring at a dealt hand without knowing what to do next.  Hidden by
+   default (HTML `hidden` attr); the .visible class drives the fade-in so the
+   transition runs both ways without a paint-blocking display swap.  Pointer-
+   events stay disabled so the banner never eats clicks targeted at tiles
+   beneath it. */
+#turn-banner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    z-index: 70;
+    background-color: rgba(20, 35, 55, 0.92);
+    color: #ffd75e;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55),
+                0 0 0 2px rgba(255, 215, 94, 0.55) inset;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 220ms ease, transform 220ms ease;
+    white-space: nowrap;
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#turn-banner.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+#turn-banner[hidden] { display: none !important; }
+#turn-banner .turn-banner-countdown {
+    margin-left: 10px;
+    color: #ffffff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+#turn-banner.turn-banner-claim { color: #ffe7a3; }
+#turn-banner.turn-banner-pickup { color: #b8f0ff; }
+#turn-banner.turn-banner-discard { color: #ffd75e; }
+
+/* Hicks postfix-verify P1 — cursor affordance.  Only flip the canvas cursor
+   to pointer when it's our turn to discard; the rest of the time keep the
+   default cursor so casual hover doesn't read as "click me" and the user
+   doesn't fire an out-of-turn toast.  The 3D outline / hover material is
+   intentionally untouched — cheaper than re-plumbing the THREE.js material
+   path and avoids any risk of a render regression. */
+body.my-turn-discard #main canvas {
+    cursor: pointer;
+}
+
+/* Roll-dice button — only the dealer sees this, only on RollingDice phase.
+   Big clickable dice icon at the screen center.  Hidden by default. */
+#roll-dice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 70;
+    background: radial-gradient(circle at 30% 30%, #fffbe8, #d8c989 70%, #978a3f 100%);
+    border: 3px solid #ffd75e;
+    border-radius: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-family: Verdana, Arial, sans-serif;
+    font-weight: bold;
+    color: #2a2a2a;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6),
+                inset 0 0 18px rgba(255, 215, 94, 0.4);
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.1s ease;
+}
+#roll-dice:hover { transform: translate(-50%, -50%) scale(1.04); }
+#roll-dice:active { transform: translate(-50%, -50%) scale(0.97); }
+#roll-dice img {
+    width: 64px;
+    height: 64px;
+    display: block;
+    image-rendering: pixelated;
+    margin-bottom: 4px;
+}
+#roll-dice .roll-dice-label {
+    display: block;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Break marker — small triangle painted at the dice-computed break-point
+   column on the active dealer's wall.  Positioned by world.ts via data-seat
+   and data-col attributes; the MVP overlay drops it at the screen-edge
+   midpoint of the indicated seat. */
+#break-marker {
+    position: absolute;
+    z-index: 55;
+    color: #ff8a4d;
+    font-size: 2rem;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    transition: top 0.2s, left 0.2s;
+}
+#break-marker[data-seat="0"] { bottom: 100px; left: 50%; transform: translateX(-50%); }
+#break-marker[data-seat="1"] { right: 100px; top: 50%; transform: rotate(90deg) translateY(-50%); }
+#break-marker[data-seat="2"] { top: 60px; left: 50%; transform: translateX(-50%) rotate(180deg); }
+#break-marker[data-seat="3"] { left: 100px; top: 50%; transform: rotate(-90deg) translateY(-50%); }
+
+/* Wall-glow — highlight applied via JS to wall tiles that are the next N
+   pickup candidates.  Pure CSS hook; world.ts toggles the class on Thing
+   meshes via the object view layer (extension point for Phase G). */
+.wall-glow {
+    box-shadow: 0 0 12px 4px rgba(255, 215, 94, 0.7);
+    outline: 2px solid #ffd75e;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase G — Lobby panel (top-left overlay) + toggle button.              */
+/* ---------------------------------------------------------------------- */
+
+/* Toggle button: anchored top-left, always visible unless the panel is
+   open (body.lobby-active hides it).  Stays out of the way of the
+   top-right variant badge and the upstream sidebar controls. */
+#lobby-toggle {
+    position: absolute;
+    top: 12px;
+    /* #152 — moved out of the top-left where it overlapped the legacy
+       #sidebar / #deal control panel.  It is an app-chrome affordance, so it
+       now lives in the deterministic top-right toolbar alongside the gear
+       icons and the install button (see the `#152 top-bar layout` block). */
+    right: 228px;
+    z-index: 80;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffd75e;
+    border: 1px solid rgba(255, 215, 94, 0.55);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.3px;
+}
+#lobby-toggle:hover { background-color: rgba(20, 20, 20, 0.92); }
+#lobby-toggle .lobby-toggle-icon { font-size: 1rem; line-height: 1; }
+body.lobby-active #lobby-toggle { display: none; }
+
+/* Hicks e2e wave 27 — accessibility sweep.  The legacy upstream
+   sidebar (#sidebar / #setup-desc / disabled outline-secondary +
+   text-white buttons) is meaningful only during an active game; the
+   lobby/onboarding flow renders entirely over it.  axe-core flags
+   the disabled placeholder buttons inside it as critical contrast
+   violations on every lobby surface (lobby, leaderboard, profile,
+   settings drawer, replay overlay) because they're still in the
+   render tree.  Hiding the sidebar while `body.lobby-active` is set
+   removes the violation set without changing any in-game UX —
+   `lobby-active` is dropped the moment the user clicks Apply /
+   Quick Match.
+   NOTE: the mobile `#move-log-toggle` hamburger is intentionally NOT
+   hidden here — it carries no contrast violation and `selectors.md`
+   pins it as a visible mobile-width lobby surface
+   (`smoke.spec.ts` › "mobile drawer toggle is visible on Pixel 5"). */
+body.lobby-active #sidebar {
+    display: none !important;
+}
+
+/* Hicks e2e wave 27 — accessibility sweep.  Bootstrap 4's stock
+   `.btn-success` (#28a745) against white text resolves to a 3.13:1
+   contrast ratio, which fails WCAG 2 AA (requires 4.5:1).  The
+   buttons are scattered across the lobby (Quick Match / Apply) and
+   onboarding (Continue), so we override globally with a darker
+   green (#146c43, ~5.07:1) and re-derive hover/active states.  All
+   three states keep white text for visual continuity. */
+.btn-success,
+.btn-success:disabled {
+    background-color: #146c43 !important;
+    border-color: #146c43 !important;
+    color: #ffffff !important;
+}
+.btn-success:hover,
+.btn-success:focus,
+.btn-success:focus-visible,
+.btn-success:active,
+.btn-success.active,
+.btn-success.focus,
+.show > .btn-success.dropdown-toggle {
+    background-color: #0f5132 !important;
+    border-color: #0f5132 !important;
+    color: #ffffff !important;
+}
+.btn-success:focus,
+.btn-success.focus,
+.btn-success:focus-visible {
+    box-shadow: 0 0 0 0.2rem rgba(20, 108, 67, 0.5) !important;
+}
+
+/* Panel: hidden by default, shown on first load (no query params) or on
+   toggle click.  Semi-opaque dark backdrop, brass-gold accent matching
+   the rest of the autotable chrome. */
+#lobby-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 90;
+    width: 320px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    background-color: rgba(20, 22, 28, 0.96);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 215, 94, 0.55);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    font-family: Verdana, Arial, sans-serif;
+    display: none;
+}
+#lobby-panel.lobby-open { display: block; }
+
+#lobby-panel .lobby-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 215, 94, 0.25);
+}
+#lobby-panel .lobby-title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #ffd75e;
+    letter-spacing: 0.5px;
+    font-weight: bold;
+}
+#lobby-panel .lobby-close-btn {
+    background: transparent;
+    color: #f0f0f0;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 6px;
+}
+#lobby-panel .lobby-close-btn:hover { color: #ffd75e; }
+
+#lobby-panel .lobby-body {
+    padding: 10px 14px 4px;
+}
+#lobby-panel .lobby-fieldset {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 4px 10px 8px;
+    margin: 0 0 10px;
+    min-width: 0;
+}
+#lobby-panel .lobby-fieldset legend {
+    width: auto;
+    margin: 0;
+    padding: 0 6px;
+    font-size: 0.78rem;
+    color: #ffd75e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 0;
+}
+#lobby-panel .lobby-fieldset label {
+    display: block;
+    margin: 4px 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: #f0f0f0;
+}
+#lobby-panel .lobby-fieldset label input[type="radio"] {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+#lobby-panel .lobby-hint {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75rem;
+    margin-left: 4px;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Greyed-out state for the dealMode (non-Changsha variants) and
+   botDifficulty (when botCount === 0) fieldsets. */
+#lobby-panel .lobby-fieldset.lobby-disabled {
+    opacity: 0.45;
+}
+#lobby-panel .lobby-fieldset.lobby-disabled label {
+    cursor: not-allowed;
+}
+
+#lobby-panel .lobby-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 14px 12px;
+    border-top: 1px solid rgba(255, 215, 94, 0.18);
+}
+#lobby-panel .lobby-footer .btn { font-weight: bold; }
+
+#lobby-panel .lobby-build-info {
+    padding: 10px 14px 12px;
+    border-top: 1px solid rgba(255, 215, 94, 0.25);
+    color: #f0f0f0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+#lobby-panel .lobby-build-info summary {
+    color: #ffd75e;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 8px 0;
+}
+#lobby-panel .lobby-build-info summary:focus-visible,
+#lobby-panel .lobby-build-info button:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+#lobby-panel .lobby-build-info dl { margin: 8px 0; }
+#lobby-panel .lobby-build-info dd { margin: 0 0 8px; }
+#lobby-panel .lobby-build-info code {
+    color: inherit;
+    font-size: inherit;
+    white-space: normal;
+}
+#lobby-panel .lobby-build-info p { margin: 0 0 6px; }
+#lobby-panel .lobby-build-info .btn {
+    min-height: 44px;
+    white-space: normal;
+}
+#build-mismatch {
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid #ffd75e;
+    border-radius: 4px;
+    color: #ffeab0;
+    background: #3a3020;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase H Wave 1 — Advanced (seed), save-defaults, About link.           */
+/* ---------------------------------------------------------------------- */
+
+/* Advanced collapsible — keeps the seed input out of the main UI unless
+   the user explicitly wants reproducible games. */
+#lobby-panel .lobby-advanced {
+    margin: 0 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 4px 10px 6px;
+}
+#lobby-panel .lobby-advanced > summary {
+    font-size: 0.78rem;
+    color: #ffd75e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    padding: 2px 0;
+    list-style: revert;
+    outline: none;
+}
+#lobby-panel .lobby-advanced[open] > summary {
+    margin-bottom: 4px;
+}
+#lobby-panel .lobby-advanced-body {
+    padding-top: 4px;
+}
+#lobby-panel .lobby-seed-label {
+    display: block;
+    margin: 4px 0 4px;
+    font-size: 0.85rem;
+    color: #f0f0f0;
+}
+#lobby-panel #lobby-seed,
+#lobby-panel #lobby-base-unit {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.35);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+}
+#lobby-panel #lobby-base-unit {
+    min-height: 44px;
+}
+#lobby-panel #lobby-seed:focus,
+#lobby-panel #lobby-base-unit:focus {
+    outline: none;
+    border-color: rgba(255, 215, 94, 0.75);
+    background-color: rgba(0, 0, 0, 0.55);
+}
+#lobby-panel #lobby-seed.lobby-seed-invalid,
+#lobby-panel #lobby-base-unit[aria-invalid="true"] {
+    border-color: #ff7a7a;
+    background-color: rgba(80, 20, 20, 0.45);
+}
+#lobby-panel .lobby-seed-error {
+    margin-top: 4px;
+    color: #ff9c9c;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+#lobby-panel .lobby-advanced-hint {
+    margin: 6px 0 2px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* Save-defaults checkbox lives left of the Apply button in the footer. */
+#lobby-panel .lobby-save-defaults {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.8rem;
+    color: #f0f0f0;
+    cursor: pointer;
+    user-select: none;
+}
+#lobby-panel .lobby-save-defaults input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* About / Known Limitations link — small footer row below the apply
+   button.  Low-emphasis colour so it doesn't compete with the primary
+   action. */
+#lobby-panel .lobby-about {
+    padding: 0 14px 12px;
+    text-align: right;
+}
+#lobby-panel .lobby-about a {
+    color: rgba(255, 215, 94, 0.75);
+    font-size: 0.78rem;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255, 215, 94, 0.45);
+}
+#lobby-panel .lobby-about a:hover {
+    color: #ffd75e;
+    border-bottom-color: #ffd75e;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase I Wave 1 — score-multiplier breakdown inside the result modal.   */
+/*                                                                        */
+/* Sits between #result-pattern-chips and #result-score (the cumulative   */
+/* score-delta table).  Hidden on Draw / ZhaHu / pre-V2 wire payloads     */
+/* where Bishop's scoreResult block hasn't shipped yet.                   */
+/* ---------------------------------------------------------------------- */
+#result-score-breakdown {
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(200, 160, 70, 0.45);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 0 auto 0.75rem;
+    max-width: 480px;
+    text-align: center;
+    color: #f5e8c8;
+    font-family: Verdana, Arial, sans-serif;
+}
+#result-score-breakdown .result-score-banner {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+#result-score-breakdown .result-score-banner.category-big-win {
+    color: #ffd75e;
+}
+#result-score-breakdown .result-score-banner.category-small-win {
+    color: #a8e6a8;
+}
+#result-score-breakdown .result-score-calc {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px 18px;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+#result-score-breakdown .result-score-calc strong {
+    color: #ffd75e;
+    margin-right: 4px;
+}
+#result-score-breakdown .result-score-mult-note {
+    color: rgba(245, 232, 200, 0.7);
+    font-size: 0.85em;
+    margin-left: 4px;
+}
+#result-score-breakdown .result-score-payments {
+    border-top: 1px dashed rgba(200, 160, 70, 0.35);
+    margin-top: 4px;
+    padding-top: 6px;
+    text-align: left;
+    display: inline-block;
+    min-width: 240px;
+}
+#result-score-breakdown .result-score-payments-heading {
+    color: #ffd75e;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    text-align: center;
+}
+#result-score-breakdown .result-score-payment {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding-left: 12px;
+    cursor: help;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase I Wave 1 — streaming move-log sidebar.                           */
+/*                                                                        */
+/* Top-right, beneath the variant badge.  Sized to ~280px wide so it      */
+/* doesn't crowd the dice HUD (top-center) on common widths.  Scrolls     */
+/* internally; the host body never gains a scrollbar.                     */
+/* ---------------------------------------------------------------------- */
+#move-log {
+    position: absolute;
+    top: 70px;
+    right: 12px;
+    z-index: 45;
+    width: 300px;
+    max-height: 60vh;
+    background-color: rgba(20, 30, 26, 0.86);
+    border: 1px solid rgba(200, 160, 70, 0.5);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    color: #e8e0c8;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: auto;
+}
+#move-log .move-log-header {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(200, 160, 70, 0.35);
+    padding: 4px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+#move-log .move-log-title {
+    color: #ffd75e;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+#move-log .move-log-clear {
+    background: transparent;
+    border: 1px solid rgba(200, 160, 70, 0.35);
+    color: rgba(255, 215, 94, 0.65);
+    border-radius: 3px;
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0;
+}
+#move-log .move-log-clear:hover {
+    color: #ffd75e;
+    border-color: #ffd75e;
+}
+#move-log .move-log-entries {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 4px 8px 6px;
+    scroll-behavior: smooth;
+}
+#move-log .move-log-entries::-webkit-scrollbar {
+    width: 6px;
+}
+#move-log .move-log-entries::-webkit-scrollbar-thumb {
+    background-color: rgba(200, 160, 70, 0.4);
+    border-radius: 3px;
+}
+#move-log .move-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px dotted rgba(200, 160, 70, 0.12);
+    line-height: 1.35;
+    word-break: break-word;
+}
+#move-log .move-log-entry:last-child {
+    border-bottom: none;
+}
+#move-log .move-log-ts {
+    color: rgba(168, 230, 168, 0.75);
+    font-variant-numeric: tabular-nums;
+    margin-right: 4px;
+}
+#move-log .move-log-seat {
+    color: #ffd75e;
+    font-weight: 600;
+}
+#move-log .move-log-action {
+    color: #e8e0c8;
+}
+
+/* Per-category accent stripes — quick visual scan by event class. */
+#move-log .move-log-match   { border-left: 3px solid #c8a046; padding-left: 6px; background-color: rgba(200, 160, 70, 0.08); }
+#move-log .move-log-dice    { border-left: 3px solid #adebad; padding-left: 6px; }
+#move-log .move-log-pickup  { border-left: 3px solid #6ec0c8; padding-left: 6px; }
+#move-log .move-log-discard { border-left: 3px solid rgba(255, 255, 255, 0.18); padding-left: 6px; }
+#move-log .move-log-claim   { border-left: 3px solid #d8b9ff; padding-left: 6px; }
+#move-log .move-log-kong    { border-left: 3px solid #ff8888; padding-left: 6px; }
+#move-log .move-log-win     { border-left: 3px solid #ffd75e; padding-left: 6px; background-color: rgba(255, 215, 94, 0.1); font-weight: 600; }
+
+/* Push the move-log out of the way while the lobby panel is open. */
+body.lobby-active #move-log {
+    display: none;
+}
+
+/* Compact the log on narrower viewports so it doesn't eat the dice HUD. */
+@media (max-width: 1100px) {
+    #move-log {
+        width: 240px;
+        font-size: 0.75rem;
+        max-height: 50vh;
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase I Wave 3 — Game ID input row (above the in-game Connect button)  */
+/* and inline error styling.  Visually echoes the Phase G/H lobby panel   */
+/* inputs (seed field, fieldsets) so the two control surfaces feel       */
+/* like one design system.                                                */
+/* ---------------------------------------------------------------------- */
+#sidebar .lobby-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+#sidebar .lobby-row > label {
+    font-size: 0.78rem;
+    color: #ffd75e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+    font-weight: 600;
+}
+#sidebar .lobby-row > input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.35);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+#sidebar .lobby-row > input:focus {
+    outline: none;
+    border-color: rgba(255, 215, 94, 0.75);
+    background-color: rgba(0, 0, 0, 0.55);
+}
+#sidebar .lobby-row > input.lobby-error-input {
+    border-color: #ff7a7a;
+    background-color: rgba(80, 20, 20, 0.45);
+}
+.lobby-error {
+    color: #ff9c9c;
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+#sidebar .lobby-row .current-game-display {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78rem;
+    font-style: italic;
+    line-height: 1.3;
+    word-break: break-all;
+}
+#sidebar .lobby-row .current-game-display #current-game-id {
+    color: #ffd75e;
+    font-family: 'Courier New', monospace;
+    font-style: normal;
+    font-weight: 600;
+}
+
+/* Connected/disconnected visibility for the Game ID row.  Mirrors the
+   #server scoping pattern (style.css:87-88) but anchored on the lobby
+   row itself so we don't need a global body class.  client-ui.ts
+   toggles .connected on #lobby-gameId-row in onConnect/onDisconnect. */
+#lobby-gameId-row:not(.connected) .server-connected { display: none; }
+#lobby-gameId-row.connected .server-disconnected { display: none !important; }
+
+/* ---------------------------------------------------------------------- */
+/* Phase I Wave 4 — Spectator mode.                                       */
+/*                                                                        */
+/* The Spectating pill lives inside #current-game-display next to the     */
+/* Game: <id> label and is shown only when client-ui.ts has flipped its   */
+/* .visible class on (driven by the page URL's ?seat=-1).  Same green     */
+/* family as the self-draw win-type pill at style.css:311-316 so the      */
+/* connected-state pills share a visual language.                         */
+/*                                                                        */
+/* body.spectating hides the seat-only affordances (take-seat row, Deal,  */
+/* Leave-seat, claim buttons, pickup HUD, roll-dice).  The spectator just */
+/* watches the table from the neutral camera.                             */
+/* ---------------------------------------------------------------------- */
+
+#sidebar .lobby-row #spectator-pill {
+    display: none;
+    background-color: #1d5a2d;
+    color: #d6ffbe;
+    border: 1px solid #46c87a;
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.3;
+    box-shadow: 0 0 6px rgba(70, 200, 122, 0.35);
+    vertical-align: middle;
+    font-style: normal;
+}
+#sidebar .lobby-row #spectator-pill.visible { display: inline-block; }
+
+/* Hide seat-only affordances when the local connection is a spectator.
+   We use body.spectating (not a connect-time CSS toggle) so the buttons
+   stay hidden between page load and WS JOINED for refresh paths that
+   carry ?seat=-1 on the URL.  !important on .seat-buttons is needed
+   because game-ui.ts:updateSeats sets style.display = 'block' inline
+   when client.seat === null; the spectator short-circuit there also
+   handles this path, but !important is the belt to the JS braces. */
+body.spectating .seat-buttons { display: none !important; }
+body.spectating #deal,
+body.spectating #leave-seat,
+body.spectating #toggle-dealer,
+body.spectating #claim-pung,
+body.spectating #claim-chow,
+body.spectating #claim-kong,
+body.spectating #claim-hu,
+body.spectating #claim-pass,
+body.spectating #claim-countdown,
+body.spectating #pickup-hud,
+body.spectating #roll-dice { display: none !important; }
+
+/* ---------------------------------------------------------------------- */
+/* Phase I Wave 4 — lobby seat picker inline hint.                        */
+/*                                                                        */
+/* Sits below the Spectate radio and surfaces the all-bots-watch          */
+/* contract.  Hidden by default; lobby.ts:refreshDisabledStates toggles   */
+/* it via inline style.display.                                           */
+/* ---------------------------------------------------------------------- */
+#lobby-panel #lobby-spectator-hint {
+    margin: 6px 0 2px;
+    color: rgba(214, 255, 190, 0.85);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    background-color: rgba(29, 90, 45, 0.35);
+    border-left: 3px solid #46c87a;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+/* Greyed-out style for the 4-bot radio when it's disabled (seat ≠
+   spectate).  Mirrors the .lobby-disabled fieldset opacity for visual
+   parity. */
+#lobby-panel .lobby-fieldset label.lobby-radio-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase J Wave 1 — Hot-seat swap.                                        */
+/*                                                                        */
+/* The Move button + inline picker sit between the Game-ID/spectator pill */
+/* row and the Leave-seat row.  Visibility is fully driven by game-ui.ts  */
+/* (inline style.display): shown only while the WS is connected AND no    */
+/* match is in progress (Phase == Seating), so players can't bail         */
+/* mid-hand.  Styles here only describe the picker's appearance.          */
+/* ---------------------------------------------------------------------- */
+
+.move-seat-panel {
+    margin-top: 6px;
+    padding: 6px;
+    background-color: rgba(20, 20, 20, 0.85);
+    border: 1px solid #555;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.move-seat-panel .move-seat-option {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+}
+
+.move-seat-panel .move-seat-option:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase J Wave 2 — Connection-lost banner.                               */
+/*                                                                        */
+/* Top-center banner that surfaces the WS reconnect lifecycle: yellow     */
+/* while attempting, red on failure, green flash on success.  Replaces    */
+/* the silent-go-stale behaviour of the pre-Wave-2 reconnect loop.        */
+/* ---------------------------------------------------------------------- */
+.connection-banner {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1100;
+    min-width: 320px;
+    max-width: 90vw;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.connection-banner-reconnecting {
+    background-color: #5a4a1f;
+    color: #ffe9a8;
+    border: 1px solid #c8a046;
+}
+
+.connection-banner-failed {
+    background-color: #5a1d1d;
+    color: #ffb0b0;
+    border: 1px solid #c84646;
+}
+
+.connection-banner-success {
+    background-color: #1d4a1d;
+    color: #b0ffb0;
+    border: 1px solid #46c846;
+}
+
+.connection-banner-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.connection-banner-actions .btn {
+    font-size: 0.8rem;
+    padding: 2px 10px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phase J Wave 2 — Settings drawer (gear icon + slide-out panel).        */
+/*                                                                        */
+/* Toggle button sits at the top-right, immediately left of the variant   */
+/* badge.  The drawer slides in from the right when open and exposes the  */
+/* bot-strength / hand-count / auto-deal knobs.                           */
+/* ---------------------------------------------------------------------- */
+#settings-toggle {
+    position: absolute;
+    top: 12px;
+    right: 184px;
+    z-index: 51;
+    background-color: rgba(0, 0, 0, 0.65);
+    color: #ffd75e;
+    border: 1px solid rgba(255, 215, 94, 0.4);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+#settings-toggle:hover {
+    background-color: rgba(40, 30, 0, 0.85);
+    transform: rotate(45deg);
+}
+#settings-toggle .settings-toggle-icon {
+    display: inline-block;
+}
+
+.settings-drawer {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    height: 100vh;
+    z-index: 1500;
+    background-color: rgba(20, 20, 20, 0.96);
+    border-left: 1px solid #555;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+    transition: right 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    color: #e0e0e0;
+    font-family: Verdana, Arial, sans-serif;
+}
+.settings-drawer.settings-open {
+    right: 0;
+}
+
+.settings-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #444;
+}
+.settings-drawer-title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #ffd75e;
+}
+.settings-drawer-close {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 6px;
+}
+.settings-drawer-close:hover { color: #ffd75e; }
+
+.settings-drawer-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 14px 16px;
+}
+
+.settings-row {
+    margin-bottom: 16px;
+}
+
+.settings-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #ffd75e;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.settings-checkbox-label {
+    display: block;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.settings-checkbox-label input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+#settings-table-display .settings-checkbox-label {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+}
+#settings-table-display .settings-hint { margin-left: 0; }
+body.theme-light #settings-drawer .settings-label,
+body.theme-light #settings-drawer .settings-drawer-title { color: #5a3a00; }
+body.theme-light #settings-drawer .settings-hint,
+body.theme-light #settings-drawer .settings-drawer-close { color: #495057; }
+.settings-hint {
+    display: block;
+    color: rgba(224, 224, 224, 0.6);
+    font-size: 0.78rem;
+    margin-top: 2px;
+    margin-left: 22px;
+}
+
+.settings-drawer-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid #444;
+    gap: 12px;
+}
+.settings-saved-note {
+    color: #9ee69e;
+    font-weight: 600;
+}
+.settings-drawer-footer .btn { font-weight: bold; }
+
+/* ---------------------------------------------------------------------- */
+/* Phase J Wave 2 — End-of-game summary modal.                            */
+/*                                                                        */
+/* Bootstrap modal painted with the same green/gold palette as the hand-  */
+/* result modal so the two read as a family.  Shows per-seat totals + a   */
+/* hand-by-hand recap with one row per completed hand.                    */
+/* ---------------------------------------------------------------------- */
+.game-complete-modal-content {
+    background-color: #1f3a26;
+    border: 2px solid #c8a046;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 28px rgba(0, 0, 0, 0.7);
+}
+.game-complete-modal-content .table {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+.game-complete-modal-content #game-complete-headline {
+    font-size: 2.4rem;
+    color: #ffd75e;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.game-complete-modal-content #game-complete-subtitle {
+    font-size: 1rem;
+}
+
+.game-complete-section {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.game-complete-section-title {
+    font-size: 1rem;
+    color: #ffd75e;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.game-complete-self {
+    color: #ffd75e !important;
+    font-weight: bold;
+}
+
+.game-complete-recap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background-color: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+    padding: 8px 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+}
+.game-complete-recap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 0;
+}
+.game-complete-recap-label {
+    color: #cccccc;
+    font-weight: 600;
+    flex: 0 0 auto;
+}
+.game-complete-recap-summary {
+    color: #e0e0e0;
+    text-align: right;
+    flex: 1 1 auto;
+}
+.game-complete-recap-hu { color: #9ee69e; }
+.game-complete-recap-zha { color: #ff9494; }
+.game-complete-recap-draw { color: #cccccc; font-style: italic; }
+.game-complete-recap-empty {
+    color: rgba(224, 224, 224, 0.6);
+    text-align: center;
+    font-style: italic;
+}
+
+/* ── Phase J Wave 3 — Replay viewer + Sound toggle ──────────────────── */
+
+/* Replay viewer is a full-screen overlay (sits above everything except
+   modal dialogs).  Hidden by default; .replay-open slides it in. */
+.replay-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    background: rgba(8, 14, 20, 0.94);
+    display: none;
+    color: #e0e0e0;
+}
+.replay-screen.replay-open {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+}
+.replay-shell {
+    margin: 24px;
+    width: 100%;
+    max-width: 1180px;
+    background: linear-gradient(180deg, #14223a 0%, #0b1424 100%);
+    border: 1px solid #1f3a5f;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+.replay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid #1f3a5f;
+}
+.replay-title {
+    margin: 0;
+    color: #ffd166;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+.replay-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.replay-selector-label {
+    color: #cccccc;
+    font-size: 0.85rem;
+    margin: 0;
+}
+#replay-hand-selector {
+    min-width: 220px;
+}
+.replay-close-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 6px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+.replay-close-btn:hover { opacity: 1; }
+.replay-body {
+    flex: 1 1 auto;
+    display: flex;
+    overflow: hidden;
+}
+.replay-board-pane {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 16px;
+}
+.replay-side-pane {
+    flex: 0 0 260px;
+    border-left: 1px solid #1f3a5f;
+    background: rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+}
+.replay-side-title {
+    margin: 0;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    color: #ffd166;
+    border-bottom: 1px solid #1f3a5f;
+}
+.replay-move-log {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.82rem;
+}
+.replay-move {
+    display: grid;
+    grid-template-columns: 32px 32px 1fr auto;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.replay-move-idx { color: rgba(255, 255, 255, 0.45); }
+.replay-move-seat { color: #88c0d0; font-weight: 600; }
+.replay-move-verb { color: #cccccc; }
+.replay-move-tile {
+    font-weight: 600;
+    padding: 0 4px;
+    border-radius: 3px;
+}
+.replay-move-draw { background: rgba(158, 230, 158, 0.04); }
+.replay-move-discard { background: rgba(255, 148, 148, 0.04); }
+.replay-move-meld { background: rgba(255, 209, 102, 0.04); }
+.replay-board {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.replay-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: rgba(224, 224, 224, 0.7);
+    padding: 32px;
+    font-style: italic;
+}
+.replay-seat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.replay-seat-title {
+    font-weight: 600;
+    color: #88c0d0;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+.replay-seat-title.replay-seat-winner {
+    color: #ffd166;
+}
+.replay-tile-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 3px 0;
+}
+.replay-tile-row-label {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75rem;
+    width: 92px;
+    flex: 0 0 92px;
+}
+.replay-tile-row-tiles {
+    flex: 1 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+.replay-tile-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.78rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.replay-tile-chip.suit-m { background: rgba(193, 90, 90, 0.18); border-color: rgba(193, 90, 90, 0.35); }
+.replay-tile-chip.suit-p { background: rgba(90, 140, 193, 0.18); border-color: rgba(90, 140, 193, 0.35); }
+.replay-tile-chip.suit-s { background: rgba(90, 193, 120, 0.18); border-color: rgba(90, 193, 120, 0.35); }
+.replay-tile-chip.replay-tile-discard {
+    opacity: 0.85;
+    text-decoration: line-through;
+}
+.replay-tile-chip.replay-tile-meld {
+    box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.5) inset;
+}
+.replay-tile-empty {
+    color: rgba(255, 255, 255, 0.35);
+    font-style: italic;
+}
+.replay-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-top: 1px solid #1f3a5f;
+}
+.replay-timeline {
+    flex: 1 1 auto;
+    accent-color: #ffd166;
+}
+.replay-timeline-label {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.82rem;
+    min-width: 110px;
+    text-align: right;
+}
+
+@media (max-width: 720px) {
+    .replay-body { flex-direction: column; }
+    .replay-side-pane { flex: 0 0 auto; max-height: 200px; }
+    .replay-board { grid-template-columns: 1fr; }
+}
+
+/* ====================================================================== */
+/* Phase J Wave 4 — Lobby polish + reconnect UI + mobile responsiveness.  */
+/* ====================================================================== */
+
+/* ---------------------------------------------------------------------- */
+/* Lobby player chip strip                                                */
+/* ---------------------------------------------------------------------- */
+.lobby-players-strip {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+}
+.lobby-section-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 8px;
+}
+.lobby-players-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 36px;
+}
+.lobby-player-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 999px;
+    background: var(--chip-color, #4a4a4a);
+    color: #fff;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    max-width: 100%;
+}
+.lobby-player-chip-avatar {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+.lobby-player-chip-nick {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lobby-player-chip-seat {
+    flex: 0 0 auto;
+    min-width: 16px;
+    text-align: center;
+    padding: 0 4px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lobby seat preview grid                                                */
+/* ---------------------------------------------------------------------- */
+.lobby-seat-preview {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+}
+.lobby-seat-preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.lobby-seat-preview-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.82rem;
+}
+.lobby-seat-preview-cell.lobby-seat-preview-empty {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+.lobby-seat-preview-cell.lobby-seat-preview-bot {
+    border-color: rgba(255, 209, 102, 0.4);
+    background: rgba(255, 209, 102, 0.08);
+}
+.lobby-seat-preview-wind {
+    font-weight: 700;
+    color: #ffd166;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+}
+.lobby-seat-preview-occupant {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lobby card-group (Bots, Hand count, Bot difficulty)                    */
+/* ---------------------------------------------------------------------- */
+.lobby-card-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 6px;
+    border: 0;
+    padding: 0;
+    margin: 0 0 12px;
+}
+.lobby-card-group legend {
+    grid-column: 1 / -1;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 6px;
+}
+.lobby-card-option {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+    text-align: center;
+}
+.lobby-card-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.lobby-card-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+.lobby-card-label {
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+.lobby-card-group:has(input:checked) .lobby-card-option {
+    /* dim non-selected options when at least one is selected */
+}
+.lobby-card-option:has(input:checked) {
+    background: rgba(255, 209, 102, 0.15);
+    border-color: rgba(255, 209, 102, 0.6);
+}
+.lobby-card-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lobby Quick Match + Settings shortcut                                  */
+/* ---------------------------------------------------------------------- */
+.lobby-footer #lobby-quick-match {
+    margin-right: 8px;
+}
+.lobby-settings-shortcut {
+    padding: 8px 16px 12px;
+    text-align: right;
+}
+.lobby-settings-link {
+    background: none;
+    border: 0;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.lobby-settings-link:hover {
+    color: #ffd166;
+    background: rgba(255, 209, 102, 0.08);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reconnect copy-link button + toast region                              */
+/* ---------------------------------------------------------------------- */
+#connection-banner-copy-link {
+    margin-right: 6px;
+}
+.toast-region {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: 90vw;
+}
+.toast {
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: rgba(20, 30, 40, 0.95);
+    color: #fff;
+    font-size: 0.88rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 200ms ease, transform 200ms ease;
+    pointer-events: auto;
+    border-left: 3px solid #4a90e2;
+    max-width: 80vw;
+}
+.toast-error {
+    border-left-color: #e74c3c;
+}
+.toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile move-log drawer toggle (hamburger)                              */
+/* ---------------------------------------------------------------------- */
+#move-log-toggle {
+    display: none;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 70;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(200, 160, 70, 0.5);
+    background: rgba(20, 30, 26, 0.86);
+    color: #e8e0c8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+#move-log-toggle:hover {
+    background: rgba(40, 50, 46, 0.92);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Media query 1: ≤ 1024 px — tablet landscape compaction                 */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+    #sidebar {
+        width: 200px;
+    }
+    #move-log {
+        width: 220px;
+        max-height: 50vh;
+        font-size: 0.74rem;
+    }
+    #lobby-panel {
+        max-width: 92vw;
+    }
+
+    /* Blocker D (Bishop rev2 / Hudson) — secondary touch-target minimums on
+       mobile/tablet (incl. landscape/tablet). Raise the app-chrome toggles, the
+       Take Seat buttons, and the relay Deal to the 44px minimum. Sizes/padding only —
+       no anchor moves, no Changsha/relay visibility change. #settings-toggle grows
+       from 36→44px within its existing gap (right:184 meets #lobby-toggle at right:228);
+       #move-log-toggle is already 44px. */
+    #settings-toggle {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+    }
+    #lobby-toggle {
+        min-height: 44px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    .seat-button .take-seat {
+        min-height: 44px;
+    }
+    /* Relay Deal + Setup controls (reinforces the variant-riichi ≤900 touch rule up to
+       tablet width; inert in Changsha where the sidebar is hidden / relay-only). */
+    body.variant-riichi #sidebar #deal,
+    body.variant-riichi #sidebar #toggle-setup {
+        min-height: 44px;
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Media query 2: ≤ 768 px — tablet portrait / large phone                */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    /* Show the mobile move-log hamburger; hide the desktop move-log */
+    /* sidebar by default, reveal it via body.move-log-open.         */
+    #move-log-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #move-log {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 280px;
+        max-width: 80vw;
+        max-height: 100vh;
+        transform: translateX(100%);
+        transition: transform 220ms ease;
+        z-index: 65;
+        border-radius: 0;
+        box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+    }
+    body.move-log-open #move-log {
+        transform: translateX(0);
+    }
+
+    /* Sidebar slides out from the left, narrower */
+    #sidebar {
+        width: 180px;
+        font-size: 0.85rem;
+    }
+    #sidebar .d-flex {
+        flex-direction: column;
+    }
+    #sidebar .d-flex > .mr-2,
+    #sidebar .d-flex > .ml-2 {
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+        margin-top: 4px;
+    }
+
+    /* Modals: fill width minus margin */
+    .modal-dialog {
+        max-width: 95vw;
+        margin: 16px auto;
+    }
+    .modal-lg,
+    .modal-xl {
+        max-width: 95vw;
+    }
+    .result-modal-content,
+    .game-complete-modal-content {
+        padding: 8px;
+    }
+
+    /* Tap targets ≥ 44 px per directive */
+    .btn-sm {
+        min-height: 36px;
+    }
+    .seat-button .take-seat,
+    .seat-button .kick {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    #lobby-toggle,
+    #settings-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Ferro WP-E/#120 — the mobile connect-flow controls (four Take Seat
+       buttons + Deal) must be tappable with an ORDINARY tap: no forced /
+       positioned / uncovered-pixel routing.  The game HUD lives inside
+       `#full` (position:fixed → its own stacking context), so the body-
+       level chrome (chat z1450, #settings-toggle, #move-log-toggle,
+       #lobby-toggle) paints above the whole HUD regardless of any z-index
+       set inside #full.  We therefore fix each overlap at its real cause:
+
+       1) Seat pick vs. the in-#full sidebar.  The `.seat-buttons` layer
+          (shown only while unseated — a modal "pick your seat" step) had no
+          z-index, so #sidebar (later in the DOM) covered the left seat
+          button.  Raising it works here because both live inside #full.
+          Keep the dim non-interactive so the chrome underneath stays
+          reachable (never traps the user); when the lobby is open it owns
+          the foreground, so drop the dim back beneath the panel (z 90). */
+    .seat-buttons {
+        z-index: 1460;
+        pointer-events: none;
+    }
+    .seat-button {
+        pointer-events: auto;
+    }
+    body.lobby-active .seat-buttons {
+        z-index: auto;
+    }
+
+    /*    2) Seat buttons vs. body-level edge chrome.  z-index can't lift a
+          child of #full above body-level chrome, so separate them
+          positionally instead: pull the bottom (self) seat button up clear
+          of the chat header, and the top seat button down clear of the
+          settings / move-log toggle row.  Both stay horizontally centred. */
+    .seat-button-0 {
+        bottom: 84px;
+    }
+    .seat-button-2 {
+        top: 84px;
+    }
+
+    /*    3) Deal button.  #deal sits at the top of #sidebar (top-left),
+          directly under the fixed #lobby-toggle (top:12).  Drop the sidebar
+          below the toggle so #deal clears it and is tappable once seated;
+          cap the height + scroll so the taller sidebar never runs off the
+          bottom of the phone viewport. */
+    #sidebar {
+        top: 60px;
+        max-height: calc(100% - 60px);
+        overflow-y: auto;
+    }
+
+    /* HUD elements stack instead of overlap */
+    #pickup-hud {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        max-width: 92vw;
+    }
+    #dice-hud {
+        font-size: 1rem;
+    }
+
+    /* Variant badge less prominent on phone */
+    #variant-badge {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+
+    /* Lobby fills more of the viewport */
+    #lobby-panel {
+        max-width: 96vw;
+        max-height: 92vh;
+    }
+    .lobby-card-group {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    }
+
+    /* Settings drawer: full-width slide-down at this width */
+    #settings-drawer {
+        width: 100vw;
+        max-width: 100vw;
+        right: 0;
+        left: 0;
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Media query 3: ≤ 480 px — phone portrait                               */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 480px) {
+    /* Settings drawer: full-screen overlay */
+    #settings-drawer {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        top: 0;
+        right: 0;
+        border-radius: 0;
+    }
+
+    /* Lobby fills the screen */
+    #lobby-panel {
+        max-width: 100vw;
+        max-height: 100vh;
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+    .lobby-header {
+        padding: 12px 14px;
+    }
+    .lobby-body {
+        padding: 12px 14px;
+    }
+
+    /* Player chips: stack vertically when too narrow */
+    .lobby-players-list {
+        flex-direction: column;
+    }
+    .lobby-player-chip {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .lobby-player-chip-nick {
+        max-width: none;
+        flex: 1 1 auto;
+    }
+
+    /* Seat preview: single column */
+    .lobby-seat-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Card group: 2 columns */
+    .lobby-card-group {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Modal dialogs use the full screen */
+    .modal-dialog {
+        max-width: 100vw;
+        margin: 0;
+        height: 100vh;
+    }
+    .modal-content {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+
+    /* Banner: stack action buttons under the text on the narrowest widths */
+    .connection-banner {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 10px 12px;
+    }
+    .connection-banner-actions {
+        display: flex !important;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+    .connection-banner-actions .btn {
+        width: 100%;
+    }
+
+    /* Variant badge tucks into a single-line minimal pill */
+    #variant-badge {
+        top: 8px;
+        right: 8px;
+        font-size: 0.78rem;
+    }
+
+    /* Move-log drawer: full-width on the narrowest widths */
+    #move-log {
+        width: 100vw;
+        max-width: 100vw;
+    }
+
+    /* Lobby footer wraps onto two lines, both buttons full-width */
+    .lobby-footer {
+        flex-wrap: wrap;
+    }
+    .lobby-footer .btn {
+        width: 100%;
+        margin-top: 6px;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * FE-6 / UAT G20 — phone + tablet layout for authoritative Changsha.
+ *
+ * The legacy #sidebar is position:absolute over the WebGL canvas (top-left,
+ * 220px) and had no breakpoint below 1100px, so on phones/tablets it covered
+ * the table (UAT shot 04) and competed with the ratio-letterboxed canvas.
+ * In Changsha the relay chrome is already removed (see the variant gate
+ * above); the residual seat/help rows are non-essential on touch — claims
+ * render in the bottom ClaimWindowOverlay, pickup in #pickup-hud, discard is
+ * tap-to-discard, and new-game/leave route through the Lobby — so drop the
+ * whole panel to free the canvas. Relay variants keep their sidebar.
+ *
+ * Placed AFTER every earlier mobile @media block so it wins same-specificity
+ * conflicts. Covers narrow (phone portrait + tablet portrait, <=900px) OR
+ * short (phone landscape, <=520px) viewports; both orientations. The remaining
+ * letterbox dead-space is the fixed-RATIO renderer (main-view.ts:357-371,
+ * Hicks) — flagged as an integration seam, not fixable from CSS.
+ * ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px), (max-height: 520px) {
+    body:not(.variant-riichi) #sidebar { display: none !important; }
+
+    /* Compact the New Game button so it sits clear of the top toolbar
+       (#lobby-toggle at right:228 lands mid-left on phones). Text stays
+       (not icon-only); min-height 44px touch target preserved. */
+    .new-game-primary { font-size: 0.8rem; padding: 8px 10px; }
+
+    /* Move the turn banner to a second row (below the New Game button + the
+       badge/toolbar) so the top row never overlaps at narrow widths. */
+    body:not(.variant-riichi) #turn-banner {
+        top: 62px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%) translateY(0);
+        max-width: calc(100vw - 20px);
+        font-size: 0.9rem;
+        padding: 7px 14px;
+    }
+
+    /* Blocker C (Bishop rev2) — mobile/tablet touch targets for the RELAY primary
+       controls. In relay variants the sidebar stays visible (only Changsha hides it,
+       above), but its Bootstrap `btn-sm` / `form-control-sm` Deal + Setup affordances
+       render ~31px tall — below the 44px touch minimum and hard to tap. Enforce a
+       readable >=44px target here without regressing desktop (>900px keeps the compact
+       Bootstrap sizing) and without altering the custom dark-select colours/contrast.
+       The rules are variant-scoped so the (hidden) Changsha sidebar is unaffected. */
+    body.variant-riichi #sidebar #deal,
+    body.variant-riichi #sidebar #setup-desc,
+    body.variant-riichi #sidebar #toggle-setup,
+    body.variant-riichi #sidebar .dark-select {
+        min-height: 44px;
+        font-size: 0.9rem;           /* readable (~14px) */
+    }
+    body.variant-riichi #sidebar #deal { display: flex; align-items: center; justify-content: center; }
+    body.variant-riichi #sidebar .dark-select {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        line-height: 1.3;            /* keep native option text legible + tappable */
+    }
+    /* Keep the Deal row and the Setup-desc/toggle row from crowding at narrow widths. */
+    body.variant-riichi #sidebar .d-flex { row-gap: 6px; }
+}
+
+/* Phone-portrait only: #lobby-toggle's desktop right:228 lands mid-left at
+   ≤480px and would collide with the top-left New Game button. Drop it to a
+   flush-right second row and narrow the turn banner so the button stays clear.
+   (On landscape/tablet the toolbar is already far-right — no move needed.) */
+@media (max-width: 480px) {
+    body:not(.variant-riichi) #lobby-toggle { top: 60px; right: 8px; }
+    body:not(.variant-riichi) #turn-banner { max-width: 180px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Phase J Wave 7 — App-wide settings drawer + profile page + replay
+ * controls.  The Wave-2 per-game drawer remains; this new drawer is a
+ * sibling surface keyed by `mahjong.settings.v1`.
+ * ════════════════════════════════════════════════════════════════════ */
+
+#settings-button {
+    position: fixed;
+    top: 12px;
+    right: 136px;
+    z-index: 1100;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 215, 94, 0.4);
+    background: rgba(15, 30, 55, 0.85);
+    color: #ffd75e;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: background 120ms ease, transform 120ms ease;
+}
+#settings-button:hover {
+    background: rgba(30, 55, 95, 0.95);
+    transform: rotate(45deg);
+}
+#settings-button:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.settings-drawer-v2 {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    max-width: 100vw;
+    height: 100vh;
+    background: #0a1932;
+    border-left: 1px solid rgba(255, 215, 94, 0.3);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 220ms ease;
+    visibility: hidden;
+}
+.settings-drawer-v2.settings-drawer-v2-open {
+    transform: translateX(0);
+    visibility: visible;
+}
+.settings-drawer-v2-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 215, 94, 0.2);
+}
+.settings-drawer-v2-title {
+    color: #ffd75e;
+    font-size: 18px;
+    margin: 0;
+}
+.settings-drawer-v2-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+}
+.settings-drawer-v2-close:hover { color: #ffd75e; }
+.settings-drawer-v2-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px 0;
+    border-bottom: 1px solid rgba(255, 215, 94, 0.15);
+}
+.settings-v2-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: #ccc;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    transition: background 120ms ease, color 120ms ease;
+}
+.settings-v2-tab:hover { color: #ffd75e; }
+.settings-v2-tab[aria-selected="true"],
+.settings-v2-tab.settings-v2-tab-active {
+    background: rgba(255, 215, 94, 0.1);
+    border-color: rgba(255, 215, 94, 0.3);
+    color: #ffd75e;
+}
+.settings-v2-tab:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 1px;
+}
+.settings-drawer-v2-panels {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+.settings-v2-panel { display: block; }
+.settings-v2-panel[hidden] { display: none; }
+.settings-v2-field {
+    display: block;
+    margin-bottom: 14px;
+}
+.settings-v2-field-label {
+    display: block;
+    color: #ddd;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+.settings-v2-input,
+.settings-v2-select {
+    width: 100%;
+    background: rgba(20, 40, 70, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.settings-v2-input:focus,
+.settings-v2-select:focus {
+    outline: 2px solid #ffd75e;
+    outline-offset: 1px;
+}
+.settings-v2-input-invalid {
+    border-color: #ff7373;
+    background: rgba(80, 20, 20, 0.5);
+}
+.settings-v2-color-presets {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.settings-v2-color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+}
+.settings-v2-color-swatch.settings-v2-color-swatch-selected,
+.settings-v2-color-swatch[aria-checked="true"] {
+    border-color: #ffd75e;
+    transform: scale(1.1);
+}
+.settings-v2-color-swatch:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+.settings-v2-checkbox-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #ddd;
+    font-size: 13px;
+    gap: 12px;
+}
+.settings-v2-checkbox-row input[type="checkbox"] {
+    accent-color: #ffd75e;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+.settings-v2-color-custom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #ccc;
+    font-size: 12px;
+    gap: 8px;
+}
+.settings-v2-color-custom-row input[type="color"] {
+    width: 36px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+}
+.settings-drawer-v2-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-top: 1px solid rgba(255, 215, 94, 0.2);
+}
+.settings-drawer-v2-footer .settings-saved-note-v2 {
+    color: #5fc97a;
+    margin-right: auto;
+    font-size: 12px;
+}
+.settings-drawer-v2-footer .btn { font-weight: bold; }
+
+/* ─── Profile page overlay ───────────────────────────────────────── */
+
+.profile-page {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1600;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 40px 16px;
+}
+.profile-page.profile-page-open {
+    display: flex;
+}
+.profile-page-shell {
+    width: 100%;
+    max-width: 720px;
+    background: rgba(15, 30, 55, 0.97);
+    border: 1px solid rgba(255, 215, 94, 0.3);
+    border-radius: 10px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+    padding: 0;
+    overflow: hidden;
+}
+.profile-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    background: rgba(20, 40, 70, 0.6);
+    border-bottom: 1px solid rgba(255, 215, 94, 0.2);
+}
+.profile-page-identity {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.profile-page-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2980b9;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+.profile-page-name {
+    color: #ffd75e;
+    margin: 0 0 2px;
+    font-size: 20px;
+}
+.profile-page-member-since {
+    color: #aaa;
+    font-size: 12px;
+}
+.profile-page-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+}
+.profile-page-close:hover { color: #ffd75e; }
+.profile-page-close:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+.profile-page-section {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.profile-page-section:last-child { border-bottom: none; }
+.profile-page-section-title {
+    color: #ddd;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0 0 12px;
+}
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+.profile-stat-card {
+    background: rgba(25, 50, 90, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+.profile-stat-label {
+    display: block;
+    color: #aaa;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+}
+.profile-stat-value {
+    display: block;
+    color: #ffd75e;
+    font-size: 18px;
+    font-weight: bold;
+}
+.profile-page-field {
+    display: block;
+    margin-bottom: 12px;
+}
+.profile-page-field-label {
+    display: block;
+    color: #ccc;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+}
+.profile-page-input {
+    width: 100%;
+    max-width: 320px;
+    background: rgba(20, 40, 70, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.profile-page-input:focus {
+    outline: 2px solid #ffd75e;
+    outline-offset: 1px;
+}
+.profile-page-input-invalid {
+    border-color: #ff7373;
+    background: rgba(80, 20, 20, 0.5);
+}
+.profile-page-error {
+    display: block;
+    color: #ff7373;
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 1em;
+}
+.profile-page-color-presets {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+    max-width: 320px;
+}
+.profile-page-color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+}
+.profile-page-color-swatch.profile-page-color-swatch-selected,
+.profile-page-color-swatch[aria-checked="true"] {
+    border-color: #ffd75e;
+    transform: scale(1.1);
+}
+.profile-page-color-swatch:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+.profile-page-color-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ccc;
+    font-size: 12px;
+}
+.profile-page-color-custom {
+    width: 36px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+}
+.profile-recent-games {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.profile-recent-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    background: rgba(25, 50, 90, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    font-size: 13px;
+}
+.profile-recent-row-win {
+    border-left: 3px solid #5fc97a;
+}
+.profile-recent-row-loss {
+    border-left: 3px solid #c95f5f;
+}
+.profile-recent-row-draw {
+    border-left: 3px solid #c9b85f;
+}
+.profile-recent-label {
+    color: #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.profile-recent-score {
+    color: #ffd75e;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+}
+.profile-recent-meta {
+    color: #aaa;
+    font-size: 11px;
+    min-width: 80px;
+    text-align: right;
+}
+.profile-recent-replay {
+    font-size: 12px;
+    font-weight: bold;
+}
+.profile-recent-replay:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+.profile-recent-loading,
+.profile-recent-error {
+    color: #aaa;
+    font-size: 12px;
+    padding: 8px 4px;
+}
+.profile-recent-error { color: #ff9090; }
+.profile-recent-empty {
+    color: #aaa;
+    font-style: italic;
+    font-size: 12px;
+    padding: 8px 4px;
+}
+
+/* ─── Wave 7 replay footer additions ─────────────────────────────── */
+
+.replay-source-label {
+    color: #aaa;
+    font-size: 11px;
+    margin-right: 8px;
+    font-style: italic;
+}
+.replay-speed-select {
+    max-width: 90px;
+    margin: 0 6px;
+}
+.replay-event-counter {
+    color: #ffd75e;
+    font-size: 12px;
+    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+    min-width: 70px;
+    text-align: right;
+}
+
+@media (max-width: 720px) {
+    .settings-drawer-v2 { width: 100vw; }
+    /* #152 — keep the square gear aligned with the top-bar cluster
+       (variant-badge right:12 / settings-toggle right:184) instead of the old
+       right:52 which overlapped the variant badge. */
+    #settings-button { right: 136px; top: 12px; }
+    .profile-page { padding: 16px 8px; }
+}
+
+/* ─── Wave 7 leaderboard "View" column ────────────────────────────── */
+.lb-col-action,
+.lb-cell-action {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+.lb-view-btn {
+    background: rgba(255, 215, 94, 0.15);
+    border: 1px solid rgba(255, 215, 94, 0.4);
+    color: #ffd75e;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background 120ms ease;
+}
+.lb-view-btn:hover {
+    background: rgba(255, 215, 94, 0.25);
+}
+.lb-view-btn:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Phase J Wave 8 — Auth, rule presets, spectator follow,
+ * reduced-motion + theme palette.
+ * ─────────────────────────────────────────────────────────────── */
+
+/* Auth cluster (top-right header next to gears) ──────────────────── */
+.auth-cluster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#signin-button,
+#logout-button {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #f5f5f5;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 120ms ease;
+}
+#signin-button:hover,
+#logout-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+#signin-button:focus-visible,
+#logout-button:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 2px;
+}
+#auth-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 215, 94, 0.15);
+    border: 1px solid rgba(255, 215, 94, 0.4);
+    color: #ffd75e;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+#auth-status-chip[hidden] {
+    display: none;
+}
+.auth-status-chip-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Sign-in modal ────────────────────────────────────────────────── */
+.signin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f5f5f5;
+}
+.signin-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 0;
+}
+.signin-modal-backdrop[hidden] {
+    display: none;
+}
+/* The actual dialog surface.  Stacks above the backdrop (which is a
+ * sibling, not an ancestor, in the DOM) so its controls — notably the
+ * close button — receive pointer events instead of the backdrop. */
+.signin-modal-card {
+    position: relative;
+    z-index: 1;
+    background: #1f1f24;
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+.signin-modal h2 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+.signin-modal p {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+.signin-providers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.signin-provider-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #f5f5f5;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 120ms ease;
+}
+.signin-provider-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+.signin-email-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.signin-email-row input[type="email"] {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.signin-error {
+    color: #ff6b6b;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.signin-error[hidden] {
+    display: none;
+}
+.signin-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+.signin-modal-panel[hidden] {
+    display: none;
+}
+
+/* Magic-link landing overlay ────────────────────────────────────── */
+#magic-link-landing {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+#magic-link-landing[hidden] {
+    display: none;
+}
+.magic-link-landing-card {
+    background: #1f1f24;
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+}
+.magic-link-landing-card h2 {
+    margin: 0 0 12px 0;
+    font-size: 22px;
+}
+.magic-link-landing-card p {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Profile linked accounts ──────────────────────────────────────── */
+.profile-linked-accounts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+.profile-linked-account-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    font-size: 13px;
+}
+.profile-linked-account-provider {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.profile-linked-account-email {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+/* Rule preset picker (lobby) + editor (settings drawer) ─────────── */
+.lobby-rule-preset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.lobby-rule-preset-label {
+    min-width: 80px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+.lobby-rule-preset-create-link {
+    display: inline-block;
+    color: #ffd75e;
+    font-size: 12px;
+    text-decoration: none;
+    margin-top: 4px;
+}
+.lobby-rule-preset-create-link:hover {
+    text-decoration: underline;
+}
+/* Ferro WP-E/#131 — prominent "preview / not yet functional" banner atop the
+   rule-preset editor so authoring inert presets can't imply a gameplay
+   effect. Amber caution styling; removed when #130 wires the semantics. */
+.rule-preset-preview-notice {
+    margin: 0 0 12px 0;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 193, 7, 0.55);
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    background: rgba(255, 193, 7, 0.12);
+    color: #ffe08a;
+    font-size: 0.85rem;
+    line-height: 1.35;
+}
+.rule-preset-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.rule-preset-editor-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.rule-preset-editor-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.rule-preset-editor-row label {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+}
+.rule-preset-editor-row input[type="text"],
+.rule-preset-editor-row input[type="number"] {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #f5f5f5;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 140px;
+}
+.rule-preset-editor-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.rule-preset-editor-status {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    min-height: 1.2em;
+}
+.rule-preset-editor-readonly {
+    color: rgba(255, 215, 94, 0.7);
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Spectator follow panel ───────────────────────────────────────── */
+.spectator-follow-panel {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(20, 20, 24, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #f5f5f5;
+    font-size: 12px;
+    z-index: 1500;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+body.spectating .spectator-follow-panel {
+    display: block;
+}
+/* Replay has its own controls; restore the live camera dock when it closes. */
+.replay-screen.replay-open ~ .spectator-follow-panel {
+    display: none;
+}
+/* Keep the two docks separate, including the collapsed chat opener. */
+@media (min-width: 901px), (orientation: landscape) {
+    body.spectating .spectator-follow-panel {
+        left: max(12px, env(safe-area-inset-left));
+        right: auto;
+        width: min(340px, calc(50vw - 24px - env(safe-area-inset-left)));
+        max-height: calc(100dvh - 132px);
+        overflow-y: auto;
+    }
+    body.spectating .chat-panel {
+        right: max(12px, env(safe-area-inset-right));
+        max-width: calc(50vw - 24px - env(safe-area-inset-right));
+    }
+}
+@media (max-width: 900px) and (orientation: portrait) {
+    body.spectating .spectator-follow-panel {
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        bottom: calc(64px + env(safe-area-inset-bottom) + var(--game-viewport-bottom, 0px));
+    }
+}
+.spectator-follow-heading {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: rgba(255, 255, 255, 0.85);
+}
+.spectator-follow-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+.spectator-follow-button {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+}
+.spectator-follow-button.active {
+    background: rgba(255, 215, 94, 0.25);
+    border-color: rgba(255, 215, 94, 0.6);
+    color: #ffd75e;
+}
+.spectator-follow-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.spectator-follow-hint {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+/* Show-all hand reveal hint (best-effort; backend owns canonical
+ * tile reveal so this is local CSS only — when on, semitransparency
+ * is removed on peer hand groups so the markup the renderer paints
+ * doesn't get further masked). */
+body.spectator-show-all .player-hand-other {
+    opacity: 1 !important;
+}
+
+/* Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    body:not(.full-motion) *,
+    body:not(.full-motion) *::before,
+    body:not(.full-motion) *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+}
+
+/* Dark / light theme palette — applied only to chrome (menus,
+ * overlays, drawers).  The 3D canvas is unaffected. */
+body.theme-light .lobby,
+body.theme-light .settings-drawer,
+body.theme-light .settings-drawer-v2,
+body.theme-light .profile-page,
+body.theme-light .signin-modal,
+body.theme-light .magic-link-landing-card {
+    background: #fafafa;
+    color: #1a1a1a;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+body.theme-light .lobby input[type="text"],
+body.theme-light .lobby input[type="email"],
+body.theme-light .lobby input[type="number"],
+body.theme-light .lobby select,
+body.theme-light .settings-drawer-v2 input,
+body.theme-light .settings-drawer-v2 select,
+body.theme-light .profile-page input,
+body.theme-light .profile-page select,
+body.theme-light .signin-modal input,
+body.theme-light .signin-modal select {
+    background: #ffffff;
+    color: #1a1a1a;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+body.theme-light .lobby-card-option,
+body.theme-light .lobby-fieldset {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+body.theme-light .lobby-rule-preset-create-link,
+body.theme-light #auth-status-chip {
+    color: #8a6300;
+}
+
+/* Phase J Wave 7 + Wave 27 (Hicks a11y) — In theme-light mode the
+ * V2 settings drawer flips to a near-white background (`#fafafa`),
+ * but the drawer's internal text classes still target the dark-mode
+ * palette (`#ccc`, `#aaa`, `#ddd`).  Re-color those nodes to
+ * Bootstrap's `#495057` (≈8.6:1 contrast on `#fafafa`) so axe's
+ * `color-contrast` rule passes when the drawer is opened during
+ * the a11y sweep. */
+body.theme-light .settings-v2-tab,
+body.theme-light .settings-v2-color-custom-row,
+body.theme-light .settings-v2-field-label,
+body.theme-light .settings-v2-checkbox-row,
+body.theme-light .settings-drawer-v2-close,
+body.theme-light .settings-v2-help,
+body.theme-light .settings-v2-section-title {
+    color: #495057;
+}
+body.theme-light .settings-v2-tab[aria-selected="true"],
+body.theme-light .settings-v2-tab.settings-v2-tab-active {
+    color: #5a3a00;
+    background: rgba(255, 215, 94, 0.18);
+}
+body.theme-light .settings-drawer-v2-title {
+    color: #5a3a00;
+}
+
+/* ---------------------------------------------------------------
+ * Phase J Wave 9 — Chat panel.
+ *
+ * Bottom-right docked.  Collapsed = header pill only (just a toggle
+ * button).  Open = composer + scrollable messages list above the
+ * header.  The panel grows upward from the header so it doesn't
+ * overlap the autotable canvas.
+ * --------------------------------------------------------------- */
+.chat-panel {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    max-height: 75vh;
+    max-height: 75dvh;
+    z-index: 1480;
+    display: flex;
+    flex-direction: column;
+    background: rgba(28, 32, 38, 0.96);
+    color: #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    font-size: 13px;
+}
+.chat-panel.chat-panel-collapsed {
+    max-height: 44px;
+}
+.chat-panel.chat-panel-collapsed .chat-panel-body {
+    display: none;
+}
+.chat-header {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 6px;
+}
+.chat-toggle {
+    background: transparent;
+    color: inherit;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+.chat-toggle:hover { background: rgba(255, 255, 255, 0.06); }
+.chat-toggle:focus-visible,
+.chat-panel button:focus-visible,
+.chat-panel a:focus-visible {
+    outline: 2px solid #7db9ff;
+    outline-offset: 2px;
+}
+.chat-toggle-label { display: inline-block; }
+.chat-collapse { display: none; }
+.chat-panel-collapsed .chat-header-selectors { display: none !important; }
+@media (min-width: 901px) and (min-height: 521px) {
+    .chat-header { flex-wrap: wrap; }
+    .chat-toggle { flex: 1; min-height: 32px; text-align: left; }
+    .chat-collapse:not([hidden]) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 32px;
+        min-height: 32px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: inherit;
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .chat-collapse:hover { background: rgba(128, 128, 128, 0.2); }
+    .chat-panel .chat-header-selectors { order: 1; flex-basis: 100%; }
+    .chat-panel-collapsed .chat-toggle::after { content: '▴'; float: right; }
+}
+.chat-header-selectors {
+    display: flex;
+    gap: 6px;
+    flex: 1 1 0;
+    flex-wrap: wrap;
+    min-width: 0;
+    justify-content: flex-end;
+}
+.chat-header-selectors > .dark-listbox,
+.chat-recipient-wrap {
+    flex: 1 1 8rem;
+    min-width: 0;
+}
+.chat-header-selectors .dark-listbox { min-width: 0; }
+.chat-header-selectors .dark-listbox-trigger {
+    box-sizing: border-box;
+    width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.chat-header-selectors .dark-listbox-popup { box-sizing: border-box; }
+.chat-header-selectors .dark-listbox-option { overflow-wrap: anywhere; }
+.chat-channel-select,
+.chat-recipient-select {
+    max-width: 130px;
+    min-width: 90px;
+}
+.chat-panel-body {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+#chat-room-content {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+    min-width: 0;
+}
+.chat-invite-unread {
+    display: inline-block;
+    min-width: 20px;
+    margin-left: 4px;
+    padding: 1px 5px;
+    border-radius: 12px;
+    background: #b83443;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+.chat-social-section {
+    flex: 0 0 auto;
+    padding: 10px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+}
+.chat-section-title {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.chat-room-title { margin: 8px; flex: 0 0 auto; }
+.chat-social-status {
+    margin: 4px 0;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+.online-players-list,
+.incoming-invites {
+    max-height: 210px;
+    overflow-y: auto;
+}
+.online-player {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+.online-player-name { overflow-wrap: anywhere; }
+.online-player-invite {
+    max-width: 150px;
+    min-height: 44px;
+    white-space: normal;
+}
+.online-player-availability {
+    grid-column: 1 / -1;
+    font-size: 12px;
+}
+.online-player-availability:empty { display: none; }
+.table-invite {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 8px;
+    margin: 6px 0;
+    padding: 8px;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    border-radius: 5px;
+    overflow-wrap: anywhere;
+}
+.table-invite > strong,
+.table-invite > span { grid-column: 1; }
+.table-invite > a {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    min-height: 44px;
+    align-content: center;
+}
+.table-invite > small { grid-column: 1 / -1; }
+.table-invite a[aria-disabled="true"] {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+.lobby-room-configuration {
+    padding: 8px;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    border-radius: 5px;
+    overflow-wrap: anywhere;
+}
+.lobby-table-link-output { width: 100%; margin-top: 6px; }
+.chat-message-time { font-size: 10px; opacity: 0.75; }
+.chat-unavailable {
+    padding: 10px;
+    background: rgba(180, 60, 60, 0.18);
+    color: #ffd0d0;
+    font-style: italic;
+    text-align: center;
+}
+.chat-messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 120px;
+    max-height: 360px;
+    min-width: 0;
+}
+.chat-empty {
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    text-align: center;
+    padding: 12px 4px;
+}
+.chat-message {
+    display: flex;
+    flex: 0 0 auto;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 6px;
+}
+.chat-message-self {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+.chat-message-self .chat-message-bubble {
+    background: rgba(64, 120, 200, 0.30);
+    text-align: right;
+}
+.chat-message-other .chat-message-bubble {
+    background: rgba(255, 255, 255, 0.08);
+}
+.chat-message-system .chat-message-bubble {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+.chat-message-system .chat-message-avatar {
+    display: none;
+}
+.chat-message-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #555;
+    color: white;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+.chat-message-bubble {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 8px;
+    border-radius: 6px;
+    max-width: calc(100% - 38px);
+    min-width: 0;
+    word-break: break-word;
+}
+.chat-message-author {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 2px;
+}
+.chat-message-body {
+    white-space: pre-wrap;
+}
+.chat-status {
+    padding: 0 8px;
+    color: #ffb3b3;
+    font-size: 12px;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 120ms;
+}
+.chat-status.chat-status-visible {
+    max-height: 160px;
+    min-height: 16px;
+    padding: 4px 8px;
+    overflow-y: auto;
+}
+.chat-composer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 8px;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
+}
+.chat-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.25);
+    color: #f0f0f0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 4px 6px;
+    resize: vertical;
+    min-height: 40px;
+    max-height: 120px;
+    font-family: inherit;
+    font-size: 13px;
+}
+.chat-input:focus {
+    outline: 2px solid rgba(64, 120, 200, 0.6);
+    outline-offset: 0;
+    border-color: transparent;
+}
+.chat-composer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.chat-char-count {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.chat-char-count.chat-char-count-over {
+    color: #ff8080;
+    font-weight: 600;
+}
+.chat-send {
+    min-width: 64px;
+}
+
+/* Theme-light overrides for chat */
+body.theme-light .chat-panel {
+    background: rgba(252, 252, 252, 0.98);
+    color: #1a1a1a;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+body.theme-light .chat-header {
+    background: rgba(0, 0, 0, 0.04);
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+body.theme-light .chat-message-self .chat-message-bubble {
+    background: rgba(64, 120, 200, 0.18);
+}
+body.theme-light .chat-message-other .chat-message-bubble {
+    background: rgba(0, 0, 0, 0.05);
+}
+body.theme-light .chat-input {
+    background: white;
+    color: #1a1a1a;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+body.theme-light .chat-composer {
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ---------------------------------------------------------------
+ * Phase J Wave 9 — Replay viewer tabs (Replay / Audit).
+ * --------------------------------------------------------------- */
+.replay-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 0 12px;
+}
+.replay-tab {
+    background: transparent;
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: none;
+    padding: 4px 12px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+}
+.replay-tab:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+.replay-tab.replay-tab-active {
+    background: rgba(255, 255, 255, 0.08);
+    font-weight: 600;
+}
+.replay-pane {
+    flex: 1 1 auto;
+    display: none;
+    overflow: auto;
+}
+.replay-pane.replay-pane-active {
+    display: flex;
+    flex-direction: column;
+}
+.replay-audit-empty {
+    padding: 16px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+.replay-audit-table {
+    display: grid;
+    grid-template-columns: 80px 1fr 110px 140px 80px 1fr;
+    gap: 4px 12px;
+    padding: 12px;
+    font-size: 12px;
+    overflow-x: auto;
+}
+.replay-audit-row {
+    display: contents;
+}
+.replay-audit-row > span {
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    word-break: break-word;
+}
+.replay-audit-header > span {
+    background: rgba(255, 255, 255, 0.06);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+.replay-audit-source-bot {
+    color: #ffce6b;
+}
+.replay-audit-source-human {
+    color: #a3e3a3;
+}
+.replay-audit-source-system {
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+
+/* ─── Phase J Wave 10 ─────────────────────────────────────────────────
+ *
+ * Wave 10 ships a CSP-tightening pass that drops `'unsafe-inline'` from
+ * the `style-src` directive.  Every `style="..."` HTML attribute that
+ * previously inlined trivial display/width/padding values has been
+ * migrated to a real CSS class below.  Anything that needs to be
+ * initially hidden via the HTML5 `hidden` attribute relies on
+ * Bootstrap's UA-like `[hidden] { display: none !important; }` rule
+ * (see node_modules/bootstrap/dist/css/bootstrap.css:352).
+ * ----------------------------------------------------------------- */
+
+/* CSP-style claim countdown (formerly `style="display:none; font-size:0.8rem"`). */
+.claim-countdown {
+    font-size: 0.8rem;
+}
+
+/* CSP-style help dropdown menu width (formerly `style="width:300px"`). */
+.dropdown-menu.dropdown-menu-help {
+    width: 300px;
+}
+
+/* CSP-style modal source-citation block (formerly inline padding/margin). */
+.modal-source-cite {
+    padding: 1rem;
+    padding-top: 0;
+    margin-top: -0.5rem;
+}
+
+/* ─── Phase J Wave 10 — Spectator chat polish ─────────────────────── */
+
+#chat-panel[data-channel="spectators"] .chat-message-channel-spectators,
+#chat-panel[data-channel="spectator-private"] .chat-message-channel-spectator-private,
+.chat-message-channel-spectators,
+.chat-message-channel-spectator-private {
+    border-left: 2px solid #4dd0e1;
+    padding-left: 6px;
+}
+.chat-message-channel-spectators .chat-message-author::before,
+.chat-message-channel-spectator-private .chat-message-author::before {
+    content: '👁 ';
+    color: #4dd0e1;
+    margin-right: 2px;
+}
+.chat-message-channel-spectator-private .chat-message-author::after {
+    content: ' 🔒';
+    color: #4dd0e1;
+    margin-left: 2px;
+    font-size: 0.85em;
+}
+/* Surface the active channel via a thin accent strip on the panel header. */
+#chat-panel[data-channel="spectators"] .chat-header,
+#chat-panel[data-channel="spectator-private"] .chat-header {
+    box-shadow: inset 0 -2px 0 #4dd0e1;
+}
+#chat-panel[data-channel="private"] .chat-header {
+    box-shadow: inset 0 -2px 0 #c061cb;
+}
+
+/* ─── Phase J Wave 10 — Avatar migration modal ────────────────────── */
+
+.migrate-avatar-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.migrate-avatar-card {
+    background: var(--panel-bg, #2b2b2b);
+    color: var(--panel-fg, #fff);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 420px;
+    width: 92%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+.migrate-avatar-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.migrate-avatar-body {
+    margin: 0 0 1rem 0;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.85);
+}
+.migrate-avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+}
+.migrate-avatar-swatch {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 80ms ease, border-color 80ms ease;
+}
+.migrate-avatar-swatch:hover {
+    transform: scale(1.06);
+}
+.migrate-avatar-swatch.migrate-avatar-swatch-selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+.migrate-avatar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* ─── Phase J Wave 10 — Tournaments tab ──────────────────────────── */
+
+.lobby-tab-tournaments-empty {
+    padding: 1rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.65);
+}
+.tournament-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+.tournament-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+}
+.tournament-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.tournament-row-name {
+    font-weight: 600;
+}
+.tournament-row-meta {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+}
+.tournament-detail {
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+}
+.tournament-bracket,
+.tournament-standings {
+    margin-top: 0.75rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    white-space: pre;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.5rem;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+.tournament-create-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    margin-top: 0.75rem;
+}
+
+/* ─── Phase J Wave 10 — Audit "Why?" reasoning expand ─────────────── */
+
+.audit-why-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.85);
+    padding: 1px 6px;
+    font-size: 0.78rem;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.audit-why-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.audit-reasoning-row {
+    background: rgba(255, 255, 255, 0.03);
+}
+.audit-reasoning-list {
+    margin: 0;
+    padding: 0.5rem 1rem 0.5rem 1.5rem;
+    list-style: disc;
+    font-size: 0.82rem;
+}
+.audit-reasoning-item {
+    margin: 0.1rem 0;
+    color: rgba(255, 255, 255, 0.85);
+}
+.audit-reasoning-win {
+    color: #a3e3a3;
+}
+.audit-reasoning-caution {
+    color: #ffd75e;
+}
+.audit-reasoning-suboptimal {
+    color: #ff6b6b;
+}
+.audit-reasoning-unavailable {
+    padding: 0.5rem 1rem;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Phase K Wave 1 — Tournament SVG bracket, match history modal,
+ * leaderboard rating delta, onboarding tour overlay.
+ * ─────────────────────────────────────────────────────────────── */
+
+/* ── Tournament bracket SVG ────────────────────────────────────── */
+.tournament-bracket-svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 6px;
+    padding: 12px;
+    display: block;
+}
+.tournament-bracket-match {
+    cursor: pointer;
+    fill: rgba(255, 255, 255, 0.05);
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 1;
+    transition: fill 120ms ease, stroke 120ms ease;
+}
+.tournament-bracket-match:hover,
+.tournament-bracket-match:focus {
+    fill: rgba(255, 215, 94, 0.12);
+    stroke: rgba(255, 215, 94, 0.7);
+    outline: none;
+}
+.tournament-bracket-match.pending {
+    fill: rgba(255, 255, 255, 0.04);
+    stroke-dasharray: 4 3;
+}
+.tournament-bracket-match.in-progress {
+    fill: rgba(94, 158, 255, 0.18);
+    stroke: rgba(94, 158, 255, 0.7);
+}
+.tournament-bracket-match.complete {
+    fill: rgba(163, 227, 163, 0.12);
+    stroke: rgba(163, 227, 163, 0.7);
+}
+.tournament-bracket-match-label {
+    fill: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-family: inherit;
+    pointer-events: none;
+}
+.tournament-bracket-match-score {
+    fill: rgba(255, 215, 94, 0.95);
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+}
+.tournament-bracket-connector {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1;
+}
+.tournament-bracket-detail {
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(0, 0, 0, 0.32);
+    border-left: 3px solid rgba(255, 215, 94, 0.6);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.88);
+}
+.tournament-bracket-detail dt {
+    display: inline-block;
+    min-width: 70px;
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: normal;
+}
+.tournament-bracket-detail dd {
+    display: inline;
+    margin: 0 0 0.25rem 0;
+}
+.tournament-bracket-detail dd::after { content: "\A"; white-space: pre; }
+.tournament-watch-finals {
+    display: inline-block;
+    margin-top: 0.4rem;
+    padding: 4px 10px;
+    background: rgba(255, 215, 94, 0.2);
+    border: 1px solid rgba(255, 215, 94, 0.55);
+    border-radius: 4px;
+    color: #ffd75e;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+.tournament-watch-finals:hover { background: rgba(255, 215, 94, 0.32); }
+
+/* ── Tournament standings table ────────────────────────────────── */
+.tournament-standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 0.88rem;
+}
+.tournament-standings-table th,
+.tournament-standings-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    text-align: left;
+    color: rgba(255, 255, 255, 0.9);
+}
+.tournament-standings-table th {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 215, 94, 0.92);
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+.tournament-standings-table th.sorted-asc::after { content: " ▲"; font-size: 0.75em; }
+.tournament-standings-table th.sorted-desc::after { content: " ▼"; font-size: 0.75em; }
+.tournament-standings-table tr:hover td { background: rgba(255, 255, 255, 0.04); }
+
+/* ── Leaderboard rating mode ───────────────────────────────────── */
+.leaderboard-control-rating input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    accent-color: #ffd75e;
+    vertical-align: middle;
+}
+.leaderboard-rating-status {
+    margin: 6px 0;
+    padding: 4px 10px;
+    background: rgba(255, 215, 94, 0.12);
+    border-left: 3px solid rgba(255, 215, 94, 0.6);
+    color: rgba(255, 215, 94, 0.95);
+    font-size: 0.82rem;
+    border-radius: 3px;
+}
+.lb-cell-rating,
+.lb-col-rating {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    min-width: 64px;
+}
+.lb-cell-rating-delta,
+.lb-col-rating-delta {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    min-width: 64px;
+}
+.lb-delta-up { color: #a3e3a3; font-weight: bold; }
+.lb-delta-down { color: #ff8a8a; font-weight: bold; }
+.lb-delta-zero { color: rgba(255, 255, 255, 0.5); }
+
+/* ── Match history modal ───────────────────────────────────────── */
+.history-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    padding: 1rem;
+}
+.history-modal[hidden] { display: none; }
+.history-modal-shell {
+    width: min(640px, 100%);
+    max-height: 92vh;
+    overflow: auto;
+    background: #1f242b;
+    border: 1px solid rgba(255, 215, 94, 0.4);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+.history-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    gap: 0.6rem;
+}
+.history-modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #ffd75e;
+}
+.history-modal-close {
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+}
+.history-modal-close:hover { color: #ffd75e; }
+.history-modal-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    align-items: flex-end;
+    margin-bottom: 0.8rem;
+}
+.history-modal-controls label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.7);
+    gap: 0.18rem;
+}
+.history-modal-controls select,
+.history-modal-controls input[type="date"] {
+    background: #2a2f37;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.92);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+.history-modal-status {
+    margin: 0.4rem 0;
+    color: rgba(255, 215, 94, 0.92);
+    font-size: 0.82rem;
+}
+.history-recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    margin-top: 0.6rem;
+}
+.history-recent-table th,
+.history-recent-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+}
+.history-recent-table th {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 215, 94, 0.92);
+    cursor: pointer;
+    user-select: none;
+}
+.history-recent-table th.sorted-asc::after { content: " ▲"; font-size: 0.75em; }
+.history-recent-table th.sorted-desc::after { content: " ▼"; font-size: 0.75em; }
+
+/* ── Profile history link ──────────────────────────────────────── */
+.profile-history-link {
+    display: inline-block;
+    margin-top: 0.4rem;
+    padding: 4px 10px;
+    background: rgba(94, 158, 255, 0.18);
+    border: 1px solid rgba(94, 158, 255, 0.5);
+    color: #c4d8ff;
+    border-radius: 4px;
+    font-size: 0.84rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+.profile-history-link:hover { background: rgba(94, 158, 255, 0.28); }
+
+/* ── Onboarding tour overlay ───────────────────────────────────── */
+.tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    pointer-events: auto;
+}
+.tour-overlay[hidden] { display: none; }
+/* Phase K — playability fix: when an overlay/modal is hidden via
+ * aria-hidden="true" but stays in the DOM (sign-in modal, magic-link
+ * landing, onboarding tour), make sure it cannot intercept pointer
+ * events from the lobby/seat/deal controls underneath. */
+.tour-overlay[aria-hidden="true"],
+#tour-overlay[aria-hidden="true"],
+#magic-link-landing[aria-hidden="true"],
+.magic-link-landing[aria-hidden="true"],
+#signin-modal[aria-hidden="true"],
+.signin-modal[aria-hidden="true"],
+#signin-modal-backdrop[aria-hidden="true"] {
+    display: none !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+.tour-overlay-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.tour-overlay-dim {
+    fill: rgba(0, 0, 0, 0.62);
+}
+.tour-spotlight-cutout {
+    /* Stroke is only visible because the cutout is on the dim mask;
+       the spotlight halo is painted by `.tour-step-target` outline. */
+    pointer-events: none;
+}
+.tour-card {
+    position: absolute;
+    z-index: 2001;
+    width: min(360px, calc(100% - 32px));
+    background: #1f242b;
+    border: 1px solid rgba(255, 215, 94, 0.6);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+}
+.tour-card-centered {
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%);
+}
+.tour-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.tour-card-title {
+    margin: 0;
+    font-size: 1.02rem;
+    color: #ffd75e;
+}
+.tour-card-step-counter {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+.tour-card-body {
+    margin: 0 0 0.8rem 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.86);
+}
+.tour-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.tour-card-nav {
+    display: flex;
+    gap: 0.4rem;
+}
+.tour-step-target {
+    position: relative;
+    z-index: 2002;
+    box-shadow: 0 0 0 4px rgba(255, 215, 94, 0.85),
+                0 0 18px 6px rgba(255, 215, 94, 0.45);
+    border-radius: 6px;
+    transition: box-shadow 180ms ease;
+}
+.tour-step-target-secondary {
+    position: relative;
+    z-index: 2002;
+    box-shadow: 0 0 0 3px rgba(94, 158, 255, 0.75),
+                0 0 12px 4px rgba(94, 158, 255, 0.4);
+    border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-step-target,
+    .tour-step-target-secondary,
+    .tournament-bracket-match { transition: none; }
+}

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
+  "_comment_phase_k_w23": "Phase K Wave 23 — Vasquez (Rules Engineer / Tester). Disable cross-collection parallelism so DB-touching test classes don't race each other on the shared CI Postgres database. The per-process throwaway DB (TestInfrastructure/PostgresTestDatabaseLifetime.cs) means there is only ONE Postgres database for the whole test process; if collections ran in parallel they would still collide on schema-reset + seed-data, even with the DatabaseBootstrapper semaphore. Cost: full suite runs ~2x slower (~15min instead of 7min on SQLite). The previous attempt was per-class `[Collection(\"DbSerial\")]` tagging — ~30 of ~150 DB-touching classes were tagged and the rest still raced. Serializing globally is the bulletproof contract Apone's hand-off (apone-db-providers-stuck.md) asked for.",
+  "parallelizeAssembly": false,
+  "parallelizeTestCollections": false
+}

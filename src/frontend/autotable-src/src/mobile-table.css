@@ -1,0 +1,237 @@
+@media (max-width: 900px), (max-height: 520px) {
+    body:not(.variant-riichi):not(.mobile-table-status-visible) #bot-banner { display: none !important; }
+    body:not(.variant-riichi) #bot-banner {
+        top: calc(112px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        width: fit-content;
+        padding: 4px 8px;
+        font-size: 12px;
+        height: 32px;
+        max-width: calc(100vw - 16px);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    body:not(.variant-riichi) #bot-banner .bot-banner-title,
+    body:not(.variant-riichi) #bot-banner .bot-row { display: none; }
+    body:not(.variant-riichi) #bot-banner .bot-banner-summary { display: block; }
+    body:not(.variant-riichi) #lobby-toggle[data-testid] {
+        left: auto;
+        right: max(8px, env(safe-area-inset-right));
+        width: auto;
+        min-width: 44px;
+    }
+    body:not(.variant-riichi) #turn-banner.visible {
+        white-space: normal;
+        line-height: 1.25;
+        max-width: calc(100vw - 88px);
+    }
+    body:not(.variant-riichi) #move-log-toggle { display: flex; }
+    body:not(.variant-riichi) #move-log {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: min(320px, 90vw);
+        max-height: 100dvh;
+        transform: translateX(100%);
+    }
+    body:not(.variant-riichi).move-log-open #move-log { transform: translateX(0); }
+    body:not(.variant-riichi):not(.move-log-open) #move-log { visibility: hidden; }
+    body:not(.variant-riichi) .new-game-primary {
+        top: calc(12px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        left: max(12px, env(safe-area-inset-left));
+    }
+    body:not(.variant-riichi) #turn-banner,
+    body:not(.variant-riichi) #lobby-toggle {
+        top: calc(62px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+    }
+    body:not(.variant-riichi) .chat-panel {
+        bottom: calc(8px + env(safe-area-inset-bottom) + var(--game-viewport-bottom, 0px));
+    }
+    body:not(.variant-riichi) #settings-button { min-width: 44px; min-height: 44px; }
+    .settings-perspective-row { min-height: 44px; margin-bottom: 0; }
+    body:not(.variant-riichi) #settings-button,
+    body:not(.variant-riichi) #settings-toggle,
+    body:not(.variant-riichi) #move-log-toggle,
+    body:not(.variant-riichi) #variant-badge {
+        top: calc(max(8px, env(safe-area-inset-top)) + var(--game-viewport-top, 0px));
+    }
+    body:not(.variant-riichi) #settings-button:hover,
+    body:not(.variant-riichi) #settings-toggle:hover { transform: none; }
+    body:not(.variant-riichi) .settings-button-icon,
+    body:not(.variant-riichi) .settings-toggle-icon {
+        display: inline-block;
+        transition: transform 120ms ease;
+    }
+    body:not(.variant-riichi) #settings-button:hover .settings-button-icon,
+    body:not(.variant-riichi) #settings-toggle:hover .settings-toggle-icon { transform: rotate(45deg); }
+    body:not(.variant-riichi) #pickup-hud,
+    body:not(.variant-riichi) .ferro-claim-overlay {
+        bottom: calc(62px + env(safe-area-inset-bottom) + var(--game-viewport-bottom, 0px));
+    }
+    body:not(.variant-riichi) .ferro-claim-overlay {
+        grid-template-columns: 28px minmax(0, 1fr) 44px;
+        grid-template-rows: auto;
+        gap: 4px;
+        padding: 2px 4px;
+        min-height: 50px;
+    }
+    body:not(.variant-riichi) .ferro-claim-tile { min-width: 0; gap: 0; }
+    body:not(.variant-riichi) .ferro-claim-tile-face {
+        width: 28px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 24px;
+        border-radius: 4px;
+    }
+    body:not(.variant-riichi) .ferro-claim-tile-source { font-size: 8px; line-height: 10px; }
+    body:not(.variant-riichi) .ferro-claim-center { padding-right: 30px; gap: 0; }
+    body:not(.variant-riichi) .ferro-claim-header {
+        position: absolute;
+        right: 52px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    body:not(.variant-riichi) .ferro-claim-timer { font-size: 12px; }
+    body:not(.variant-riichi) .ferro-claim-timer-suffix { font-size: 9px; margin-left: 1px; }
+    body:not(.variant-riichi) .ferro-claim-progress {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        bottom: 0;
+        width: auto;
+        height: 2px;
+    }
+    body:not(.variant-riichi) .ferro-claim-badges { display: flex; gap: 4px; margin: 0; overflow-x: auto; }
+    body:not(.variant-riichi) .ferro-claim-badge { flex: 1 0 44px; min-width: 44px; padding: 2px 4px; }
+    body:not(.variant-riichi) .ferro-claim-badge:not(.ferro-claim-badge-available) { display: none; }
+    body:not(.variant-riichi) .ferro-claim-pass-wrap { grid-column: auto; grid-row: auto; }
+    body:not(.variant-riichi) .ferro-claim-pass {
+        min-width: 44px;
+        width: 44px;
+        padding: 2px;
+        flex-direction: column;
+        gap: 0;
+    }
+    body:not(.variant-riichi) .ferro-claim-title,
+    body:not(.variant-riichi) .ferro-claim-hint,
+    body:not(.variant-riichi) .ferro-claim-badge-key,
+    body:not(.variant-riichi) .ferro-claim-pass-key {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    body:not(.variant-riichi):not(.lobby-active) #move-log,
+    body:not(.variant-riichi):not(.lobby-active) .chat-panel:not(.chat-panel-collapsed) {
+        top: calc(146px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: calc(8px + env(safe-area-inset-bottom) + var(--game-viewport-bottom, 0px));
+        height: auto;
+        max-height: none;
+        z-index: 55;
+    }
+    body:not(.variant-riichi):not(.lobby-active) #move-log {
+        display: flex;
+        flex-direction: column;
+        border-radius: 8px;
+    }
+    body:not(.variant-riichi):not(.lobby-active) #move-log .move-log-entries {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    body:not(.variant-riichi) #turn-banner.visible {
+        left: max(8px, env(safe-area-inset-left));
+        transform: none;
+        max-width: calc(100vw - 80px);
+    }
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+    body:not(.variant-riichi):not(.lobby-active) #move-log,
+    body:not(.variant-riichi):not(.lobby-active) .chat-panel:not(.chat-panel-collapsed) {
+        top: calc(146px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        width: auto;
+        max-width: none;
+        height: clamp(144px, 24dvh, 220px);
+        max-height: clamp(144px, 24dvh, 220px);
+        z-index: 55;
+    }
+    body:not(.variant-riichi):not(.lobby-active) #move-log {
+        display: flex;
+        flex-direction: column;
+        border-radius: 8px;
+    }
+    body:not(.variant-riichi):not(.lobby-active) #move-log .move-log-entries {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+    }
+}
+
+@media (min-width: 481px) and (max-height: 520px) {
+    body:not(.variant-riichi) #turn-banner.visible { top: 12px; max-width: 270px; }
+    body:not(.variant-riichi) #lobby-toggle[data-testid] { top: 62px; right: 152px; }
+    body:not(.variant-riichi) #bot-banner { top: 62px; }
+    body:not(.variant-riichi) .chat-panel-collapsed { top: 62px; bottom: auto; width: 128px; }
+    body:not(.variant-riichi) #pickup-hud,
+    body:not(.variant-riichi) .ferro-claim-overlay {
+        bottom: calc(8px + env(safe-area-inset-bottom) + var(--game-viewport-bottom, 0px));
+    }
+    body:not(.variant-riichi):not(.mobile-table-status-visible) #pickup-hud {
+        top: calc(60px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: 244px;
+        max-width: none;
+        padding: 2px 6px;
+        min-height: 50px;
+        flex-direction: row;
+        gap: 6px;
+        transform: none;
+    }
+    body:not(.variant-riichi) .ferro-claim-overlay {
+        top: calc(60px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: 244px;
+        width: auto;
+        transform: translateY(-8px);
+    }
+    body:not(.variant-riichi) .ferro-claim-overlay-visible { transform: none; }
+    body:not(.variant-riichi):not(.lobby-active) #move-log,
+    body:not(.variant-riichi):not(.lobby-active) .chat-panel:not(.chat-panel-collapsed) {
+        top: calc(114px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+    }
+}
+
+@media (min-width: 901px) and (min-height: 521px) {
+    body:not(.variant-riichi) #bot-banner {
+        /* Two summary lines plus the other three seats, including loading/error states. */
+        height: calc(5 * 1.35em + 14px);
+        overflow: hidden;
+    }
+    body.spectating:not(.variant-riichi) #bot-banner { height: calc(6 * 1.35em + 14px); }
+    body:not(.variant-riichi) #sidebar {
+        left: auto;
+        right: 12px;
+        top: auto;
+        bottom: 68px;
+    }
+}
+
+:root {
+    --game-safe-left: env(safe-area-inset-left, 0px);
+    --game-safe-right: env(safe-area-inset-right, 0px);
+}

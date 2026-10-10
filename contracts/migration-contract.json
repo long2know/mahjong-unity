@@ -1,0 +1,4122 @@
+{
+  "artifactType": "source-informed-migration-contract",
+  "contractVersion": "1.0.0",
+  "authoredBy": "Lead",
+  "requestedBy": "Stephen Long",
+  "createdAtUtc": "2026-10-10T02:55:25.676822+00:00",
+  "requestLocalDateTime": "2026-10-09T19:25:53.644-07:00",
+  "status": "interface-frozen-for-coordinator-acceptance; implementation not performed by Lead",
+  "teamRoot": "/data/source/mahjong-unity/.squad",
+  "repositoryRoot": "/data/source/mahjong-unity",
+  "referenceRoot": "/data/Copilot/GitHub-Copilot-linux-x64.AppImage.home/.copilot/session-state/9c877881-39fd-4e2e-b0af-7a7995b52465/files/reference",
+  "dispatchCycle": 1,
+  "scopeBoundary": "Audit, concrete contracts, governed decision recommendation and named implementation handoff only.",
+  "sourcePins": [
+    {
+      "id": "behavior-baseline",
+      "repository": "https://github.com/long2know/mahjong-autotable",
+      "branch": "main",
+      "revision": "d10d351e543aa3e341960de9800828b6c0662a82",
+      "commitDate": "2026-09-21T22:10:59-07:00",
+      "localPath": "/data/Copilot/GitHub-Copilot-linux-x64.AppImage.home/.copilot/session-state/9c877881-39fd-4e2e-b0af-7a7995b52465/files/reference/mahjong-autotable",
+      "rootLicenseInfo": null,
+      "evidence": [
+        "README.md",
+        "Dockerfile",
+        "src/backend/src/Mahjong.Autotable.Api/Program.cs",
+        "src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj",
+        "src/backend/src/Mahjong.Autotable.Api/Autotable/AutotableWsEndpoint.cs",
+        "src/backend/src/Mahjong.Autotable.Api/Autotable/AutotableProtocol.cs",
+        "src/backend/src/Mahjong.Autotable.Api/Autotable/ChangshaToAutotableTranslator.cs",
+        "src/backend/src/Mahjong.Autotable.Api/Autotable/ChangshaPrivacyProjector.cs",
+        "src/frontend/autotable-src/package.json",
+        "src/frontend/autotable-src/package-lock.json",
+        "src/frontend/autotable-src/COPYING",
+        "src/frontend/autotable-src/README.md",
+        "src/frontend/autotable-src/UPSTREAM_SHA",
+        "src/frontend/autotable-src/src/base-client.ts",
+        "src/frontend/autotable-src/src/client.ts",
+        "src/frontend/autotable-src/src/world.ts",
+        "src/frontend/autotable-src/src/setup.ts",
+        "src/frontend/autotable-src/src/setup-slots.ts",
+        "src/frontend/autotable-src/src/setup-deal.ts",
+        "src/frontend/autotable-src/src/game.ts",
+        "src/frontend/autotable-src/src/lobby.ts",
+        "src/frontend/autotable-src/src/chat.ts",
+        "src/frontend/autotable-src/src/game-state.ts",
+        "src/frontend/autotable-src/src/ui/rule-action-controls.ts",
+        "src/frontend/autotable-src/src/hand-result-state.ts",
+        "src/frontend/autotable-src/tests/node",
+        "src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj"
+      ],
+      "revisionVerification": "git log -1 and gh api repos/long2know/mahjong-autotable/commits/main returned the same full SHA.",
+      "mirrorWarning": "npm build changed dist-size.json, yarn.lock and generated frontend manifest-precache.json in the reference mirror. Pin HEAD, not working-tree contents; import using git archive/git show at this SHA."
+    },
+    {
+      "id": "renderer-upstream",
+      "repository": "https://github.com/pwmarcz/autotable",
+      "branch": "master",
+      "revision": "8b81d92aa37997dcfbcc6724d3bd3f694f9cc53a",
+      "commitDate": "2025-10-21T17:48:31+02:00",
+      "localPath": "/data/Copilot/GitHub-Copilot-linux-x64.AppImage.home/.copilot/session-state/9c877881-39fd-4e2e-b0af-7a7995b52465/files/reference/autotable",
+      "forkProof": "src/frontend/autotable-src/UPSTREAM_SHA equals this revision.",
+      "evidence": [
+        "COPYING",
+        "README.md",
+        "about.html",
+        "src/setup-slots.ts",
+        "server/protocol.ts"
+      ]
+    },
+    {
+      "id": "unity-layout-reference",
+      "repository": "https://github.com/ArcturusZhang/Mahjong",
+      "branch": "master",
+      "revision": "c833d787146210f55e2ceec2cfcded40ecf53a4d",
+      "commitDate": "2019-07-06T19:00:41+08:00",
+      "localPath": "/data/Copilot/GitHub-Copilot-linux-x64.AppImage.home/.copilot/session-state/9c877881-39fd-4e2e-b0af-7a7995b52465/files/reference/unity-example",
+      "editor": "2019.1.8f1 (7938dd008a75)",
+      "rootLicenseInfo": "MIT",
+      "evidence": [
+        "LICENSE",
+        "README.md",
+        "ProjectSettings/ProjectVersion.txt",
+        "Packages/manifest.json",
+        "Assets/Scripts/GamePlay/Client/View/PlayerHandManager.cs",
+        "Assets/Scripts/GamePlay/Client/View/PlayerRiverManager.cs",
+        "Assets/Scripts/GamePlay/Client/View/TileInstance.cs",
+        "Assets/Scripts/Managers/InputManager.cs"
+      ],
+      "finding": "C# MonoBehaviours with separate handHolder/drawnHolder and river transforms are useful conceptual layout references. TileInstance fetches textures from ResourceManager. README explicitly identifies resources fetched from Majsoul. Photon PUN, Japanese game logic and copied resources are not a migration baseline.",
+      "reuse": "Inspect-only; import no code, packages, scenes, prefabs, models, textures, fonts, audio or Photon settings from this repository."
+    }
+  ],
+  "baselineAudit": {
+    "languages": [
+      "C# (.NET backend)",
+      "TypeScript (browser and legacy relay helper)",
+      "HTML/CSS",
+      "Bash/PowerShell"
+    ],
+    "toolchain": {
+      "backend": ".NET 10 / net10.0, EF Core 10.0.0, xUnit 2.9.3, Microsoft.NET.Test.Sdk 17.14.1",
+      "frontendLockedVersions": {
+        "typescript": "5.9.2",
+        "vite": "5.4.21",
+        "three": "0.179.1",
+        "@microsoft/signalr": "10.0.0",
+        "@playwright/test": "1.60.0"
+      },
+      "frontendBuild": "Vite npm run build -> ../autotable; build is transpilation/bundling, not a TypeScript type-check.",
+      "dockerImages": [
+        "node:20-alpine",
+        "mcr.microsoft.com/dotnet/sdk:10.0",
+        "mcr.microsoft.com/dotnet/aspnet:10.0"
+      ],
+      "database": "SQLite default with EF provider switches for PostgreSQL and SQL Server; import existing persistence unchanged."
+    },
+    "entryPoints": {
+      "server": "src/backend/src/Mahjong.Autotable.Api/Program.cs",
+      "browserHtml": "src/frontend/autotable-src/index.html",
+      "browserLobby": "src/frontend/autotable-src/src/index.ts",
+      "browserGame": "src/frontend/autotable-src/src/game-bootstrap.ts -> scene-shell.ts -> three-renderer.ts -> Game",
+      "gameModel": "src/frontend/autotable-src/src/world.ts / setup.ts / thing.ts / slot.ts / movement.ts",
+      "currentRenderer": "src/frontend/autotable-src/src/main-view.ts / object-view.ts / mouse-ui.ts / asset-loader.ts",
+      "existingSecondaryRenderer": "src/frontend/autotable-src/src/renderer-webgl2/** is not a Unity renderer and must not become a fallback.",
+      "staticHosting": "Program.cs serves ../../../frontend/autotable at /autotable; inside the image that is /frontend/autotable."
+    },
+    "variants": [
+      {
+        "gameType": "CHANGSHA",
+        "urlValues": [
+          "changsha"
+        ],
+        "activeSeats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "authority": "server",
+        "tiles": 108,
+        "initialPoints": "25",
+        "rulePaths": [
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/ChangshaDomain.cs",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/ChangshaStateMachine.cs",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/Runtime/**",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/WinDetector.cs",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/ClaimAdjudicator.cs",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/Scoring/**",
+          "src/backend/src/Mahjong.Autotable.Api/Changsha/Dealing/**",
+          "src/backend/src/Mahjong.Autotable.Api/Autotable/ChangshaToAutotableTranslator.cs"
+        ]
+      },
+      {
+        "gameType": "FOUR_PLAYER",
+        "urlValues": [
+          "four-player",
+          "four_player"
+        ],
+        "activeSeats": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "authority": "existing collaborative relay",
+        "tiles": 136,
+        "initialPoints": "25",
+        "rulePaths": [
+          "src/frontend/autotable-src/src/setup.ts",
+          "src/frontend/autotable-src/src/setup-deal.ts",
+          "src/frontend/autotable-src/src/setup-slots.ts"
+        ]
+      },
+      {
+        "gameType": "THREE_PLAYER",
+        "urlValues": [
+          "three-player",
+          "three_player"
+        ],
+        "activeSeats": [
+          0,
+          1,
+          2
+        ],
+        "authority": "existing collaborative relay",
+        "tiles": 108,
+        "initialPoints": "35",
+        "rulePaths": [
+          "src/frontend/autotable-src/src/setup.ts",
+          "src/frontend/autotable-src/src/setup-deal.ts",
+          "src/frontend/autotable-src/src/setup-slots.ts"
+        ]
+      },
+      {
+        "gameType": "BAMBOO",
+        "urlValues": [
+          "bamboo"
+        ],
+        "activeSeats": [
+          0,
+          2
+        ],
+        "authority": "existing collaborative relay",
+        "tiles": 36,
+        "initialPoints": "100",
+        "rulePaths": [
+          "src/frontend/autotable-src/src/setup.ts",
+          "src/frontend/autotable-src/src/setup-deal.ts",
+          "src/frontend/autotable-src/src/setup-slots.ts"
+        ]
+      },
+      {
+        "gameType": "MINEFIELD",
+        "urlValues": [
+          "minefield"
+        ],
+        "activeSeats": [
+          0,
+          2
+        ],
+        "authority": "existing collaborative relay",
+        "tiles": 136,
+        "initialPoints": "25",
+        "rulePaths": [
+          "src/frontend/autotable-src/src/setup.ts",
+          "src/frontend/autotable-src/src/setup-deal.ts",
+          "src/frontend/autotable-src/src/setup-slots.ts"
+        ]
+      }
+    ],
+    "authoritativeRuleScope": {
+      "sourceWins": true,
+      "notes": [
+        "Preserve Changsha's existing 108-tile Wan/Tong/Tiao catalog, manual/auto dealing, claim arbitration, 258-pair detection, scoring, bots and hand-result continuation exactly.",
+        "Current source includes SevenPairs, AllPungs, FullFlush, NineTerminals and contextual win flags, robbing-added-kong and false-Hu handling. Do not replace this behavior with the Unity sample's Japanese rules.",
+        "Win-pattern wire values are standard, sevenPairs, allPungs, fullFlush, nineTerminals, heavenlyHand, earthlyHand, lastTileFromWall, lastDiscardCatch and kongReplacementWin.",
+        "Result.score is populated from CumulativeScores despite its legacy delta field name. Do not reinterpret it as a fresh per-hand scoring calculation.",
+        "FOUR_PLAYER_DEMO is not an existing GameType. Do not add it or add guide-derived new rules."
+      ]
+    },
+    "hosting": {
+      "architecture": "One ASP.NET runtime process serving REST, SignalR, raw WS and same-origin static browser bundle in a single Docker image.",
+      "containerPort": 8080,
+      "composeDefaultHostPort": 8950,
+      "persistentPath": "/data",
+      "runtimeUser": "UID/GID 1000",
+      "init": "tini",
+      "health": "/health with /api/health compatibility probe",
+      "productionIdentity": "Stable operator-provided JWT signing material required; retain existing cookie/identity/auth behavior without redesign. Never pass signing material as build arguments or into Unity.",
+      "baselineDockerBuildRun": false
+    },
+    "existingTests": {
+      "backendProject": "src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj",
+      "frontendNodeDirectory": "src/frontend/autotable-src/tests/node",
+      "playwrightConfig": "src/frontend/autotable-src/tests/e2e/playwright.config.ts",
+      "playwrightCommand": "npm run e2e",
+      "playwrightProjects": [
+        "chromium",
+        "mobile-chrome",
+        "visual (E2E_VISUAL_GATE=1 only)"
+      ],
+      "playwrightBaseUrl": "E2E_BASE_URL or http://localhost:8080/autotable/",
+      "lint": "No npm lint or tsc test script in the baseline package.json; do not claim lint/type-check validation."
+    }
+  },
+  "preservedWireContract": {
+    "primaryTransport": {
+      "kind": "same-origin JSON raw WebSocket",
+      "path": "/autotable/ws",
+      "importantCorrection": "README mentions /ws/autotable, but Program.cs and AutotableWsEndpoint.Path map only /autotable/ws. Do not invent an alias.",
+      "browserOwner": "Existing BaseClient / Client / ClientUi; Unity creates no connections.",
+      "serverModeSelection": "variant absent/empty/changsha (case-insensitive) binds ChangshaRuntime; other variants remain Relay.",
+      "queryFields": {
+        "gameId": "string <=64 characters; browser uses [A-Za-z0-9_.-]+",
+        "variant": "changsha|four-player|four_player|three-player|three_player|bamboo|minefield",
+        "seat": "-1 for spectating or 0..3 requested seat; never authority",
+        "bots": "true|false",
+        "botCount": "0..3 player, 0..4 spectator; existing botCount=4 promotion retained",
+        "dealMode": "manual|auto",
+        "botDifficulty": "existing string choice, default Medium",
+        "seed": "non-negative Int32",
+        "handCount": "1|4|8|16; server normalizes legacy 32 to16",
+        "baseUnit": "integer 1..11184810 for Changsha creation",
+        "join": "1 for join-existing-only"
+      },
+      "clientToServer": [
+        {
+          "type": "NEW",
+          "fields": {},
+          "meaning": "New table flow; retain ClientUi's fresh room intent and ownership teardown."
+        },
+        {
+          "type": "JOIN",
+          "fields": {
+            "gameId": "string"
+          },
+          "meaning": "Join concrete room; join=1 does not create missing rooms."
+        },
+        {
+          "type": "UPDATE",
+          "fields": {
+            "entries": "[kind:string,key:string|number,value:any|null][]",
+            "full": "false"
+          },
+          "meaning": "Semantic action or existing relay collection batch; no new fields on this envelope."
+        }
+      ],
+      "serverToClient": [
+        {
+          "type": "JOINED",
+          "fields": {
+            "gameId": "string",
+            "playerId": "string",
+            "isFirst": "boolean",
+            "viewer": "required in Changsha: {roomId:string|null,revision:non-negative safe integer,seat:0|1|2|3|null}; omitted in Relay"
+          }
+        },
+        {
+          "type": "UPDATE",
+          "fields": {
+            "entries": "[kind:string,key:string|number,value:any|null][]",
+            "full": "boolean",
+            "viewer": "same recipient-specific authority shape in Changsha"
+          }
+        }
+      ],
+      "authorityLifecycle": [
+        "BaseClient rejects missing/malformed Changsha viewer, mismatched room ownership and authority changes without advancing revision; older revision envelopes are ignored.",
+        "A viewer roomId:null is a revocation. Seat null is explicit and meaningful, not an omitted/default seat 0.",
+        "JOINED alone is not a bound runtime snapshot. Client.serverSnapshotGameId becomes usable after a bound full UPDATE carrying turn.current.",
+        "full:true clears every collection before applying its entries, including omission of old entries; incremental null values are tombstones.",
+        "Observe Client's whole update after Collection listeners have applied the batch; emit one coherent renderer frame, not one per individual collection.",
+        "viewer.revision is an ownership/envelope epoch, NOT runtime StateVersion. Never manufacture expectedVersion from viewer.revision or a renderer frame number."
+      ]
+    },
+    "incomingCollections": [
+      {
+        "kind": "match",
+        "key": 0,
+        "value": "{dealer:number,honba:number,conditions:{gameType:GameType,back:0|1,fives:'000'|'111'|'121',points:'25'|'30'|'35'|'40'|'100',dealType:'INITIAL'|'WINDS'|'HANDS'|'UNSHUFFLED',baseUnit:number,dealMode:'manual'|'auto',variant?:'changsha'}}"
+      },
+      {
+        "kind": "seats",
+        "key": "playerId:string",
+        "value": "{seat:0|1|2|3|null}"
+      },
+      {
+        "kind": "nicks",
+        "key": "playerId:string",
+        "value": "string"
+      },
+      {
+        "kind": "things",
+        "key": "entitled number 0..107 in Changsha, numeric-string tolerated via parseRealTileId; otherwise opaque string for hidden tiles. Relay uses numeric Thing.index.",
+        "value": "{slotName:string,rotationIndex:number,claimedBy:number|null,heldRotation:{x:number,y:number,z:number,w:number},shiftSlotName:string|null,face?:number|null}",
+        "privacy": "No face field is required on the translator's typed ThingInfo. An entitled numeric Changsha key supplies face floor(id/4); face:null overrides to concealed. Opaque keys never supply a face."
+      },
+      {
+        "kind": "mouse",
+        "key": "playerId:string",
+        "value": "{held:{x,y,z}|null,mouse:{x,y,z,time}|null}",
+        "purpose": "Relay held-object/cursor presentation"
+      },
+      {
+        "kind": "sound",
+        "key": "number",
+        "value": "{type:'DISCARD'|'STICK',seat:number,side:number|null}",
+        "purpose": "Browser audio retained"
+      },
+      {
+        "kind": "dice",
+        "key": "0 or 'current'",
+        "value": "{dice:[number,number],state:'ignore'|'rolled',d1?:number,d2?:number,breakPoint?:number}"
+      },
+      {
+        "kind": "turn",
+        "key": "current",
+        "value": "{activeSeat:0|1|2|3|null,phase:ChangshaPhase,awaitingDiscard:boolean}",
+        "purpose": "Read-only authoritative cue"
+      },
+      {
+        "kind": "pickup",
+        "key": "current",
+        "value": "{phase:ChangshaPhase,seatIndex:number,count:number,dealMode:'manual'|'auto',breakPoint?:{wallIndex,stackIndex,tileIndex}|null,wallIndex:number,targetSlots:string[],batchPreviewSlots?:string[]}",
+        "purpose": "Only targetSlots of length exactly1 is actionable. Batch preview is display-only."
+      },
+      {
+        "kind": "claim",
+        "key": "seat:number or numeric-string",
+        "value": "{gameId?:string,stateVersion?:number,available:('Pung'|'Chow'|'Kong'|'Hu')[],deadline:epochMillis,source:number,tile:number,chowOptions?:number[][]}",
+        "purpose": "Browser HUD; exact physical Chow partner pairs are private to owning claimant; deadline 0 means no client countdown, NOT expired."
+      },
+      {
+        "kind": "ownTurn",
+        "key": "seat:number",
+        "value": "{gameId:string,stateVersion:number,hu:boolean,concealedKongs:number[][],addedKongs:number[]}",
+        "purpose": "Private browser HUD eligibility"
+      },
+      {
+        "kind": "result",
+        "key": "current",
+        "value": "{winner:number,type:'Hu'|'Draw'|'ZhaHu',score:{seat:number,delta:number}[],hand:number[],nextBanker:number,winResult?:object,scoreResult?:object,continuation:{gameId:string,handNumber:number,resultToken:string,requiredSeats:number[],acknowledgedSeats:number[],waitingSeats:number[]}|null}",
+        "purpose": "Keep existing browser result rendering and explicit Continue acknowledgment behavior. Preserve nested metadata by existing types."
+      },
+      {
+        "kind": "gameComplete",
+        "key": "current",
+        "value": "{isComplete:boolean,totalScores:Record<string,number>,maxHands:number}",
+        "purpose": "Keep existing browser final-summary/statistics handling"
+      },
+      {
+        "kind": "actionRejected",
+        "key": "current",
+        "value": "{action:string,reason:string,requestedSeat:number|null,ownedSeat:number|null}",
+        "purpose": "Browser feedback only, never mutate local board as a success"
+      }
+    ],
+    "outgoingActions": [
+      {
+        "semantic": "takeSeat/leaveSeat",
+        "entry": [
+          "seats",
+          "<current Client.playerId()>",
+          {
+            "seat": "<requested seat or null>"
+          }
+        ],
+        "owner": "Browser DOM / ClientUi; server confirms actor"
+      },
+      {
+        "semantic": "discard",
+        "entry": [
+          "discard",
+          "<live actor seat number>",
+          {
+            "tileId": "<entitled physical id>"
+          }
+        ]
+      },
+      {
+        "semantic": "rollDice",
+        "entry": [
+          "pickup",
+          "rollDice",
+          {
+            "seatIndex": "<live actor seat>"
+          }
+        ]
+      },
+      {
+        "semantic": "takePickup",
+        "entry": [
+          "pickup",
+          "take",
+          {
+            "seatIndex": "<live actor seat>",
+            "count": "<current pickup.count>"
+          }
+        ],
+        "forbiddenFields": [
+          "wallTileIds",
+          "tileIds",
+          "slotName",
+          "targetSlots",
+          "targetHandles",
+          "targetTileIds"
+        ]
+      },
+      {
+        "semantic": "claim",
+        "entry": [
+          "claim",
+          "<String(live actor seat)>",
+          {
+            "action": "claim",
+            "type": "<Pung|Chow|Kong|Hu>",
+            "tileIds": "<only for a selected exact Chow partner pair>",
+            "gameId": "<claim.gameId when context advertised>",
+            "expectedVersion": "<claim.stateVersion when context advertised>"
+          }
+        ],
+        "context": "Both gameId and stateVersion must be valid or both absent as legacy; partial metadata fails closed."
+      },
+      {
+        "semantic": "pass",
+        "entry": [
+          "claim",
+          "<String(live actor seat)>",
+          {
+            "action": "pass",
+            "type": null,
+            "gameId": "<claim.gameId if present>",
+            "expectedVersion": "<claim.stateVersion if present>"
+          }
+        ]
+      },
+      {
+        "semantic": "ownTurnHu",
+        "entry": [
+          "ownTurn",
+          "<live actor seat number>",
+          {
+            "gameId": "<ownTurn.gameId>",
+            "expectedVersion": "<ownTurn.stateVersion>",
+            "action": "hu"
+          }
+        ]
+      },
+      {
+        "semantic": "concealedKong/addedKong",
+        "entry": [
+          "ownTurn",
+          "<live actor seat number>",
+          {
+            "gameId": "<ownTurn.gameId>",
+            "expectedVersion": "<ownTurn.stateVersion>",
+            "action": "<concealedKong|addedKong>",
+            "tileIds": "<selected exact allowed IDs>"
+          }
+        ]
+      },
+      {
+        "semantic": "continueHand",
+        "entry": [
+          "handResultAck",
+          "current",
+          {
+            "gameId": "<result.continuation.gameId>",
+            "handNumber": "<result.continuation.handNumber>",
+            "resultToken": "<result.continuation.resultToken>"
+          }
+        ]
+      },
+      {
+        "semantic": "relayMove/flip/deal/point-transfer",
+        "entry": "Retain World/Movement/Setup's existing things/match/dice/mouse/sound UPDATE transactions, plus unique/ephemeral/perPlayer collection declarations.",
+        "restriction": "Never author runtime-owned scene collections in Changsha."
+      }
+    ],
+    "idSeparation": "The public JOINED room gameId can be an alias for a runtime gameId. Rule commands copy gameId from claim/ownTurn/continuation, never from the URL/frame session by substitution.",
+    "resultNestedShapes": {
+      "winResult": "{winningSeatIndex:number,winType:'selfDraw'|'discard'|'robbingKong',winPattern:existing pattern string,winningTileId:number,sourceSeatIndex:number,allPatterns:string[],isRobbedKong:boolean,isSelfDraw:boolean,isKongReplacement:boolean}",
+      "scoreResult": "{category:'smallWin'|'bigWin',basePoints:number,payments:{fromSeatIndex:number,toSeatIndex:number,amount:number,reason:string}[],fans:{fan:string,points:number,chinese:string,pinyin:string,english:string}[],fanPoints:number}",
+      "evidence": "src/backend/src/Mahjong.Autotable.Api/Autotable/AutotableProtocol.cs WinResultEntry/ScoreResultEntry/FanEntry; serialized metadata remains browser-owned and is not recalculated."
+    },
+    "lobbyAndChat": {
+      "browserModules": [
+        "src/frontend/autotable-src/src/lobby.ts",
+        "src/frontend/autotable-src/src/client-ui.ts",
+        "src/frontend/autotable-src/src/session-url.ts",
+        "src/frontend/autotable-src/src/room-join-url.ts",
+        "src/frontend/autotable-src/src/matchmaking.ts",
+        "src/frontend/autotable-src/src/lobby-presence.ts",
+        "src/frontend/autotable-src/src/chat.ts",
+        "src/frontend/autotable-src/src/game-state.ts",
+        "src/frontend/autotable-src/src/hub.ts",
+        "src/frontend/autotable-src/src/identity.ts",
+        "src/frontend/autotable-src/src/reconnect.ts"
+      ],
+      "flow": [
+        "Bare /autotable/ stays lobby-only. Retain all existing shell controls and identity bootstrap.",
+        "New Game/Apply/Quick Match use fresh source-defined room URLs and the existing NEW/JOIN funnel; do not route everything through the default legacy room.",
+        "Public game or invitation joins use buildRoomJoinUrl and join=1, preserving existing-only/full/not-seating errors.",
+        "Seat requests come from DOM through the existing seat command; a URL seat or spectator-follow choice cannot grant concealed-hand authority.",
+        "Reuse ClientUi's reconnect delays [1000,2000,4000,8000,16000] and verified-cookie reattachment. Browser rejoin tokens are navigation hints, not authority.",
+        "Retain SignalR reconnect delays [0,2000,5000,10000,30000], lobby subscriptions and profile events.",
+        "Chat waits for verified identity, bound primary snapshot, turn.current and room metadata. Room switches abort old metadata/chat reads and invalidate old history scope.",
+        "Current chat.ts explicitly gates room chat to bound Changsha rooms. Preserve that baseline limitation; do not invent relay chat availability or new auth.",
+        "Spectator follow changes only viewSeat. A local 'show all hands' UI hint never reveals faces not supplied by the server."
+      ],
+      "http": [
+        {
+          "method": "GET",
+          "path": "/api/matchmaking/lobby",
+          "response": "{games:{gameId:string,publicName:string|null,creatorDisplayName:string,seatedCount:number,botCount:number,openHumanSeats:number,maxSeats:number,variant:string,createdAt:ISODate}[]}",
+          "pollMs": 5000
+        },
+        {
+          "method": "GET",
+          "path": "/api/games/{gameId}",
+          "response": "{gameId,ownerId:string|null,viewerIsOwner:boolean,phase,isPublic:boolean,publicName:string|null,voiceEnabled:boolean,viewerCanManageVoice:boolean,botCount:number,seatedCount:number,openHumanSeats:number,canMakePublic:boolean,canInvite:boolean}"
+        },
+        {
+          "method": "GET",
+          "path": "/api/games/{gameId}/chat?since=<ISODate>&limit=50",
+          "response": "{gameId:string,messages:ChatMessageDto[]}",
+          "pollMs": 6000
+        },
+        {
+          "method": "POST",
+          "path": "/api/games/{gameId}/chat",
+          "body": "{body:string(max280),channel:'table'|'spectators'|'private',recipientPlayerId?:string|null}",
+          "response": "ChatMessageDto; existing identity, membership, recipient, filter and rate-limit checks"
+        },
+        {
+          "method": "POST",
+          "path": "/api/chat/send",
+          "body": "same chat body plus gameId; compatibility route retained"
+        }
+      ],
+      "chatMessageDto": "{id:string,gameId:string,channel:string,senderPlayerId:string,senderDisplayName:string,senderAvatarColor:string|null,recipientPlayerId:string|null,body:string,sentUtc:ISODate,playerId:senderPlayerId,at:sentUtc}",
+      "channelNote": "Browser also exposes spectator-private; it sends wire channel private. Preserve source channel normalization/member filtering.",
+      "signalR": {
+        "path": "/hubs/changsha",
+        "clientToServerUsedByShell": [
+          "JoinLobby() -> {revision:number,players:OnlinePlayer[],invites:TableInvite[]}",
+          "SendTableInvite(gameId:string,recipientPlayerId:string) -> {success:true,invite:TableInvite}|{success:false,reason:string}",
+          "FindJoinableGame(variant:string|null) -> {matched:false}|{matched:true,gameId:string}",
+          "SetGamePublic(gameId:string,isPublic:boolean,publicName:string|null) -> {success:true,gameId,isPublic,publicName}",
+          "UpdateProfile(displayName:string,avatarColor:string|null)"
+        ],
+        "serverToClientShellEvents": [
+          "ProfileLoaded(existing PlayerProfileDto)",
+          "LobbyPlayersChanged({revision:number,players:OnlinePlayer[]})",
+          "TableInviteReceived(TableInvite)"
+        ],
+        "onlinePlayer": "{playerId:string,displayName:string,avatarColor:string|null,canReceiveInvites:boolean}",
+        "tableInvite": "{inviteId,senderPlayerId,senderDisplayName,senderAvatarColor:string|null,recipientPlayerId,gameId,publicName:string|null,joinUrl,createdUtc:ISODate,expiresUtc:ISODate}",
+        "existingGameplayRpcSurface": [
+          "CreateGame(ruleSet,botSeatIndexes?,seed?)",
+          "CreateGameWithConfig(config)",
+          "JoinTable(gameId)",
+          "TakeSeat(gameId,seatIndex?)",
+          "FillWithBots(gameId)",
+          "StartGame(gameId)",
+          "AcknowledgeDeal(gameId,seatIndex)",
+          "AcknowledgeHandResult(gameId,handNumber,resultToken)",
+          "Discard(gameId,seatIndex,tileId)",
+          "Claim(gameId,seatIndex,type,tileIds?)",
+          "Pass(gameId,seatIndex)",
+          "DeclareKong(gameId,seatIndex,tileIds)",
+          "DeclareWin(gameId,seatIndex)",
+          "ReconnectGame(gameId,seatIndex)",
+          "JoinRandom(variant?)"
+        ],
+        "rendererRestriction": "The Unity migration does not switch gameplay transport to these hub RPCs; retain current primary WS and existing shell RPC calls."
+      }
+    }
+  },
+  "architecture": {
+    "recommendation": "Replace only presentation and hit testing with a real Unity Web build; preserve .NET APIs, server rule/runtime state, browser shell, Client/ClientUi and the existing World/Setup/Movement behavior behind a renderer sink.",
+    "whySmallestComplete": [
+      "Switching to SignalR-only would drop the four relay tabletop variants and require unrelated server/protocol work.",
+      "Porting rules or World/Setup into Unity would duplicate Changsha and relay behavior and cross ownership boundaries.",
+      "World already separates model/action operations from ObjectView and is consumed by GameUi. A headless renderer sink preserves existing DOM/result/claim integrations and relay drag/flip/point sticks.",
+      "Three Vector3/Quaternion math may remain in the browser model. No Three/WebGL/Canvas renderer, GLTF loader or legacy asset graph may be instantiated or selected as a fallback."
+    ],
+    "replace": [
+      "MainView",
+      "ObjectView GPU implementation",
+      "MouseUi raycast/canvas implementation",
+      "AssetLoader",
+      "three-renderer bootstrap",
+      "primary use of renderer-webgl2"
+    ],
+    "retain": [
+      "Program.cs routes and identity/persistence",
+      "Changsha runtime/scoring/bots",
+      "Autotable primary wire and per-viewer projection",
+      "Client/Collection/BaseClient/ClientUi",
+      "World/Setup/Slot/Thing/Movement and rule-mode policies",
+      "GameUi/RuleActionControls/hand-result continuation",
+      "lobby/chat/profile/voice/settings/i18n/spectator/reconnect shell"
+    ],
+    "frontendSeam": {
+      "newModules": [
+        "src/frontend/autotable-src/src/renderer/renderer-sink.ts",
+        "src/frontend/autotable-src/src/renderer/renderer-frame.ts",
+        "src/frontend/autotable-src/src/renderer/renderer-actions.ts",
+        "src/frontend/autotable-src/src/renderer/unity-host.ts"
+      ],
+      "sinkMethodsRequiredByWorld": [
+        "setVariant(GameType)",
+        "replaceThings(Map<number,Thing>)",
+        "replaceShadows(Place[])",
+        "updateThings(Render[])",
+        "updateDropShadows(Place[])",
+        "updateScores((number|null)[])",
+        "highlightIntensity:number"
+      ],
+      "modelChangeLimit": "Extract Render and renderer sink interface into a math-only/type module; substitute a data sink. Add only narrow safe slot-target drag wrappers/accessors needed by the bridge. Keep gameplay and relay movement algorithms unchanged.",
+      "gameFacade": "Retain window.game/world/client for existing shell consumers and installGameUi lifecycle, but remove all legacy GPU constructors. scene-shell mounts the Unity host and retained model; scene-effects must not lazy-load a legacy renderer.",
+      "privateIdMap": "Frontend holds entityId <-> current source Thing/wire key lookup. Renderer receives neither wire keys, physical tile IDs, hidden-back pool indices, cookies, reconnect credentials nor arbitrary network payloads."
+    },
+    "nonGoals": [
+      "New authentication",
+      "New rules or variants",
+      "Backend wire schema rewrite",
+      "Japanese rules/network stack import",
+      "Legacy-renderer primary fallback",
+      "JavaScript Canvas pretending to be Unity",
+      "Unverified third-party asset reuse"
+    ]
+  },
+  "renderer": {
+    "contractVersion": "1.0.0",
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "urn:mahjong-unity:renderer:1.0.0",
+      "title": "Mahjong browser/Unity renderer boundary v1",
+      "definitions": {
+        "Vector3": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ]
+        },
+        "Quaternion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z",
+            "w"
+          ]
+        },
+        "Size3": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "y": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "z": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ]
+        },
+        "Pose": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "$ref": "#/definitions/Vector3"
+            },
+            "rotation": {
+              "$ref": "#/definitions/Quaternion"
+            },
+            "size": {
+              "$ref": "#/definitions/Size3"
+            }
+          },
+          "required": [
+            "position",
+            "rotation",
+            "size"
+          ]
+        },
+        "Conditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gameType": {
+              "enum": [
+                "CHANGSHA",
+                "FOUR_PLAYER",
+                "THREE_PLAYER",
+                "BAMBOO",
+                "MINEFIELD"
+              ]
+            },
+            "back": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "fives": {
+              "enum": [
+                "000",
+                "111",
+                "121"
+              ]
+            },
+            "points": {
+              "enum": [
+                "25",
+                "30",
+                "35",
+                "40",
+                "100"
+              ]
+            },
+            "dealType": {
+              "enum": [
+                "INITIAL",
+                "WINDS",
+                "HANDS",
+                "UNSHUFFLED"
+              ]
+            },
+            "baseUnit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 11184810
+            },
+            "dealMode": {
+              "enum": [
+                "manual",
+                "auto"
+              ]
+            }
+          },
+          "required": [
+            "gameType",
+            "back",
+            "fives",
+            "points",
+            "dealType",
+            "baseUnit",
+            "dealMode"
+          ]
+        },
+        "Match": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dealer": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "honba": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "conditions": {
+              "$ref": "#/definitions/Conditions"
+            }
+          },
+          "required": [
+            "dealer",
+            "honba",
+            "conditions"
+          ]
+        },
+        "Session": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gameId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mode": {
+              "enum": [
+                "offline",
+                "relay",
+                "changsha"
+              ]
+            },
+            "connected": {
+              "type": "boolean"
+            },
+            "snapshotReady": {
+              "type": "boolean"
+            },
+            "actorSeat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "viewSeat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "viewerRevision": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "gameId",
+            "mode",
+            "connected",
+            "snapshotReady",
+            "actorSeat",
+            "viewSeat",
+            "viewerRevision"
+          ]
+        },
+        "Presentation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "viewMode": {
+              "enum": [
+                "perspective",
+                "flat"
+              ]
+            },
+            "boardLayout": {
+              "enum": [
+                "classic",
+                "rectangular"
+              ]
+            },
+            "handLayout": {
+              "enum": [
+                "in-table",
+                "separate"
+              ]
+            },
+            "tileLabels": {
+              "type": "boolean"
+            },
+            "lookDown": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "zoom": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "viewMode",
+            "boardLayout",
+            "handLayout",
+            "tileLabels",
+            "lookDown",
+            "zoom"
+          ]
+        },
+        "Display": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "selected": {
+              "type": "boolean"
+            },
+            "hovered": {
+              "type": "boolean"
+            },
+            "held": {
+              "type": "boolean"
+            },
+            "temporary": {
+              "type": "boolean"
+            },
+            "bottom": {
+              "type": "boolean"
+            },
+            "drawn": {
+              "type": "boolean"
+            },
+            "highlight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "selected",
+            "hovered",
+            "held",
+            "temporary",
+            "bottom",
+            "drawn",
+            "highlight"
+          ]
+        },
+        "Interaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "canSelect": {
+              "type": "boolean"
+            },
+            "canDrag": {
+              "type": "boolean"
+            },
+            "canFlip": {
+              "type": "boolean"
+            },
+            "canDiscard": {
+              "type": "boolean"
+            },
+            "canPickup": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "canSelect",
+            "canDrag",
+            "canFlip",
+            "canDiscard",
+            "canPickup"
+          ]
+        },
+        "Appearance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "faceIndex": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 36
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "knownFace": {
+              "type": "boolean"
+            },
+            "showFace": {
+              "type": "boolean"
+            },
+            "backIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "valueIndex": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "faceIndex",
+            "knownFace",
+            "showFace",
+            "backIndex",
+            "valueIndex"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "knownFace": {
+                    "const": false
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "faceIndex": {
+                    "const": null
+                  },
+                  "showFace": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "knownFace": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "faceIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 36
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Entity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "kind": {
+              "enum": [
+                "TILE",
+                "STICK",
+                "MARKER"
+              ]
+            },
+            "slotName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "group": {
+              "enum": [
+                "hand",
+                "meld",
+                "wall",
+                "wall.open",
+                "discard",
+                "kita",
+                "tray",
+                "payment",
+                "riichi",
+                "marker"
+              ]
+            },
+            "seat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "indexes": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "rotationIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "pose": {
+              "$ref": "#/definitions/Pose"
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "appearance": {
+              "$ref": "#/definitions/Appearance"
+            },
+            "display": {
+              "$ref": "#/definitions/Display"
+            },
+            "interaction": {
+              "$ref": "#/definitions/Interaction"
+            }
+          },
+          "required": [
+            "entityId",
+            "kind",
+            "slotName",
+            "group",
+            "seat",
+            "indexes",
+            "rotationIndex",
+            "pose",
+            "scale",
+            "appearance",
+            "display",
+            "interaction"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "TILE"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "appearance": {
+                    "properties": {
+                      "valueIndex": {
+                        "const": null
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "STICK",
+                      "MARKER"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "appearance": {
+                    "properties": {
+                      "knownFace": {
+                        "const": false
+                      },
+                      "faceIndex": {
+                        "const": null
+                      },
+                      "showFace": {
+                        "const": false
+                      },
+                      "valueIndex": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Slot": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slotName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "group": {
+              "enum": [
+                "hand",
+                "meld",
+                "wall",
+                "wall.open",
+                "discard",
+                "kita",
+                "tray",
+                "payment",
+                "riichi",
+                "marker"
+              ]
+            },
+            "seat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "indexes": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "kind": {
+              "enum": [
+                "TILE",
+                "STICK",
+                "MARKER"
+              ]
+            },
+            "poses": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pose"
+              },
+              "minItems": 1,
+              "maxItems": 4
+            },
+            "drawShadow": {
+              "type": "boolean"
+            },
+            "shadowRotationIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "canFlipMultiple": {
+              "type": "boolean"
+            },
+            "rotateHeld": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "slotName",
+            "group",
+            "seat",
+            "indexes",
+            "kind",
+            "poses",
+            "drawShadow",
+            "shadowRotationIndex",
+            "canFlipMultiple",
+            "rotateHeld"
+          ]
+        },
+        "SeatDisplay": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "seat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "playerId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "nick": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 280
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "seat",
+            "playerId",
+            "nick",
+            "score"
+          ]
+        },
+        "LocalHand": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "seat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "entityIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "uniqueItems": true
+            },
+            "drawnEntityId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "seat",
+            "entityIds",
+            "drawnEntityId"
+          ]
+        },
+        "Turn": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "activeSeat": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phase": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "Seating",
+                    "RollingDice",
+                    "Dealing",
+                    "BreakPointMarked",
+                    "PickupRound1",
+                    "PickupRound2",
+                    "PickupRound3",
+                    "SingleTilePickup",
+                    "DealerExtra",
+                    "AwaitingDiscard",
+                    "AwaitingClaim",
+                    "DeclaringKong",
+                    "DrawingReplacement",
+                    "Scoring",
+                    "EndHand",
+                    "RotatingBanker",
+                    "WallExhausted",
+                    "GameComplete"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "awaitingDiscard": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "activeSeat",
+            "phase",
+            "awaitingDiscard"
+          ]
+        },
+        "BreakPoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "wallIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "stackIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "tileIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 107
+            }
+          },
+          "required": [
+            "wallIndex",
+            "stackIndex",
+            "tileIndex"
+          ]
+        },
+        "PickupDisplay": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "phase": {
+              "enum": [
+                "Seating",
+                "RollingDice",
+                "Dealing",
+                "BreakPointMarked",
+                "PickupRound1",
+                "PickupRound2",
+                "PickupRound3",
+                "SingleTilePickup",
+                "DealerExtra",
+                "AwaitingDiscard",
+                "AwaitingClaim",
+                "DeclaringKong",
+                "DrawingReplacement",
+                "Scoring",
+                "EndHand",
+                "RotatingBanker",
+                "WallExhausted",
+                "GameComplete"
+              ]
+            },
+            "seatIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "dealMode": {
+              "enum": [
+                "manual",
+                "auto"
+              ]
+            },
+            "breakPoint": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BreakPoint"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "wallIndex": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "triggerSlotName": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "batchPreviewSlotNames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "canTake": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "phase",
+            "seatIndex",
+            "count",
+            "dealMode",
+            "breakPoint",
+            "wallIndex",
+            "triggerSlotName",
+            "batchPreviewSlotNames",
+            "canTake"
+          ]
+        },
+        "DiceDisplay": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "state": {
+              "enum": [
+                "ignore",
+                "rolled"
+              ]
+            },
+            "canRoll": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "values",
+            "state",
+            "canRoll"
+          ]
+        },
+        "Configure": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "configure"
+            },
+            "buildId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "type",
+            "buildId"
+          ]
+        },
+        "Clear": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "clear"
+            },
+            "reason": {
+              "enum": [
+                "join",
+                "disconnect",
+                "authority-change",
+                "protocol-unavailable",
+                "dispose"
+              ]
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "reason"
+          ]
+        },
+        "Playback": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "playback"
+            },
+            "suspended": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "type",
+            "suspended"
+          ]
+        },
+        "RendererLayout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "layout"
+            },
+            "layoutRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "gameType": {
+              "enum": [
+                "CHANGSHA",
+                "FOUR_PLAYER",
+                "THREE_PLAYER",
+                "BAMBOO",
+                "MINEFIELD"
+              ]
+            },
+            "activeSeats": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "minItems": 2,
+              "maxItems": 4,
+              "uniqueItems": true
+            },
+            "canonicalBoard": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "width": {
+                  "const": 174
+                },
+                "depth": {
+                  "const": 174
+                }
+              },
+              "required": [
+                "width",
+                "depth"
+              ]
+            },
+            "slots": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Slot"
+              }
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "layoutRevision",
+            "gameType",
+            "activeSeats",
+            "canonicalBoard",
+            "slots"
+          ]
+        },
+        "RendererFrame": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "frame"
+            },
+            "frameId": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "layoutRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "session": {
+              "$ref": "#/definitions/Session"
+            },
+            "presentation": {
+              "$ref": "#/definitions/Presentation"
+            },
+            "match": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Match"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Entity"
+              }
+            },
+            "seats": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SeatDisplay"
+              },
+              "maxItems": 4
+            },
+            "localHand": {
+              "$ref": "#/definitions/LocalHand"
+            },
+            "turn": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Turn"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pickup": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PickupDisplay"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dice": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DiceDisplay"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "frameId",
+            "layoutRevision",
+            "session",
+            "presentation",
+            "match",
+            "entities",
+            "seats",
+            "localHand",
+            "turn",
+            "pickup",
+            "dice"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "session": {
+                    "properties": {
+                      "snapshotReady": {
+                        "const": false
+                      }
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "entities": {
+                    "maxItems": 0
+                  },
+                  "localHand": {
+                    "properties": {
+                      "entityIds": {
+                        "maxItems": 0
+                      },
+                      "drawnEntityId": {
+                        "const": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "viewport"
+            },
+            "resizeRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "widthCssPx": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "heightCssPx": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "devicePixelRatio": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "renderPixelRatio": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 2
+            },
+            "widthPx": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "heightPx": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "insetsCssPx": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "top": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "right": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "bottom": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "left": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ]
+            },
+            "handBandCssPx": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "type",
+            "resizeRevision",
+            "widthCssPx",
+            "heightCssPx",
+            "devicePixelRatio",
+            "renderPixelRatio",
+            "widthPx",
+            "heightPx",
+            "insetsCssPx",
+            "handBandCssPx"
+          ]
+        },
+        "ArtifactFile": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_./-]+$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "path",
+            "bytes",
+            "sha256"
+          ]
+        },
+        "BuildManifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifactKind": {
+              "const": "unity-webgl"
+            },
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "buildId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "unityVersion": {
+              "const": "6000.3.24f1"
+            },
+            "unityRevision": {
+              "const": "4e7b9b5b6244"
+            },
+            "compression": {
+              "const": "none"
+            },
+            "threading": {
+              "const": "single-threaded"
+            },
+            "developmentBuild": {
+              "type": "boolean"
+            },
+            "baselineRevision": {
+              "const": "d10d351e543aa3e341960de9800828b6c0662a82"
+            },
+            "rendererSourceRevision": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "rendererSourceTreeSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "sourceDirty": {
+              "type": "boolean"
+            },
+            "builtAtUtc": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "loader": {
+              "$ref": "#/definitions/ArtifactFile"
+            },
+            "framework": {
+              "$ref": "#/definitions/ArtifactFile"
+            },
+            "data": {
+              "$ref": "#/definitions/ArtifactFile"
+            },
+            "wasm": {
+              "$ref": "#/definitions/ArtifactFile"
+            },
+            "streamingAssetsPath": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_./-]+$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "artifactKind",
+            "contractVersion",
+            "buildId",
+            "unityVersion",
+            "unityRevision",
+            "compression",
+            "threading",
+            "developmentBuild",
+            "baselineRevision",
+            "rendererSourceRevision",
+            "rendererSourceTreeSha256",
+            "sourceDirty",
+            "builtAtUtc",
+            "loader",
+            "framework",
+            "data",
+            "wasm",
+            "streamingAssetsPath"
+          ]
+        },
+        "RendererAction": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "action"
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "contextFrameId": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "intent": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "discard"
+                    },
+                    "entityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "entityId"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "takePickup"
+                    },
+                    "triggerEntityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "triggerEntityId"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "rollDice"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "hover"
+                    },
+                    "entityId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "entityId"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "select"
+                    },
+                    "entityIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "entityIds"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "beginDrag"
+                    },
+                    "gestureId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "anchorEntityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "entityIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "minItems": 1,
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "gestureId",
+                    "anchorEntityId",
+                    "entityIds"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "dragToSlot"
+                    },
+                    "gestureId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "slotName": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "gestureId",
+                    "slotName"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "endDrag"
+                    },
+                    "gestureId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "commit": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "gestureId",
+                    "commit"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "flip"
+                    },
+                    "entityIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "minItems": 1,
+                      "uniqueItems": true
+                    },
+                    "direction": {
+                      "enum": [
+                        -1,
+                        1
+                      ]
+                    },
+                    "animated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "entityIds",
+                    "direction",
+                    "animated"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "actionId",
+            "contextFrameId",
+            "intent"
+          ]
+        },
+        "ActionResult": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "actionResult"
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "status": {
+              "enum": [
+                "submitted",
+                "local",
+                "ignored",
+                "rejected"
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "stale-session",
+                    "stale-entity",
+                    "not-actionable",
+                    "invalid-target",
+                    "protocol-unavailable"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "actionId",
+            "status",
+            "reason"
+          ]
+        },
+        "Ready": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "ready"
+            },
+            "buildId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "unityVersion": {
+              "const": "6000.3.24f1"
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "type",
+            "buildId",
+            "unityVersion"
+          ]
+        },
+        "FrameRendered": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "frameRendered"
+            },
+            "frameId": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "layoutRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "sessionId",
+            "type",
+            "frameId",
+            "layoutRevision"
+          ]
+        },
+        "RendererError": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contractVersion": {
+              "const": "1.0.0"
+            },
+            "instanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "type": {
+              "const": "error"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "code": {
+              "enum": [
+                "unsupported-contract",
+                "invalid-message",
+                "missing-layout",
+                "stale-frame",
+                "renderer-failure"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "maxLength": 1024
+            }
+          },
+          "required": [
+            "contractVersion",
+            "instanceId",
+            "type",
+            "sessionId",
+            "code",
+            "message"
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Configure"
+        },
+        {
+          "$ref": "#/definitions/Clear"
+        },
+        {
+          "$ref": "#/definitions/Playback"
+        },
+        {
+          "$ref": "#/definitions/RendererLayout"
+        },
+        {
+          "$ref": "#/definitions/RendererFrame"
+        },
+        {
+          "$ref": "#/definitions/Viewport"
+        },
+        {
+          "$ref": "#/definitions/RendererAction"
+        },
+        {
+          "$ref": "#/definitions/ActionResult"
+        },
+        {
+          "$ref": "#/definitions/Ready"
+        },
+        {
+          "$ref": "#/definitions/FrameRendered"
+        },
+        {
+          "$ref": "#/definitions/RendererError"
+        },
+        {
+          "$ref": "#/definitions/BuildManifest"
+        }
+      ]
+    },
+    "schemaNote": "New browser-to-Unity contract only; not an existing server DTO. All enums/types/required nullable fields above are frozen; additionalProperties:false prevents raw-wire/auth field injection.",
+    "gameObject": "MahjongBridge",
+    "methods": [
+      {
+        "direction": "browser -> Unity",
+        "method": "Configure",
+        "argument": "JSON.stringify(Configure)",
+        "purpose": "One instance/version/build handshake after createUnityInstance resolves."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "Clear",
+        "argument": "JSON.stringify(Clear)",
+        "purpose": "Bind a new sessionId and clear old meshes, identity lookup, hand caches, selection and gestures immediately."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "ApplyLayout",
+        "argument": "JSON.stringify(RendererLayout)",
+        "purpose": "Full immutable slot catalog on setup/variant/layout-revision changes; no server-slot parsing guesses."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "ApplyFrame",
+        "argument": "JSON.stringify(RendererFrame)",
+        "purpose": "Atomic full replacement of live render entities for matching session/layout; absence deletes old entities."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "SetViewport",
+        "argument": "JSON.stringify(Viewport)",
+        "purpose": "Browser-measured canvas viewport, buffer dimensions, DPR and safe areas."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "SetPlayback",
+        "argument": "JSON.stringify(Playback)",
+        "purpose": "Suspend/resume visual work when hidden; server/lobby connections remain browser-owned."
+      },
+      {
+        "direction": "browser -> Unity",
+        "method": "ReceiveActionResult",
+        "argument": "JSON.stringify(ActionResult)",
+        "purpose": "Only local/submitted/ignored/rejected; submitted is not a server acknowledgment."
+      },
+      {
+        "direction": "Unity -> browser",
+        "method": "window.MahjongUnityBridge.emit(jsonString)",
+        "argument": "Ready|FrameRendered|RendererAction|RendererError",
+        "purpose": "One .jslib UTF8ToString callback; no postMessage wildcard or Unity sockets."
+      },
+      {
+        "direction": "browser lifecycle",
+        "method": "unityInstance.Quit()",
+        "argument": "none",
+        "purpose": "Await on teardown; detach listeners and drop queued frames for this instance."
+      }
+    ],
+    "serialization": "UTF-8 JSON strings, camelCase fields, finite numbers only, unit quaternions normalized before output. C# DTOs use com.unity.nuget.newtonsoft-json 3.2.1 for explicit nulls/arrays; do not rely on JsonUtility nullable-int behavior.",
+    "fieldSources": {
+      "session.gameId": "Client.lastGameId (public primary room id)",
+      "session.actorSeat": "Client.seat from confirmed BaseClient viewer in Changsha, existing Collection seat in Relay; null when not owned",
+      "session.viewSeat": "World.viewSeat only; spectator POV does not change actorSeat",
+      "session.viewerRevision": "Read-only accessor over BaseClient's validated viewer; null for Relay/offline, never substituted for runtime stateVersion",
+      "session.snapshotReady": "Changsha: connected && serverSnapshotGameId===lastGameId && turn.current bound; Relay: coherent source model/full snapshot ready",
+      "match": "Client.match[0]; null until received/current source model is initialized",
+      "layout.slots": "World.slots from existing Setup/makeSlots, excluding offTable/hiddenpool",
+      "entities": "Renderer sink's live Render rows reconciled with World.things and current per-viewer Client.things; omit parked/hidden/unentitled pre-baked objects",
+      "entity.entityId": "Session-scoped adapter-generated stable identifier keyed by the source identity; never an encoded tile number. Opaque handles may be internal map keys but are not exported.",
+      "entity.pose": "Current World Render.place position/quaternion/axis-aligned size, including held/shifted presentation; not a server coordinate field",
+      "entity.indexes/seat/group/slotName/rotationIndex": "Existing Slot / Thing metadata; slotName is unchanged backend-semantic address",
+      "entity.appearance.faceIndex": "Changsha: existing resolveTileFace(key,face), numeric-string normalized via parseRealTileId. Relay: existing Setup-derived Thing.typeIndex %37 only when presentation entitled; never derive from opaque handles.",
+      "relayFaceNullCompatibility": "The old Relay FilterEntriesForViewer writes face:null to foreign seat-scoped entries even for public discard/meld slots, while only forcing hand rotation face-down. Preserve World.onThings' hand-only concealment guard and public rotation visibility in Relay; do not apply Changsha's blanket resolveTileFace to all Relay entries or hide public discards/melds. Redact actually concealed hands/walls from Unity, and retain the existing Relay trust-model disclosure.",
+      "entity.appearance.backIndex": "Existing typeIndex/back condition, with Changsha pinned0",
+      "entity.appearance.valueIndex": "STICK Thing.typeIndex0..5; MARKER Thing.typeIndex0; null for TILE",
+      "entity.appearance.showFace": "Entitlement AND source rotation visibility. An owned concealed Kong may have knownFace:true yet showFace:false.",
+      "entity.display": "Existing Render selected/hovered/held/temporary/bottom/drawn flags and highlight envelope",
+      "entity.interaction": "Current existing World/rule-mode eligibility, actor, phase and trigger checks; renderer never decides rules",
+      "localHand": "World.ownHandPresentation order/drawn tile for Changsha; for relay use current own hand slot order without changing baseline auto-sort behavior",
+      "seats": "Client.seats/nicks and active GAME_TYPES seats. Do not invent isBot/isHost fields that these collections do not provide.",
+      "seats.score": "Existing sink Setup.getScores for Relay; for Changsha null until authoritative result.score/gameComplete.totalScores supplies it. No client scoring.",
+      "turn": "Client.turn.current; source absence remains null/unknown, not inferred from hand geometry",
+      "phaseNormalization": "ChangshaPhase.EndGame is a source alias of GameComplete. Normalize an observed EndGame spelling to GameComplete for this new renderer schema; other unknown phase values fail visibly instead of inventing phase defaults.",
+      "pickup": "Client.pickup.current, with targetSlots length1 normalized to triggerSlotName; batchPreviewSlots is display-only; missing fields remain null/empty",
+      "dice": "Existing dice[0]/dice.current normalized by the current source compatibility reader"
+    },
+    "coordinateAndSeatContract": {
+      "source": "Right-handed Z-up model, canonical table center (87,87,0), dimensions174x174 source units. Size.TILE=(6,9,4), STICK=(20,2,1), MARKER=(12,6,1).",
+      "unityUnits": "0.01 Unity units per source unit. Classic layout position=(0.01*(x-87),0.01*z,0.01*(y-87)).",
+      "quaternion": "For that Y/Z swap basis, qUnity=(-qx,-qz,-qy,qw), normalized; sizes swap Y/Z and scale0.01. Apply seat rotation exactly once.",
+      "seats": "Canonical seats0 bottom,1 right,2 top,3 left. Source seat rotation is +90*seat degrees about Z; in the chosen Unity basis it is -90*seat yaw. Relative visual side=(seat-(viewSeat??0)+4)%4; actorSeat is independent.",
+      "rotationIndices": {
+        "hand": [
+          "STANDING",
+          "FACE_UP",
+          "FACE_DOWN"
+        ],
+        "wall": [
+          "FACE_DOWN",
+          "FACE_UP"
+        ],
+        "wall.open": [
+          "STANDING",
+          "FACE_DOWN"
+        ],
+        "discard": [
+          "FACE_UP",
+          "FACE_UP_SIDEWAYS",
+          "FACE_DOWN",
+          "FACE_DOWN_SIDEWAYS"
+        ],
+        "meld": [
+          "FACE_UP",
+          "FACE_UP_SIDEWAYS",
+          "FACE_DOWN"
+        ],
+        "kita": [
+          "FACE_UP"
+        ],
+        "tray": [
+          "FACE_UP"
+        ],
+        "payment": [
+          "FACE_UP_SIDEWAYS"
+        ],
+        "riichi": [
+          "FACE_UP"
+        ],
+        "marker": [
+          "FACE_DOWN_REVERSE",
+          "FACE_UP"
+        ]
+      },
+      "rotationPolicy": "Use ApplyLayout.slot.poses as the authority for quaternion/rotation arrays, not hardcoded Unity Euler guesses. Frames may carry a held override pose.",
+      "rectangular": "Reposition slot groups using seat/local indexes to a fitted width/depth rectangle, without stretching tile meshes or changing source slot addresses/order/tiers. Supply colliders for the same slots in both layouts. Insets/hand band reduce the available board viewport.",
+      "separateHand": "One Unity canvas with a separate orthographic local-hand camera/root band; remove those same entities from table-camera layer to avoid duplicates. Entities retain canonical slotName and entityId for actions. Remote hands stay around the board and concealed.",
+      "relayExtras": "Render/select/move STICK and MARKER, Kita, tray/payment/riichi, hand.extra, discard.extra and Minefield wall.open slots too; tile-only rendering is incomplete."
+    },
+    "slotGrammar": {
+      "hand": "hand.{i}@{seat}, hand.extra@{seat}",
+      "wall": "wall.{column}.{layer}@{seat}",
+      "wall.open": "wall.open.{row}.{column}@{seat}",
+      "discard": "discard.{row}.{column}@{seat}, discard.extra.{i}@{seat}",
+      "meld": "meld.{meldIndex}.{tileIndex}@{seat}; Changsha added kong upper tile is tileIndex4",
+      "kita": "kita.{i}@{seat}",
+      "tray": "tray.{column}.{row}@{seat}",
+      "payment": "payment.{i}@{seat}",
+      "riichi": "riichi@{seat}",
+      "marker": "marker@{seat}",
+      "omit": "hiddenpool@0 is off-table storage, never visible/pickable/drop-target.",
+      "changshaWall": "Physical stacks [14,14,13,13], two tiers; current translator consumes a contiguous source-defined perimeter arc, top layer1 before layer0. Do not repack by remaining count.",
+      "geometrySource": "Use the actual Setup slot catalog, not this grammar as a replacement layout/rule generator."
+    },
+    "privacyRules": [
+      "No hidden numeric IDs or sentinel faces may be serialized to Unity. Opaque/back entities have faceIndex:null, knownFace:false, showFace:false. face:null is never defaulted to face0.",
+      "Use existing parseRealTileId/partitionThingEntries/resolveTileFace; numeric-string keys are entitled by value, not blindly opaque by typeof. Treat opaque keys as uninterpreted.",
+      "Keep only current viewer-projected identities; full snapshots remove absent entities; tombstones remove prior entries; opaque-to-real reveal is replace/remove, not a guessed handle-to-tile mapping.",
+      "Before the first bound Changsha full snapshot and after authority loss, publish empty entity/hand frames and clear caches. Never export the locally pre-baked 108 numeric placeholder tiles.",
+      "Changing a spectator camera/hand-layout/view mode must not trigger a new privileged snapshot, mutate actorSeat or infer concealed identities.",
+      "Do not claim the older Relay trust model has server-secret concealed IDs: retain its existing server filtering semantics and redact Unity presentation, but do not silently redesign that backend in this renderer task."
+    ],
+    "publicationRules": [
+      "ApplyLayout and RendererFrame are complete snapshots. Layout changes only when Setup slot catalog/variant changes; full frame arrays replace all old live entities.",
+      "sessionId is a new adapter epoch on joining, disconnect/room switch, authority-seat change or protocol failure. Clear binds the new epoch. Old callbacks/actions/queued frames cannot cross it.",
+      "frameId increases monotonically within a session; layoutRevision increases on slot-catalog rebuild. Never mistake these adapter counters for backend versions.",
+      "Reject mismatched version/instance/session/layout and <=last frameId; emit a renderer error and fail closed. Do not try to guess unsupported enum values.",
+      "Coalesce visual frame publications to newest complete state at <=30Hz; input and primary network processing are not throttled or dropped. Unity owns visual interpolation.",
+      "No frame is published during partially applied Collection updates. Publishing from the headless sink should happen after the coherent model update.",
+      "All display-only source fields absent from an older relay payload are normalized by retained source compatibility readers; do not remove mandatory core conditions or pretend malformed snapshots are a ready game. Unexpected required-data ambiguity goes back to Lead rather than introducing new server fields.",
+      "An entityId is the primary render key, not slotName. Preserve baseline entries even if a pre-existing translator overflow uses duplicate slot addresses; surface the existing limitation rather than invent server slots."
+    ],
+    "inputMapping": [
+      {
+        "intent": "discard",
+        "implementation": "Lookup current eligible entity -> live own-hand numeric source tile -> World.emitDiscard(id).",
+        "wire": "discard[actorSeat]={tileId}; no optimistic Changsha tile relocation"
+      },
+      {
+        "intent": "takePickup",
+        "implementation": "Lookup current trigger entity, verify current manual pickup actor/phase and targetSlots.length===1 and matching slot; invoke retained emitTakePickup.",
+        "wire": "pickup['take']={seatIndex,count} only"
+      },
+      {
+        "intent": "rollDice",
+        "implementation": "Only confirmed dealer actor in authoritative RollingDice/manual phase; invoke retained World.emitRollDice.",
+        "wire": "pickup['rollDice']={seatIndex}"
+      },
+      {
+        "intent": "hover/select",
+        "implementation": "Resolve only current selectable entities and pass internal source indexes to World.onHover/onSelect. Changsha cannot select foreign concealed/public runtime objects."
+      },
+      {
+        "intent": "beginDrag/dragToSlot/endDrag",
+        "implementation": "Relay/offline only. Frontend owns gestureId and anchor mapping; begin uses canonical source place and World.onMove/onSelect/onHover/onDragStart. slot-target wrapper translates selected target Slot.place into canonical displacement through existing World/Movement/findShift/canDrop rules. End calls World.onDragEnd or cancels in place. No Unity screen/world float is sent as a server action.",
+        "requirement": "Add only a narrow safe source-slot wrapper if necessary; do not reimplement Shift, pushes, stacked walls or arbitrary wire mutation in Unity."
+      },
+      {
+        "intent": "flip",
+        "implementation": "Relay/offline only. Resolve current selection, preserve source canFlipMultiple rule, call World.onSelect and World.onFlip(direction,animated).",
+        "wire": "existing relay things UPDATE"
+      },
+      {
+        "intent": "claim/ownTurn/continue",
+        "implementation": "Not RendererAction kinds in v1. Retain actual browser RuleActionControls and hand-result controller, with their advertised runtime gameId/stateVersion/resultToken checks."
+      },
+      {
+        "intent": "view/layout/sorting/seat/chat",
+        "implementation": "Browser DOM preferences/controls remain authoritative for presentation and shell actions. Their changes republish frames/viewport, not new server fields."
+      }
+    ],
+    "actionValidation": [
+      "Action envelope cannot carry actor seat, tileId, raw UPDATE, arbitrary collection name or auth data; additional properties are rejected.",
+      "Validate current instanceId/sessionId, known contextFrameId<=current frameId and current entity eligibility. Do not require equal frameId for animation/layout-only changes, but never act on a stale entity/authority/phase.",
+      "Subsequent drag messages require an active matching gestureId owned by the same actor/session. Cancellation, resize/orientation, disconnect or authority change ends it safely.",
+      "No mutation queue while offline/reconnecting/unbound; submitted only means sent to existing browser action pipeline. Server updates/rejection determine actual outcome."
+    ],
+    "lifecycle": [
+      "Browser keeps lobby/shell usable before Unity load; table route fetches /autotable/unity/renderer-build.json and verifies supported version/relative same-origin paths.",
+      "Load the actual manifest-listed Unity loader script and call createUnityInstance(canvas,config,onProgress). Missing artifact/HTTP error is a visible Unity-build-unavailable state, not a legacy/canvas fallback.",
+      "Install window.MahjongUnityBridge.emit before load. After createUnityInstance resolves, SendMessage('MahjongBridge','Configure',configureJson); wait for matching C# Ready.",
+      "Send Clear(new session epoch), latest measured Viewport, complete RendererLayout, then newest coherent RendererFrame. Queue only the newest frame until ready.",
+      "C# emits FrameRendered only after its cameras have rendered the accepted frame (e.g. WaitForEndOfFrame), never merely after parsing JSON.",
+      "Only that callback may set unity-renderer-ready/scene-shell-ready. game-shell-ready may remain an earlier DOM-only feedback marker.",
+      "ResizeObserver, visualViewport/window resize and orientation changes recompute the actual canvas CSS rect, safe areas and backing buffer. Cancel active gestures before changed picking transforms.",
+      "widthPx=round(widthCssPx*renderPixelRatio), heightPx likewise, renderPixelRatio=min(devicePixelRatio,2); Send SetViewport before the next frame. If separate hand is disabled, handBandCssPx=0.",
+      "Use Unity-native pointer/touch raycasts with camera-specific viewports; host canvas touch-action prevents page pan only over the canvas, while DOM chat/lobby scroll and inputs retain normal behavior.",
+      "On visibility loss suspend visual work, not the primary WS. Resume sends latest viewport/layout/frame, not old animations.",
+      "On clear/disconnect revoke interactive flags and blank private hand immediately; on dispose remove listeners, discard queue and await unityInstance.Quit."
+    ],
+    "syntheticSchemaFixtures": [
+      {
+        "definition": "RendererLayout",
+        "value": {
+          "contractVersion": "1.0.0",
+          "instanceId": "fixture-instance",
+          "sessionId": "fixture-session",
+          "type": "layout",
+          "layoutRevision": 1,
+          "gameType": "CHANGSHA",
+          "activeSeats": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "canonicalBoard": {
+            "width": 174,
+            "depth": 174
+          },
+          "slots": [
+            {
+              "slotName": "hand.0@0",
+              "group": "hand",
+              "seat": 0,
+              "indexes": [
+                0
+              ],
+              "kind": "TILE",
+              "poses": [
+                {
+                  "position": {
+                    "x": 49,
+                    "y": 4.5,
+                    "z": 2
+                  },
+                  "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                  },
+                  "size": {
+                    "x": 6,
+                    "y": 9,
+                    "z": 4
+                  }
+                },
+                {
+                  "position": {
+                    "x": 49,
+                    "y": 4.5,
+                    "z": 2
+                  },
+                  "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                  },
+                  "size": {
+                    "x": 6,
+                    "y": 9,
+                    "z": 4
+                  }
+                },
+                {
+                  "position": {
+                    "x": 49,
+                    "y": 4.5,
+                    "z": 2
+                  },
+                  "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                  },
+                  "size": {
+                    "x": 6,
+                    "y": 9,
+                    "z": 4
+                  }
+                }
+              ],
+              "drawShadow": false,
+              "shadowRotationIndex": 0,
+              "canFlipMultiple": true,
+              "rotateHeld": true
+            },
+            {
+              "slotName": "wall.0.1@1",
+              "group": "wall",
+              "seat": 1,
+              "indexes": [
+                0,
+                1
+              ],
+              "kind": "TILE",
+              "poses": [
+                {
+                  "position": {
+                    "x": 49,
+                    "y": 4.5,
+                    "z": 2
+                  },
+                  "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                  },
+                  "size": {
+                    "x": 6,
+                    "y": 9,
+                    "z": 4
+                  }
+                },
+                {
+                  "position": {
+                    "x": 49,
+                    "y": 4.5,
+                    "z": 2
+                  },
+                  "rotation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                  },
+                  "size": {
+                    "x": 6,
+                    "y": 9,
+                    "z": 4
+                  }
+                }
+              ],
+              "drawShadow": false,
+              "shadowRotationIndex": 0,
+              "canFlipMultiple": false,
+              "rotateHeld": false
+            }
+          ]
+        }
+      },
+      {
+        "definition": "RendererFrame",
+        "value": {
+          "contractVersion": "1.0.0",
+          "instanceId": "fixture-instance",
+          "sessionId": "fixture-session",
+          "type": "frame",
+          "frameId": 1,
+          "layoutRevision": 1,
+          "session": {
+            "gameId": "fixture-room",
+            "mode": "changsha",
+            "connected": true,
+            "snapshotReady": true,
+            "actorSeat": 0,
+            "viewSeat": 0,
+            "viewerRevision": 4
+          },
+          "presentation": {
+            "viewMode": "perspective",
+            "boardLayout": "rectangular",
+            "handLayout": "separate",
+            "tileLabels": true,
+            "lookDown": 0,
+            "zoom": 0
+          },
+          "match": {
+            "dealer": 0,
+            "honba": 0,
+            "conditions": {
+              "gameType": "CHANGSHA",
+              "back": 0,
+              "fives": "000",
+              "points": "25",
+              "dealType": "HANDS",
+              "baseUnit": 1,
+              "dealMode": "auto"
+            }
+          },
+          "entities": [
+            {
+              "entityId": "fixture-own-tile",
+              "kind": "TILE",
+              "slotName": "hand.0@0",
+              "group": "hand",
+              "seat": 0,
+              "indexes": [
+                0
+              ],
+              "rotationIndex": 1,
+              "pose": {
+                "position": {
+                  "x": 49,
+                  "y": 4.5,
+                  "z": 2
+                },
+                "rotation": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0,
+                  "w": 1
+                },
+                "size": {
+                  "x": 6,
+                  "y": 9,
+                  "z": 4
+                }
+              },
+              "scale": 1,
+              "appearance": {
+                "faceIndex": 0,
+                "knownFace": true,
+                "showFace": true,
+                "backIndex": 0,
+                "valueIndex": null
+              },
+              "display": {
+                "selected": false,
+                "hovered": false,
+                "held": false,
+                "temporary": false,
+                "bottom": false,
+                "drawn": false,
+                "highlight": 0
+              },
+              "interaction": {
+                "canSelect": true,
+                "canDrag": false,
+                "canFlip": false,
+                "canDiscard": true,
+                "canPickup": false
+              }
+            },
+            {
+              "entityId": "fixture-concealed-wall",
+              "kind": "TILE",
+              "slotName": "wall.0.1@1",
+              "group": "wall",
+              "seat": 1,
+              "indexes": [
+                0,
+                1
+              ],
+              "rotationIndex": 0,
+              "pose": {
+                "position": {
+                  "x": 49,
+                  "y": 4.5,
+                  "z": 2
+                },
+                "rotation": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0,
+                  "w": 1
+                },
+                "size": {
+                  "x": 6,
+                  "y": 9,
+                  "z": 4
+                }
+              },
+              "scale": 1,
+              "appearance": {
+                "faceIndex": null,
+                "knownFace": false,
+                "showFace": false,
+                "backIndex": 0,
+                "valueIndex": null
+              },
+              "display": {
+                "selected": false,
+                "hovered": false,
+                "held": false,
+                "temporary": false,
+                "bottom": false,
+                "drawn": false,
+                "highlight": 0
+              },
+              "interaction": {
+                "canSelect": false,
+                "canDrag": false,
+                "canFlip": false,
+                "canDiscard": false,
+                "canPickup": false
+              }
+            }
+          ],
+          "seats": [
+            {
+              "seat": 0,
+              "playerId": null,
+              "nick": null,
+              "score": null
+            },
+            {
+              "seat": 1,
+              "playerId": null,
+              "nick": null,
+              "score": null
+            },
+            {
+              "seat": 2,
+              "playerId": null,
+              "nick": null,
+              "score": null
+            },
+            {
+              "seat": 3,
+              "playerId": null,
+              "nick": null,
+              "score": null
+            }
+          ],
+          "localHand": {
+            "seat": 0,
+            "entityIds": [
+              "fixture-own-tile"
+            ],
+            "drawnEntityId": null
+          },
+          "turn": {
+            "activeSeat": 0,
+            "phase": "AwaitingDiscard",
+            "awaitingDiscard": true
+          },
+          "pickup": null,
+          "dice": {
+            "values": [
+              3,
+              4
+            ],
+            "state": "rolled",
+            "canRoll": false
+          }
+        }
+      },
+      {
+        "definition": "RendererAction",
+        "value": {
+          "contractVersion": "1.0.0",
+          "instanceId": "fixture-instance",
+          "sessionId": "fixture-session",
+          "type": "action",
+          "actionId": "fixture-action",
+          "contextFrameId": 1,
+          "intent": {
+            "kind": "discard",
+            "entityId": "fixture-own-tile"
+          }
+        }
+      },
+      {
+        "definition": "Viewport",
+        "value": {
+          "contractVersion": "1.0.0",
+          "instanceId": "fixture-instance",
+          "type": "viewport",
+          "resizeRevision": 1,
+          "widthCssPx": 390,
+          "heightCssPx": 844,
+          "devicePixelRatio": 3,
+          "renderPixelRatio": 2,
+          "widthPx": 780,
+          "heightPx": 1688,
+          "insetsCssPx": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "handBandCssPx": 112
+        }
+      }
+    ],
+    "fixtureDisclaimer": "Synthetic schema test vectors only, deliberately partial two-entity board; not captured gameplay, not a Unity build, not mobile/browser validation. Pose entries in layout fixture are placeholders for parser tests, not actual Setup geometry evidence."
+  },
+  "licensing": {
+    "owner": "Lead; Stephen Long/coordinator confirms disposition before redistribution",
+    "findings": [
+      {
+        "subject": "Inherited pwmarcz code",
+        "evidence": [
+          "src/frontend/autotable-src/COPYING",
+          "src/frontend/autotable-src/package.json",
+          "src/frontend/autotable-src/README.md",
+          "upstream COPYING"
+        ],
+        "license": "MIT for original code, expressly excluding images/sounds",
+        "obligation": "Retain original copyright and permission notice with substantial copied code; provide shipped third-party notices."
+      },
+      {
+        "subject": "Fork backend/original additions",
+        "evidence": [
+          "GitHub root licenseInfo:null",
+          "tracked license inventory only found frontend COPYING"
+        ],
+        "license": "No separate backend/root grant found in the audited tracked files; nested MIT/manifest is not proof every fork addition or asset has that grant.",
+        "disposition": "Owner requested development/import, so local implementation can proceed. Lead obtains an explicit root/additions licensing decision from Stephen Long before distributing a Docker image."
+      },
+      {
+        "subject": "Autotable tile artwork and derivatives",
+        "evidence": [
+          "upstream README License",
+          "src/frontend/autotable-src/README.md",
+          "src/frontend/autotable-src/about.html"
+        ],
+        "license": "CC BY-NC-SA stated for Kanojo tile images; exact version/complete asset chain not established",
+        "disposition": "Do not import/reuse img/tiles.svg, generated tile PNG/atlas/labels, icon derivatives or atlas-bearing models in the new product. Original procedural Unity art and original DOM labels/icons replace them."
+      },
+      {
+        "subject": "Autotable table/sound/font/cheatsheets",
+        "license": "README: table Fabric030 and OpenGameArt sounds CC0; Segment7 OFL; about: cheatsheets CC BY-NC4.0 and their FluffyStuff tiles CC BY4.0",
+        "disposition": "Not needed for simplest migration; import none of these third-party binaries/PDFs. If later reuse is wanted, verify per-file provenance/license version and fulfill separate obligations first."
+      },
+      {
+        "subject": "Fork sound.ts",
+        "evidence": [
+          "src/frontend/autotable-src/sounds/CREDITS.md",
+          "src/frontend/autotable-src/src/sound.ts"
+        ],
+        "license": "Synth code with zero static audio assets per existing credits; credits mention /COPYING but actual notice is nested",
+        "disposition": "Keep browser synth behavior with code notices; do not assert synthesized code/audio is automatically CC0 or copy legacy static sound bundles."
+      },
+      {
+        "subject": "Unity example original code",
+        "evidence": [
+          "unity-example/LICENSE"
+        ],
+        "license": "MIT (Arcturus)",
+        "disposition": "Inspect-only in this recommendation; no copied code means no new code attribution burden from this reference."
+      },
+      {
+        "subject": "Unity example assets and bundled SDKs",
+        "evidence": [
+          "unity-example/README.md",
+          "Assets/Photon",
+          "Assets/Demigiant",
+          "Assets/Fonts"
+        ],
+        "license": "README says resources fetched from Majsoul; MIT code notice does not establish rights to those external resources. Bundled Photon/DOTween/fonts have distinct terms.",
+        "disposition": "Import none; do not copy a whole example project or upgrade its asset tree."
+      },
+      {
+        "subject": "New assets",
+        "license": "Original generated meshes/textures/ASCII suit labels and simple original icons, with creator/source/license recorded.",
+        "disposition": "Unity owns procedural meshes/textures. Frontend owns original DOM tile labels/icons. Use Unity-provided runtime components only under their applicable terms; no outside font/texture/model without provenance."
+      },
+      {
+        "subject": "Dependency notices",
+        "disposition": "Backend retains npm/NuGet and Unity-package notices/SBOM in distribution, including any MPL/Apache dependencies; do not infer package.json MIT relicenses dependencies."
+      }
+    ],
+    "distributionGate": "No blanket 'all assets/code MIT' claim. Owner license decision and shipped notices are required before release, independently of passing builds."
+  },
+  "unityBuild": {
+    "target": "Unity 6.3 LTS Web / BuildTarget.WebGL",
+    "pinnedEditor": "6000.3.24f1",
+    "pinnedRevision": "4e7b9b5b6244",
+    "releaseDate": "2026-09-10T14:47:57.906Z",
+    "support": "Unity 6.3 LTS officially supported until December2027",
+    "why": "Supported LTS and documented desktop/mobile Web support; the 2019.1 sample is inspect-only, not a project upgrade baseline. This is a concrete reproducibility pin, not a claim it is the newest patch.",
+    "officialReleaseMetadata": {
+      "source": "https://services.api.unity.com/unity/editor/release/v1/releases?version=6000.3.24f1",
+      "version": "6000.3.24f1",
+      "releaseDate": "2026-09-10T14:47:57.906Z",
+      "linuxEditor": {
+        "url": "https://download.unity3d.com/download_unity/4e7b9b5b6244/LinuxEditorInstaller/Unity-6000.3.24f1.tar.xz",
+        "downloadSize": {
+          "value": 4465840984,
+          "unit": "BYTE"
+        },
+        "installedSize": {
+          "value": 8657725440,
+          "unit": "BYTE"
+        },
+        "integrity": "md5-vmNCpy4S+WbhKeZmCEqblw=="
+      },
+      "webglModule": {
+        "id": "webgl",
+        "slug": "6000.3.24f1-linux-x86_64-webgl",
+        "name": "Web Build Support",
+        "description": "Allows building your Unity projects for the Web platform",
+        "category": "PLATFORM",
+        "url": "https://download.unity3d.com/download_unity/4e7b9b5b6244/LinuxEditorTargetInstaller/UnitySetup-WebGL-Support-for-Editor-6000.3.24f1.tar.xz",
+        "type": "TAR_XZ",
+        "downloadSize": {
+          "value": 1281812928,
+          "unit": "BYTE"
+        },
+        "installedSize": {
+          "value": 5829396480,
+          "unit": "BYTE"
+        },
+        "required": false,
+        "hidden": false,
+        "preSelected": false,
+        "integrity": "md5-lN9YDBHYCNA+IyW/CtCgUA==",
+        "subModules": [],
+        "destination": "{UNITY_PATH}/Editor/Data/PlaybackEngines/WebGLSupport"
+      }
+    },
+    "host": {
+      "os": "Linux",
+      "node": "v24.11.1",
+      "npm": "11.14.1",
+      "python": "3.12.3",
+      "dotnetSdk": "10.0.100",
+      "dockerClient": "29.9.0",
+      "dockerDaemon": "29.9.0",
+      "unityExecutableOnPath": false,
+      "unityPathsCheckedAbsent": [
+        "/opt/Unity",
+        "/opt/unity",
+        "/opt/unityhub",
+        "/usr/bin/unityhub",
+        "/usr/bin/Unity",
+        "/usr/local/bin/Unity",
+        "/opt/Unity/Hub/Editor",
+        "/usr/local/Unity/Hub/Editor",
+        "/data/Unity/Hub/Editor",
+        "/root/Unity/Hub/Editor",
+        "/home/long2know/Unity/Hub/Editor",
+        "/home/long2know/UnityHub",
+        "/home/long2know/.local/share/UnityHub"
+      ],
+      "licensePresencePathsCheckedAbsent": [
+        "/root/.local/share/unity3d/Unity/Unity_lic.ulf",
+        "/root/.local/share/unity3d/Unity/licenses",
+        "/home/long2know/.local/share/unity3d/Unity/Unity_lic.ulf",
+        "/home/long2know/.local/share/unity3d/Unity/licenses"
+      ],
+      "licenseContentsRead": false,
+      "activationProven": false,
+      "webModuleInstalledProven": false,
+      "existingUnityDockerImagesFound": false,
+      "feasibility": "Source/contract implementation is feasible. No editor, module, activation or actual Web build was established on this host; do not claim C# compile/Unity tests/WebGL/browser success."
+    },
+    "project": "unity/MahjongRenderer",
+    "packages": {
+      "com.unity.nuget.newtonsoft-json": "3.2.1",
+      "com.unity.test-framework": "1.4.6",
+      "note": "Pins exist in official packages.unity.com metadata (min Unity2018.4 and2019.4.1f1 respectively), recorded in reference/*.json; actual Unity6000.3 restore/compile remains untested. No Ads/Analytics/Purchasing/Photon import."
+    },
+    "settings": {
+      "renderer": "Built-in lightweight 3D meshes/materials/cameras; original procedural textures",
+      "scriptingBackend": "IL2CPP",
+      "graphics": "WebGL2",
+      "threading": "single-threaded",
+      "compression": "Disabled / none",
+      "decompressionFallback": false,
+      "webAssembly2023": false,
+      "reason": "Avoid cross-origin isolation/threading and precompressed hosting complexity for the first complete integration. Optimize only after real device evidence."
+    },
+    "buildProducer": {
+      "owner": "Unity",
+      "script": "scripts/build-unity-webgl.sh",
+      "executeMethod": "Mahjong.Renderer.Editor.WebGlBuild.Build",
+      "outputDirectory": "artifacts/unity-webgl",
+      "manifest": "artifacts/unity-webgl/renderer-build.json",
+      "requiredArtifacts": [
+        "Actual Unity-generated loader .js",
+        "framework .js",
+        "WebAssembly .wasm",
+        ".data",
+        "BuildManifest JSON"
+      ],
+      "sourceOnly": "Unity project, C# DTOs/renderer/picking/layout, .jslib, tests and reproducible script may be delivered without claiming generated artifacts.",
+      "failLoud": [
+        "Require an explicitly configured executable UNITY_EDITOR and exact pinned version, plus WebGLSupport module. Do not download/activate anything automatically.",
+        "Run the actual editor BuildPipeline.BuildPlayer; inspect BuildReport success and nonzero outputs. Missing license/module/import/build errors are nonzero and leave no success manifest.",
+        "Write manifest only after a successful actual Unity build, hashing every listed artifact; record source revision/tree hash/sourceDirty. Missing files or manually fabricated JS/wasm are not accepted.",
+        "Do not claim license availability solely from a .ulf existence check; successful licensed editor execution/build is the proof."
+      ]
+    },
+    "reproduciblePath": "After explicit authorization, use a provisioned licensed Linux editor6000.3.24f1 + Web Build Support on an approved workstation or self-hosted CI runner. Backend CI orchestrates Unity's script and publishes real outputs; runtime Docker consumes outputs, never builds a fake replacement.",
+    "noInstallDuringAudit": "Official metadata reports editor download4,465,840,984bytes plus Web module1,281,812,928bytes. No editor/module/image was downloaded and no licensing action was taken.",
+    "hostingConsumer": {
+      "owner": "Backend",
+      "validator": "scripts/verify-unity-build.py",
+      "url": "/autotable/unity/renderer-build.json",
+      "containerDirectory": "/frontend/autotable/unity",
+      "copy": "COPY artifacts/unity-webgl/ /frontend/autotable/unity/ in the existing runtime image; include it after Vite output.",
+      "contentTypes": {
+        ".wasm": "application/wasm",
+        ".data": "application/octet-stream",
+        ".js": "application/javascript",
+        ".json": "application/json"
+      },
+      "diskCompression": "None. Do not label uncompressed files as gzip/br or serve missing artifacts as index.html.",
+      "cache": "Manifest/loader and unversioned artifacts revalidate; do not introduce stale service-worker cache-first wasm/data across builds. Hashed files may be immutable only with matching hashes.",
+      "csp": "Baseline SecurityHeadersMiddleware default already permits 'wasm-unsafe-eval' and worker-src self/blob. Keep default and same-origin loader; do not add unsafe-eval/unsafe-inline scripts or global COOP/COEP. Security:CspStrict or a custom policy without wasm permission is explicitly incompatible; surface/document it, not silently weaken it.",
+      "checks": "Require exact manifest version/Unity pin, safe relative paths (no traversal or URLs), correct artifact types/extensions/nonzero lengths, SHA256 matches and WebAssembly magic. Release rejects developmentBuild:true/sourceDirty:true. Local qualification may explicitly pass --allow-source-dirty and must retain the actual source-tree hash/dirty disclosure, since implementation dispatch forbids commits. These integrity checks alone do not prove browser/mobile readiness.",
+      "missingBuildBehavior": "Docker/build wrapper exits nonzero with the real-build command and missing file. Local browser shell may still expose lobby/chat, but table explicitly says Unity build unavailable and never starts a legacy renderer."
+    },
+    "documentedBrowserTargets": "Unity6000.3 docs: desktop WebGL2/64-bit/Wasm Chrome, Firefox, Safari, Edge; mobile iOS Safari15+ and Android Chrome58+. Actual acceptance uses current supported browsers/real devices, not these historical minima as performance proof."
+  },
+  "ownership": [
+    {
+      "agent": "Backend",
+      "phase": "B0 minimum shared import, then B1 hosting",
+      "writes": [
+        "scripts/import-baseline.py",
+        "contracts/source-provenance.json",
+        "contracts/renderer-v1.schema.json",
+        "contracts/migration-contract.json",
+        "src/backend/** (excluding tests/**/Migration/**)",
+        "Dockerfile",
+        ".dockerignore",
+        "docker-compose*.yml",
+        "build.sh",
+        "build.ps1",
+        "scripts/compose-bootstrap.sh",
+        "scripts/verify-unity-build.py",
+        ".github/workflows/migration-build.yml"
+      ],
+      "oneTimeSeedOnly": [
+        "src/frontend/autotable-src/**, before ownership handoff to Frontend"
+      ],
+      "mustNotWrite": [
+        "unity/**",
+        "scripts/build-unity-webgl.sh",
+        "README.md",
+        "docs/integration/**",
+        ".squad/**",
+        ".github/agents/**",
+        ".mcp.json",
+        ".vscode/**"
+      ],
+      "acceptance": [
+        "Import exact BASE from git objects once, retain nested COPYING; record pin and selected/excluded paths. Do not copy reference-mirror build dirt.",
+        "Preserve server/runtime/rules/identity/transport as-is; only static Unity hosting/MIME/CSP diagnostics and artifact pipeline changes are in scope.",
+        "Original targeted backend tests still pass. Docker rejects missing/fabricated/incompatible artifacts and hosts real Unity files, API and WS in one image.",
+        "Do not touch Frontend tree after B0 ownership-transfer receipt."
+      ]
+    },
+    {
+      "agent": "Unity",
+      "phase": "U1 source project; U2 real artifact on authorized editor",
+      "writes": [
+        "unity/MahjongRenderer/** (excluding Assets/Tests/Migration/**)",
+        "scripts/build-unity-webgl.sh",
+        "artifacts/unity-webgl/** (generated only)",
+        "artifacts/test-results/unity-* (generated only)"
+      ],
+      "mustNotWrite": [
+        "src/frontend/**",
+        "src/backend/**",
+        "Dockerfile",
+        "contracts/**",
+        "README.md",
+        "docs/integration/**",
+        ".squad/**"
+      ],
+      "dependencies": [
+        "Lead frozen renderer schema; no shared-source import required to start source work"
+      ],
+      "acceptance": [
+        "Exact DTOs/bridge lifecycle, real Unity meshes/cameras/raycast picking and original assets; no backend/network/rules implementation.",
+        "All variant slot kinds, sticks/marker/Kita and Minefield rows represented; flat/perspective and separate hand/classic/rectangular layouts work.",
+        "EditMode parser/layout/privacy/seat-basis tests and build script fail-loud behavior supplied; no fabricated generated files.",
+        "A real WebGL manifest/artifact and actual editor test output are required for U2; report tooling blocker separately if no licensed editor is authorized."
+      ]
+    },
+    {
+      "agent": "Frontend",
+      "phase": "F1 adapter and preserved browser shell after B0",
+      "writes": [
+        "src/frontend/autotable-src/** after B0 seed",
+        "src/frontend/autotable/** (generated Vite only, not Unity artifact publication)"
+      ],
+      "mustNotWrite": [
+        "src/backend/**",
+        "unity/**",
+        "scripts/build-unity-webgl.sh",
+        "scripts/verify-unity-build.py",
+        "Dockerfile",
+        "contracts/**",
+        "README.md",
+        "docs/integration/**",
+        ".squad/**"
+      ],
+      "dependencies": [
+        "B0 shared import and frozen schema; may use schema fixtures before real U2, but mocks are not browser acceptance"
+      ],
+      "acceptance": [
+        "Retained actual Client/World/Setup/Movement and DOM lobby/chat/reconnect/spectator/claim/ownTurn/result flows use unchanged wire.",
+        "Headless sink replaces legacy GPU graph; primary table loads only actual Unity runtime, no legacy/canvas fallback or imports of retired assets.",
+        "Private entity lookup, full/delta/tombstone handling, authority/cache revocation and safe actions tested against actual adapter and source helpers.",
+        "Replace old tile art/icons/result artwork with original labels/art; preserve baseline end-hand rendering readability and continuation contract.",
+        "Resize/orientation/DPR/focus/touch lifecycle and user-visible missing-build state implemented."
+      ]
+    },
+    {
+      "agent": "Tester",
+      "phase": "T1 compatibility evidence after B0/F1/U1; T2 browser/device/container after U2/B1",
+      "writes": [
+        "tests/migration/**",
+        "src/backend/tests/Mahjong.Autotable.Api.Tests/Migration/**",
+        "unity/MahjongRenderer/Assets/Tests/Migration/**",
+        "artifacts/test-results/migration-* (generated only)"
+      ],
+      "mustNotWrite": [
+        "application implementation",
+        "other agents' unit tests without handoff",
+        "root README/integration docs",
+        ".squad/**"
+      ],
+      "acceptance": [
+        "Execute unchanged source selectors and new bridge tests; exercise all5 variants, manual/auto Changsha, multiplayer seats/spectators/room switches/reconnect/chat.",
+        "Inspect actual wire and emitted frame for hidden identities, obsolete caches and forged/stale action rejection; mutate real contract/adapter fields to show realistic failures.",
+        "Only a real Unity runtime artifact and C# frameRendered/picking round-trip qualify browser acceptance; source/mocked tests are labeled separately.",
+        "Run desktop, mobile viewport/touch/DPR/orientation and real iOS Safari/Android Chrome checks; report unrun devices instead of claiming pass.",
+        "Verify Docker artifact failure gates, MIME/cache/security headers, primary WS and health, clean shutdown and persistence without using live deployment credentials."
+      ]
+    },
+    {
+      "agent": "Lead",
+      "phase": "L1 later integration/license handoff",
+      "writes": [
+        "README.md",
+        "docs/integration/**",
+        "THIRD_PARTY_NOTICES.txt",
+        "LICENSE only after owner's license decision"
+      ],
+      "mustNotWrite": [
+        "independently assigned Unity/frontend/backend implementation"
+      ],
+      "acceptance": [
+        "Review actual specialist evidence against frozen contract, source provenance/rights and release gates.",
+        "Write integration/startup/troubleshooting/attribution documentation based on built artifacts and executed commands, not assumed success.",
+        "Breaking contract changes return to coordinator/team approval; no silent independent schema drift."
+      ]
+    }
+  ],
+  "minimumSharedImport": {
+    "owner": "Backend",
+    "milestone": "B0",
+    "revision": "d10d351e543aa3e341960de9800828b6c0662a82",
+    "method": "Implement scripts/import-baseline.py using git archive/git show at the full pinned SHA, explicit allowlists, path collision checks and a provenance receipt. Never copy the entire source repo or the dirty reference working tree.",
+    "include": [
+      "src/backend source/project/tests",
+      "src/frontend/autotable-src TS/HTML/CSS/config/manifests/tests and COPYING/UPSTREAM_SHA",
+      "safe source appsettings/example configuration as needed",
+      "selected build/compose scripts only"
+    ],
+    "exclude": [
+      ".git",
+      ".squad",
+      ".github/agents",
+      ".copilot",
+      ".work",
+      ".vscode",
+      ".mcp.json",
+      "all .env/live credentials",
+      "appsettings.Development.json (prefer safe .example template)",
+      "src/frontend/autotable generated legacy bundle",
+      "node_modules",
+      "bin",
+      "obj",
+      ".audit-work",
+      "Phase_*",
+      "playtest-artifacts",
+      "external art/audio/font/model/PDF assets, screenshots and readme-res",
+      "legacy TS Node server runtime (only server/protocol.ts is required by browser imports)"
+    ],
+    "frontendAssetDirsExcluded": [
+      "img",
+      "sound",
+      "static",
+      "test screenshot trees"
+    ],
+    "rootScaffolding": "Never overwrite/delete/stage pre-existing untracked Squad scaffolding, root .gitignore/.gitattributes or README. Merge required ignores surgically by Backend/coordinator agreement, not full-file import.",
+    "contractCopy": "Copy this accepted JSON to contracts/migration-contract.json, extract renderer.schema to contracts/renderer-v1.schema.json and retain source-provenance.json. Specialists read contracts but do not independently rewrite them.",
+    "B0Receipt": "Coordinator verifies source pin, COPYING, exclusion inventory, imported backend test/project paths and Frontend tree transfer. Initial asset-free frontend need not build before F1 rewires rendering/assets; do not call it a working app.",
+    "writeTransfer": "After B0, src/frontend belongs exclusively to Frontend. Unity may start in parallel immediately because its new tree has no shared import dependency."
+  },
+  "dependencyOrder": [
+    {
+      "id": "D0",
+      "owner": "Coordinator",
+      "dependsOn": [],
+      "action": "Accept Lead's concrete v1 recommendation and listed scopes through governed decision review; distribute immutable schema."
+    },
+    {
+      "id": "B0",
+      "owner": "Backend",
+      "dependsOn": [
+        "D0"
+      ],
+      "action": "Minimum pinned allowlisted shared import; transfer seeded frontend ownership."
+    },
+    {
+      "id": "U1",
+      "owner": "Unity",
+      "dependsOn": [
+        "D0"
+      ],
+      "action": "Source project/DTOs/rendering/picking/producer script; explicitly source-only until built."
+    },
+    {
+      "id": "F1",
+      "owner": "Frontend",
+      "dependsOn": [
+        "B0"
+      ],
+      "action": "Headless retained model, source-wire adapter, shell and actual Unity loader integration."
+    },
+    {
+      "id": "B1",
+      "owner": "Backend",
+      "dependsOn": [
+        "B0"
+      ],
+      "action": "Static MIME/manifest integrity gates, Docker and approved licensed-runner orchestration."
+    },
+    {
+      "id": "T1",
+      "owner": "Tester",
+      "dependsOn": [
+        "B0",
+        "F1",
+        "U1"
+      ],
+      "action": "Source/contract compatibility tests; never call them a Unity Web build."
+    },
+    {
+      "id": "U2",
+      "owner": "Unity + authorized editor operator",
+      "dependsOn": [
+        "U1"
+      ],
+      "action": "Produce real Web build and actual Unity test receipts; needs explicit tooling/license authorization."
+    },
+    {
+      "id": "T2",
+      "owner": "Tester",
+      "dependsOn": [
+        "F1",
+        "B1",
+        "U2"
+      ],
+      "action": "Real Unity browser/mobile/Docker end-to-end qualification."
+    },
+    {
+      "id": "L1",
+      "owner": "Lead",
+      "dependsOn": [
+        "T1",
+        "B1",
+        "U2",
+        "T2"
+      ],
+      "action": "Integration README/docs, owner-license clearance and release-evidence review."
+    }
+  ],
+  "commands": {
+    "note": "Commands below use product-root paths AFTER B0/F1/U1 exist. They are a dispatch contract, not commands already available in this heading-only target repo. Do not access live .env or print resolved secret configuration. Test/tool scratch directories remain project-relative, never /tmp.",
+    "toolScratchBootstrap": "mkdir -p artifacts/tool-work artifacts/test-results && export TMPDIR=\"$PWD/artifacts/tool-work\" TMP=\"$PWD/artifacts/tool-work\" TEMP=\"$PWD/artifacts/tool-work\" DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1",
+    "backendRestore": "dotnet restore src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj --disable-build-servers",
+    "backendCompatibility": "dotnet test src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj --no-restore --disable-build-servers -p:UseSharedCompilation=false --filter 'FullyQualifiedName~.Autotable.ViewerAuthorityContractTests|FullyQualifiedName~.Autotable.ChangshaPrivacyStartupValidatorTests|FullyQualifiedName~.Autotable.ChangshaPrivacyProjectorDelegationTests|FullyQualifiedName~.Autotable.HumanClaimWireContractTests|FullyQualifiedName~.Autotable.ResultTombstoneLifecycleTests|FullyQualifiedName~.Chat.ChatMessageTests|FullyQualifiedName~.Changsha.Acceptance.VariantSwitchAcceptanceTests' --logger 'console;verbosity=minimal'",
+    "backendPublish": "dotnet publish src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj --no-restore --disable-build-servers -p:UseSharedCompilation=false -p:UseAppHost=false -c Release -o artifacts/api",
+    "frontendRestore": "cd src/frontend/autotable-src && npm ci --no-audit --no-fund",
+    "frontendBuild": "cd src/frontend/autotable-src && npm run build",
+    "frontendCompatibility": "cd src/frontend/autotable-src && node --test tests/node/room-startup-readiness.test.mjs tests/node/hand-result-render-and-wire.test.mjs tests/node/sc2-slot-owner.invariants.test.mjs tests/node/perspective-settings.test.mjs",
+    "frontendAdapterTests": "cd src/frontend/autotable-src && node --test tests/node/unity-*.test.mjs",
+    "unityWebBuild": "UNITY_EDITOR=/approved/Unity/Hub/Editor/6000.3.24f1/Editor/Unity bash scripts/build-unity-webgl.sh",
+    "unityBatchInvocation": "\"$UNITY_EDITOR\" -batchmode -nographics -quit -projectPath \"$PWD/unity/MahjongRenderer\" -buildTarget WebGL -executeMethod Mahjong.Renderer.Editor.WebGlBuild.Build -logFile \"$PWD/artifacts/unity-webgl-build.log\"",
+    "unityEditMode": "mkdir -p artifacts/test-results && \"$UNITY_EDITOR\" -batchmode -nographics -projectPath \"$PWD/unity/MahjongRenderer\" -runTests -testPlatform EditMode -testResults \"$PWD/artifacts/test-results/unity-editmode.xml\" -logFile \"$PWD/artifacts/test-results/unity-tests.log\"",
+    "verifyWebBuild": "python3 scripts/verify-unity-build.py artifacts/unity-webgl/renderer-build.json",
+    "localArtifactStage": "python3 scripts/verify-unity-build.py --allow-source-dirty artifacts/unity-webgl/renderer-build.json && mkdir -p src/frontend/autotable/unity && cp -R artifacts/unity-webgl/. src/frontend/autotable/unity/",
+    "localBackendStart": "ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj --no-restore --no-launch-profile --urls http://127.0.0.1:8950",
+    "localHealth": "curl --fail http://127.0.0.1:8950/health",
+    "dockerBuild": "python3 scripts/verify-unity-build.py --allow-source-dirty artifacts/unity-webgl/renderer-build.json && docker build --build-arg BUILD_SHA=$(git rev-parse HEAD) --build-arg ALLOW_SOURCE_DIRTY=1 -t mahjong-unity:local .",
+    "dockerBuildQualificationFlag": "Backend owns an explicit local-only ALLOW_SOURCE_DIRTY=1 validation option. It never skips artifact/toolchain/hash/magic checks and must be disclosed in the image's manifest. Release builds default to strict validation; no agent commits merely to satisfy qualification.",
+    "dockerStart": "MAHJONG_HOST_PORT=8950 docker compose -p mahjong-unity up --no-build",
+    "dockerStartPrerequisite": "Existing operator/bootstrap mechanism provides stable signing material privately. Do not bootstrap/read a live credential file during this audit or commit it.",
+    "unityE2e": "cd src/frontend/autotable-src && E2E_BASE_URL=http://127.0.0.1:8950/autotable/ npx playwright test --config ../../../tests/migration/playwright.config.ts --project=chromium --project=mobile-chrome",
+    "testerE2ePlacement": "Tester owns tests/migration; integrate that test directory through a Tester-owned Playwright config or Frontend-owned test discovery handoff. Do not silently put Tester tests into Frontend's write scope.",
+    "testerOwnedE2e": "cd src/frontend/autotable-src && E2E_BASE_URL=http://127.0.0.1:8950/autotable/ npx playwright test --config ../../../tests/migration/playwright.config.ts"
+  },
+  "actualValidation": {
+    "location": "/data/Copilot/GitHub-Copilot-linux-x64.AppImage.home/.copilot/session-state/9c877881-39fd-4e2e-b0af-7a7995b52465/files/reference/mahjong-autotable",
+    "passed": [
+      {
+        "command": "npm run build",
+        "cwd": "src/frontend/autotable-src/",
+        "result": "Vite5.4.21 succeeded,394 modules transformed, actual ../autotable/index.html generated;5.35s build step.",
+        "warnings": [
+          "Vite CJS Node API deprecated",
+          "SignalR misplaced PURE annotations",
+          "SignalR static/dynamic import does not split into an additional chunk",
+          "npm warned baseline Popper/Bootstrap deprecated"
+        ]
+      },
+      {
+        "command": "node --test tests/node/room-startup-readiness.test.mjs tests/node/hand-result-render-and-wire.test.mjs tests/node/sc2-slot-owner.invariants.test.mjs tests/node/perspective-settings.test.mjs",
+        "cwd": "src/frontend/autotable-src/",
+        "passed": 38,
+        "failed": 0,
+        "skipped": 0,
+        "coverage": "Actual Client readiness and hand-result wire/render code, perspective settings, SC2 reconciliation invariant backstop. No browser/Unity claim."
+      },
+      {
+        "command": "dotnet test src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj --no-build --no-restore --disable-build-servers --filter 'FullyQualifiedName~.Autotable.ViewerAuthorityContractTests|FullyQualifiedName~.Autotable.ChangshaPrivacyStartupValidatorTests|FullyQualifiedName~.Autotable.ChangshaPrivacyProjectorDelegationTests|FullyQualifiedName~.Autotable.HumanClaimWireContractTests|FullyQualifiedName~.Autotable.ResultTombstoneLifecycleTests|FullyQualifiedName~.Chat.ChatMessageTests|FullyQualifiedName~.Changsha.Acceptance.VariantSwitchAcceptanceTests' --logger 'console;verbosity=minimal'",
+        "passed": 65,
+        "failed": 0,
+        "skipped": 0,
+        "duration": "31s",
+        "coverage": "Viewer authority, privacy startup/delegation, human claim wire, result tombstone lifecycle, chat messages, all variant-switch acceptance cases"
+      },
+      {
+        "command": "dotnet publish src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj --no-restore --disable-build-servers -p:UseSharedCompilation=false -p:UseAppHost=false -c Release -o .audit-work/publish -v:minimal",
+        "result": "Release publish succeeded; nonempty Mahjong.Autotable.Api.dll explicitly verified. Not an application startup or Docker test."
+      }
+    ],
+    "recovery": [
+      "Initial npm build failed with vite:not found; selected Node tests lacked typescript. Only then npm ci restored the pinned dependencies and repeated checks passed.",
+      "Initial dotnet test --no-restore returned0 with no test execution output; not counted as a pass. Explicit dotnet build --no-restore proved missing project.assets.json (NETSDK1004); only then dotnet restore was used.",
+      "An initial filter FullyQualifiedName~Autotable matched the common namespace and was stopped to avoid an unintended full suite. Corrected fully qualified class selectors executed65 tests with a real test receipt.",
+      "Backend test project compiled with pre-existing nullable/xUnit/stackalloc warnings. No source implementation or unrelated warnings were changed."
+    ],
+    "notRun": [
+      "Full backend suite",
+      "Frontend lint/tsc type check",
+      "Docker image build/start",
+      "ASP.NET app startup/HTTP smoke outside test fixtures",
+      "Playwright",
+      "Desktop browser gameplay",
+      "Real mobile devices",
+      "Unity Editor compile/test",
+      "Real Unity WebGL build"
+    ],
+    "repositoryPreservation": "No product code imported/implemented, no branch switch/stash/clean/restore/reset/stage/commit/push/issue/PR. Only public reference clones/builds and this session JSON; governed inbox decision is the sole intended Squad-state mutation."
+  },
+  "acceptanceMatrix": [
+    {
+      "id": "A1",
+      "owners": [
+        "Backend",
+        "Tester"
+      ],
+      "criterion": "Frozen public baseline revision/import inventory/license notices; no untracked Squad scaffolding overwritten.",
+      "proof": "Source-provenance receipt and unchanged target scaffolding status."
+    },
+    {
+      "id": "A2",
+      "owners": [
+        "Frontend",
+        "Tester"
+      ],
+      "criterion": "Every server primary envelope/action shape stays identical, including seat null, numeric-string tile keys, claim runtime versions and continuation tokens.",
+      "proof": "Actual adapter/source tests and captured WS envelope assertions; no invented fields."
+    },
+    {
+      "id": "A3",
+      "owners": [
+        "Frontend",
+        "Unity",
+        "Tester"
+      ],
+      "criterion": "Spectator/unowned/reconnected/room-switched frames never expose concealed identity and obsolete full/tombstone caches disappear.",
+      "proof": "Frame and actual Unity mesh/label inspections, stale/fabricated action probes; source-only checks labeled."
+    },
+    {
+      "id": "A4",
+      "owners": [
+        "Frontend",
+        "Unity",
+        "Tester"
+      ],
+      "criterion": "Changsha manual dice -> exactly one trigger per4/4/4/1 batch -> dealer-extra -> discard; auto mode remains atomic/server-owned.",
+      "proof": "Existing runtime tests plus actual tap/pick WS count-only actions and authoritative board updates."
+    },
+    {
+      "id": "A5",
+      "owners": [
+        "Frontend",
+        "Unity",
+        "Tester"
+      ],
+      "criterion": "All5 variants, relay drag/multiselect/flip/wall tiers/sticks/marker/Kita/Minefield layouts preserved; no Japanese-engine substitution.",
+      "proof": "Seeded source fixtures/action transcripts and actual Unity screenshots/picking round-trips per variant."
+    },
+    {
+      "id": "A6",
+      "owners": [
+        "Frontend",
+        "Tester"
+      ],
+      "criterion": "Lobby new/join-existing/public listing/invites, signed identity, existing chat channels, reconnect, spectators, result Continue/observer Dismiss and final summary remain usable.",
+      "proof": "Multi-browser isolated sessions with real backend; existing node/backend selectors remain green."
+    },
+    {
+      "id": "A7",
+      "owners": [
+        "Unity",
+        "Frontend",
+        "Tester"
+      ],
+      "criterion": "Real Unity canvas renders flat/perspective, rectangular mobile board and independent hand band; resize/orientation/DPR does not select the wrong tile/slot.",
+      "proof": "Real C# frameRendered receipt, touch target round-trips after portrait/landscape and DPR1/2/3 changes; real iOS/Android evidence."
+    },
+    {
+      "id": "A8",
+      "owners": [
+        "Backend",
+        "Unity",
+        "Tester"
+      ],
+      "criterion": "Absent/incompatible/corrupt Unity builds fail loudly; real generated artifact serves wasm/data/loader under same origin in one Docker image.",
+      "proof": "Mutated actual manifest/file hash tests, missing-build Docker failure, successful actual artifact container smoke/MIME/cache/CSP/WS/health."
+    },
+    {
+      "id": "A9",
+      "owners": [
+        "Lead",
+        "Coordinator"
+      ],
+      "criterion": "No noncommercial/Majsoul/unverified assets shipped; original code notices and owner additions license cleared.",
+      "proof": "Shipped file inventory, source provenance, notices and explicit owner-license decision."
+    },
+    {
+      "id": "A10",
+      "owners": [
+        "Lead",
+        "Tester"
+      ],
+      "criterion": "Source deliverables, mocked bridge tests, actual Unity compilation, Web artifact and real browser/mobile checks are reported as separate levels.",
+      "proof": "Evidence ledger with commands/results/artifacts; no unrun check marked pass."
+    }
+  ],
+  "blockersAndRisks": [
+    {
+      "id": "R1",
+      "owner": "Coordinator + authorized editor operator",
+      "severity": "blocks actual Web artifact/browser acceptance",
+      "finding": "No Unity editor/module/license execution available in the checked host locations.",
+      "smallestDecision": "Authorize a licensed provisioned6000.3.24f1/Web runner or explicitly authorize tooling/license provisioning; no large installation/licensing by Lead.",
+      "doesNotBlock": "Bounded Unity source/Frontend/Backend implementation using frozen schema."
+    },
+    {
+      "id": "R2",
+      "owner": "Lead + Stephen Long",
+      "severity": "blocks redistribution",
+      "finding": "Inherited code MIT found; backend/fork-additions root license not established. Autotable tile art has NC/SA obligations; Unity sample external Majsoul assets lack an established reuse grant.",
+      "smallestDecision": "Owner records intended original-additions licensing before release; use newly generated original artwork now, not inherited images.",
+      "doesNotBlock": "Source-informed development authorized by owner."
+    },
+    {
+      "id": "R3",
+      "owner": "Frontend + Tester",
+      "severity": "material compatibility risk",
+      "finding": "Relay modes are collaborative tabletop logic, not authoritative Changsha. A tile-only/action-only port would lose free movement, flips, sticks, marker and variant-specific grids.",
+      "mitigation": "Keep existing World/Setup/Movement, add headless sink and source-slot gesture wrapper; tests exercise real relay actions."
+    },
+    {
+      "id": "R4",
+      "owner": "Lead + Backend + Tester",
+      "severity": "pre-existing source limitation",
+      "finding": "Changsha translator clamps discard rows/columns beyond its3x6 tray; long hands may repeat logical slot addresses. This is baseline behavior, not permission for a rule/protocol redesign.",
+      "mitigation": "Do not require entityIds to be slotNames or claim unique server slot addresses for all discards; preserve/surface current behavior and request a separate bounded server fix if qualification proves it blocks play."
+    },
+    {
+      "id": "R5",
+      "owner": "Backend + Frontend",
+      "severity": "hosting configuration compatibility",
+      "finding": "Baseline strict/custom CSP can prohibit Wasm, and existing service worker caches need a real build identity boundary.",
+      "mitigation": "Default CSP already permits Wasm; document incompatible strict policy, fail visibly, keep loader scripts same-origin/external and revalidate Unity manifest/unversioned binaries."
+    },
+    {
+      "id": "R6",
+      "owner": "Tester",
+      "severity": "evidence gap",
+      "finding": "No browser/mobile/container/Unity execution during this audit.",
+      "mitigation": "T2 cannot be marked complete from source inspection, host metadata, mocked callbacks or node/xUnit success."
+    }
+  ],
+  "externalRetrieval": [
+    {
+      "url": "https://github.com/long2know/mahjong-autotable",
+      "status": "retrieved",
+      "method": "Git clone + gh metadata/API; browser pinned-tree fetch was restricted, alternate legitimate source retrieval succeeded"
+    },
+    {
+      "url": "https://github.com/pwmarcz/autotable",
+      "status": "retrieved",
+      "method": "Git clone + gh metadata + raw README"
+    },
+    {
+      "url": "https://pwmarcz.pl/autotable/about.html",
+      "status": "retrieved",
+      "method": "web_fetch; attribution details verified in pinned local about.html too"
+    },
+    {
+      "url": "https://github.com/ArcturusZhang/Mahjong",
+      "status": "retrieved",
+      "method": "Git clone + gh metadata + pinned README/license/project files"
+    },
+    {
+      "url": "https://www.themahjongproject.com/how-to-play/basics",
+      "status": "retrieved partial extracted text",
+      "use": "Supplemental only; no rule changes derived"
+    },
+    {
+      "url": "https://mahjongpros.com/blogs/how-to-play/beginners-guide-to-changsha-mahjong",
+      "status": "retrieved partial extracted text",
+      "use": "Supplemental only; no rule changes derived"
+    },
+    {
+      "url": "https://baike.baidu.com/en/item/Changsha%20Mahjong/36618",
+      "status": "retrieved partial extracted text",
+      "use": "Supplemental only; no rule changes derived"
+    },
+    {
+      "url": "https://www.reddit.com/r/Mahjong/comments/xp6crv/better_know_a_variant_changsha_mahjong_%E9%95%BF%E6%B2%99%E9%BA%BB%E5%B0%86/",
+      "status": "thread body not retrieved",
+      "attempts": [
+        "HTML tool returned only Reddit heading",
+        "Public .json endpoint returned403"
+      ],
+      "impact": "Non-blocking: pinned code remains rules authority"
+    },
+    {
+      "url": "https://unity.com/releases/unity-6/support",
+      "status": "retrieved",
+      "use": "6.3LTS supported through December2027"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-browsercompatibility.html",
+      "status": "retrieved"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-deploying.html",
+      "status": "retrieved"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/EditorCommandLineArguments.html",
+      "status": "retrieved"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/web-interacting-browser-unity-to-js.html",
+      "status": "retrieved",
+      "use": "Browser SendMessage to GameObject string method"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/web-interacting-browser-js-to-unity.html",
+      "status": "retrieved",
+      "use": "C# .jslib/UTF8 callback and createUnityInstance"
+    },
+    {
+      "url": "https://services.api.unity.com/unity/editor/release/v1/releases?version=6000.3.24f1",
+      "status": "retrieved via web_fetch and official API",
+      "persisted": "reference/unity-release-metadata.json"
+    },
+    {
+      "url": "https://packages.unity.com/com.unity.nuget.newtonsoft-json",
+      "status": "retrieved metadata",
+      "persisted": "reference/com.unity.nuget.newtonsoft-json.json"
+    },
+    {
+      "url": "https://packages.unity.com/com.unity.test-framework",
+      "status": "retrieved metadata",
+      "persisted": "reference/com.unity.test-framework.json"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/web-interacting-with-browser-scripting.html",
+      "status": "404; corrected to official webgl-interactingwithbrowserscripting.html and linked interop pages"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/web-interaction-browser-js-to-unity.html",
+      "status": "404; corrected to web-interacting-browser-js-to-unity.html"
+    },
+    {
+      "url": "https://docs.unity3d.com/6000.3/Documentation/Manual/web-interaction-browser-unity-to-js.html",
+      "status": "404; corrected to web-interacting-browser-unity-to-js.html"
+    }
+  ],
+  "governance": {
+    "backend": "local / runtime FSStorageProvider as supplied",
+    "decisionMechanism": "squad_state-squad_decide(author='Lead', summary, body, references)",
+    "decisionStatus": "Recommendation for coordinator/team acceptance, not unilaterally recorded as consensus.",
+    "nextAccountableAction": "Coordinator accepts contract and dispatches Backend B0 + Unity U1; Frontend F1 after B0; Tester receives T1/T2 gates. Lead owns license/integration follow-up.",
+    "currentDeliverableCompleteWhen": "JSON parses, its renderer schemas compile, synthetic positive/negative fixtures discriminate malformed/privacy-leaking messages, pinned source references/commands/scopes checked, and governed inbox recommendation submitted."
+  }
+}

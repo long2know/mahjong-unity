@@ -1,0 +1,84 @@
+# Squad: ignore runtime state (logs, inbox, sessions)
+# Note: .squad/casting/* is identity and MUST be committed to main, not ignored
+.squad/orchestration-log/
+.squad/log/
+.squad/decisions/inbox/
+.squad/sessions/
+.squad/.scratch/
+.squad/.cache/
+# Squad: SubSquad activation file (local to this machine)
+.squad-workstream
+
+# Unity-generated caches and IDE projects; Assets/.meta/scenes/manifests remain source.
+unity/MahjongRenderer/[Ll]ibrary/
+unity/MahjongRenderer/[Tt]emp/
+unity/MahjongRenderer/[Oo]bj/
+unity/MahjongRenderer/[Bb]uild/
+unity/MahjongRenderer/[Bb]uilds/
+unity/MahjongRenderer/[Bb]uild[Cc]ache/
+unity/MahjongRenderer/[Ll]ogs/
+unity/MahjongRenderer/[Uu]ser[Ss]ettings/
+unity/MahjongRenderer/[Mm]emoryCaptures/
+unity/MahjongRenderer/[Rr]ecordings/
+unity/MahjongRenderer/*.csproj
+unity/MahjongRenderer/*.sln
+unity/MahjongRenderer/*.slnx
+unity/MahjongRenderer/Assets/Resources/renderer-build-identity.json
+unity/MahjongRenderer/Assets/Resources/renderer-build-identity.json.meta
+
+# Reproducible build output and test/tool work, never production source.
+artifacts/
+**/bin/
+**/obj/
+**/node_modules/
+**/.vite/
+**/.cache/
+**/.test-fixtures/
+**/__pycache__/
+*.pyc
+src/frontend/autotable/
+**/dist/
+**/coverage/
+**/TestResults/
+**/test-results/
+**/playwright-report/
+*.log
+
+# Local runtime databases.
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Operator config, private signing material, and Unity activation files.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+**/*.env
+**/appsettings.Development.json
+**/appsettings.*.local.json
+**/appsettings.*.Local.json
+*.ulf
+*.alf
+*.pem
+*.pfx
+*.p12
+*.key
+
+# IDE/user caches and OS noise, not shared IDE configuration.
+**/.vs/
+**/.idea/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,146 @@
+MahjongRenderer U1 source project
+================================
+
+This is a Unity renderer, not a rule engine, browser shell or network client.
+The entry scene Assets/Scenes/MahjongRenderer.unity is already connected to
+MahjongBridge and the original surface shader. It creates real meshes, separate
+table/hand cameras, source slot colliders, public labels, dice and input handlers.
+Nothing imports sample projects, third-party artwork, fonts or networking SDKs.
+Original art provenance is recorded in art-provenance.json.
+
+Pinned toolchain
+---------------
+Unity 6000.3.24f1, revision 4e7b9b5b6244, with legitimately provisioned Web Build
+Support and valid editor licensing. This is a reproducibility pin, not a latest
+patch claim. Newtonsoft 3.2.1 and Unity Test Framework 1.4.6 are manifest pins;
+no package restore or editor import is implied by this source delivery.
+The build method enforces IL2CPP, OpenGLES3/WebGL2, single-threaded execution,
+disabled compression, no decompression fallback, no wasm2023 and no data caching.
+
+Build/test producer
+-------------------
+Default: Backend's repo-managed GameCI container wrapper (Backend owns its
+image digest, mounts and licensing configuration). No image pull, installation
+or activation occurs automatically. Docker does not remove Unity's license gate.
+The producer is container-compatible with UNITY_EDITOR=/opt/unity/Editor/Unity.
+It requires bash, git and python3 plus the provisioned editor. .git and the source
+inputs must be accessible. Project/cache/output paths must be writable.
+
+Optional approved editor invocation from product root:
+  UNITY_EDITOR=/approved/Unity/Hub/Editor/6000.3.24f1/Editor/Unity bash scripts/build-unity-webgl.sh
+  UNITY_EDITOR=/approved/Unity/Hub/Editor/6000.3.24f1/Editor/Unity bash scripts/build-unity-webgl.sh --test
+  UNITY_EDITOR=/approved/Unity/Hub/Editor/6000.3.24f1/Editor/Unity bash scripts/build-unity-webgl.sh --test-and-build
+
+Build executeMethod: Mahjong.Renderer.Editor.WebGlBuild.Build
+Actual editor arguments: -batchmode -nographics -quit -buildTarget WebGL.
+Tests use -runTests -testPlatform EditMode, without -quit.
+Actual outputs: artifacts/unity-webgl/{Build/*,renderer-build.json}
+Actual editor evidence only:
+  artifacts/test-results/unity-webgl-build.log
+  artifacts/test-results/unity-editmode.xml
+  artifacts/test-results/unity-tests.log
+Subordinate tool scratch/cache: unity/MahjongRenderer/BuildCache/tool-work.
+No license or environment files are read by the producer. There is no simulated
+loader, data, WebAssembly output or success manifest when the editor is absent.
+Missing editor/module/license/import/compile/report/files are nonzero failures.
+
+Manifest/provenance
+-------------------
+renderer-build.json is exactly frozen BuildManifest v1.0.0, no extra fields.
+It is emitted only after real BuildPipeline.BuildPlayer success and validation
+of distinct nonempty loader/framework/data/wasm files, SHA256 and wasm magic.
+Backend owns release validation and rejects sourceDirty/developmentBuild;
+explicit local dirty qualification must still disclose the actual source.
+
+Tools/source_metadata.py hashes the sorted relative renderer source paths,
+NUL, each file's binary SHA256, NUL. Source input directories are Assets,
+Packages, ProjectSettings, Tools and Documentation plus the producer script.
+Generated renderer-build-identity.json/.meta, caches and secret/license names
+are excluded. rendererSourceRevision is actual git HEAD. sourceDirty is real
+git status scoped to those same inputs: it does not mean the entire repository
+is clean, and avoids false deletions from Backend's partial container mounts.
+Metadata is measured after actual editor import/settings normalization; a source
+hash/revision change during BuildPlayer fails instead of mislabeling artifacts.
+No wrapper-supplied revision, hash or dirty override is accepted.
+
+Frozen browser boundary
+-----------------------
+Receiver GameObject: MahjongBridge
+SendMessage methods, one UTF8 JSON string:
+  Configure, Clear, ApplyLayout, ApplyFrame, SetViewport, SetPlayback,
+  ReceiveActionResult
+Outbound: Assets/Plugins/WebGL/MahjongBridge.jslib invokes exactly
+window.MahjongUnityBridge.emit(jsonString).
+Only ready, frameRendered, action and error are emitted. There are no extra
+frameVersion/generation fields or Unity network connections.
+
+Configure is one matching build/instance handshake. Clear binds fresh session
+epochs and blanks both frame buffers, identities, labels, hand and gesture state.
+Layout/frame are complete replacements. FrameId remains monotonic throughout
+an epoch even on a layout rebuild. ResizeRevision is monotonic within an instance.
+Unknown properties/enums/version, JSON extensions, duplicates, nonfinite/unsafe
+geometry, impossible references and stale instance/session/frame/action replies
+are errors; rejected frames do not replace the previous complete frame.
+FrameRendered requires table (and separate-hand when enabled) Camera.onPostRender
+receipts plus WaitForEndOfFrame and matching current session/frame/backing buffer.
+Parsing JSON or constructing meshes does not imply a rendered-frame receipt.
+Accepted-frame composition/face/privacy is immediate; visual interpolation
+between persistent entities uses only accepted poses and moves the same collider.
+FrameRendered is a real camera receipt, not an animation-completed event.
+
+Assets/WebGLTemplates/MahjongHost is an external-script, no-eval producer host.
+It loads only manifest-listed real Unity outputs, configures the exact bridge,
+measures viewport/DPR/insets and exposes MahjongRendererSourceHost for supplying
+explicit viewer-safe layout/frame inputs. It intentionally has no demo/rules
+or initial fake frame. Frontend's production host/shell remains Frontend-owned.
+
+Presentation/input source capabilities
+--------------------------------------
+Classic conversion retains the supplied right-handed Z-up coordinates at
+0.01 units, (x-87,z,y-87), quaternion (-qx,-qz,-qy,qw), and applies POV rotation
+once. Render meshes/colliders retain original shape and uniform scale.
+Rectangular layout rigidly packs each seat/group into measured, non-overlapping
+lanes without repacking wall tiers/rows, changing slots or stretching tiles.
+Every schema group/kind is represented, including sticks, marker, Kita and
+Minefield wall.open. Four/three/two-seat active players remain source-defined;
+extra physical wall/payment slots may exist on otherwise inactive sides.
+Separate hand uses only explicit LocalHand order, camera layer/band, fitted rows
+and a drawn-tile gap. A viewSeat change never creates actor/hand entitlement.
+Known entitled faces are drawn only when showFace is true; concealed surfaces
+use a common back and carry no face label/texture index.
+Flat/perspective, zoom/lookDown, viewSeat, CSS/DPR/insets and orientation refit
+are frame/viewport inputs. Changed picking transforms cancel gestures and
+block picks until the corresponding camera plan is committed.
+
+Native input: mouse/touch raycasts, tap selection/manual pickup/dice, double-tap
+discard or eligible relay flip, right-click/F flip, Shift/Ctrl or touch-long-press
+multi-selection, source-authorized relay slot drag/drop and cancel. Source
+canSelect/canDrag/canFlip/canDiscard/canPickup flags are checked at action time.
+Changsha commands never relocate a tile locally. Submitted is not a server ack.
+Multi-touch cancels active dragging; no zoom/seat/sticky action is invented.
+Browser preferences and rule/result/claim controls remain browser-owned.
+
+Unqualified frozen-v1 gaps
+-------------------------
+Held Render.place can cross source groups while Thing/Slot metadata retains
+the original address. Rectangular mapping preserves that original group and
+supplied pose; it cannot infer shiftSlot/rules. Cross-group held rectangular
+visual translation is unqualified pending real evidence/future boundary choice.
+Sticky checkbox semantics have no v1 Configure/Presentation field. Native
+gestures use explicit press/release; Frontend keeps the control visibly disabled
+with an explanation rather than silently inventing behavior.
+
+Validation levels
+-----------------
+Own EditMode tests in Assets/Tests/Editor exercise the real parser, state,
+privacy, layout, seat basis, safe viewport, semantic actions and Physics picking.
+Assets/Tests/Migration is reserved for Tester and is not edited here.
+Source-only checks:
+  python3 unity/MahjongRenderer/Tools/asset_metadata.py
+  python3 unity/MahjongRenderer/Tools/check-source.py --frozen-contract <frozen-contract.json>
+  node --test unity/MahjongRenderer/Tools/bridge-source.test.mjs
+  bash -n scripts/build-unity-webgl.sh
+Tools/CSharpSyntax uses the existing .NET SDK's Roslyn parser (no NuGet packages)
+to check actual Unity source C#9 syntax only; it is not Unity API compilation.
+No Unity Editor/EditMode/WebGL/browser/mobile/Docker playable success is claimed
+without the actual licensed producer and subsequent integration evidence.

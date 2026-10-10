@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 28
+  productGUID: 2e2680eedb9c4ff7b66332d27c6634ae
+  companyName: MahjongRenderer
+  productName: MahjongRenderer
+  defaultScreenWidth: 390
+  defaultScreenHeight: 844
+  m_ActiveColorSpace: 0
+  runInBackground: 0
+  resizableWindow: 1
+  usePlayerLog: 1
+  activeInputHandler: 0
+  stripEngineCode: 1
+  allowUnsafeCode: 0
+  applicationIdentifier:
+    WebGL: com.mahjong.renderer
+  scriptingBackend:
+    WebGL: 1
+  m_BuildTargetGraphicsAPIs:
+  - m_BuildTarget: WebGL
+    m_APIs: 0b000000
+    m_Automatic: 0
+  webGLInitialMemorySize: 128
+  webGLMaximumMemorySize: 1024
+  webGLMemoryGrowthMode: 2
+  webGLMemoryLinearGrowthStep: 16
+  webGLMemoryGeometricGrowthStep: 0.2
+  webGLMemoryGeometricGrowthCap: 96
+  webGLExceptionSupport: 2
+  webGLNameFilesAsHashes: 0
+  webGLDataCaching: 0
+  webGLCompressionFormat: 0
+  webGLDecompressionFallback: 0
+  webGLThreadsSupport: 0
+  webWasm2023: 0
+  webGLTemplate: PROJECT:MahjongHost
+  webGLEmscriptenArgs:
+  webGLModulesDirectory:
+  webGLDebugSymbols: 0
+  webGLShowDiagnostics: 0
