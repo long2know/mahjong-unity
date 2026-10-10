@@ -83,6 +83,7 @@ first-iteration integration approval remains pending.**
 | --- | --- |
 | Backend/hosting | **90 focused .NET + 33 tooling tests**, plus Tester's **57 room/relay/reconnect/continuation tests**, no failures/skips. Actual API Release publish and localhost Development/test-database smoke: health, SignalR negotiation, raw WS open/close, missing-Unity 404s without HTML fallback, and clean shutdown. Not a Docker runtime/gameplay test. |
 | Browser adapter | **38 preserved + 40 renderer-specific Node tests**, rerun after independent revision, plus **2 actual Game startup/auto-resize regressions**. Strict primary-graph TypeScript check and an actual asset-free Vite build passed. Real Client/World/wire/gesture and Vite/source tests with explicitly simulated browser/runtime services—not a Unity player. |
+| Real browser shell | **6 Chromium-container cases** passed: desktop/phone-sized lobby and missing-build routes, invitations/join, chat receive/reload, and responsive viewport routing. Real localhost API and served bundle; no Unity player, rendered board input, actual iOS/Android device, touch or mobile-performance qualification. |
 | Unity source | **5 JavaScript source tests**, metadata/schema/scene checks, and C#9 syntax parsing of **26 real files** for editor/player branches with zero syntax errors. No Unity API/shader compilation or EditMode execution. |
 | Docker context | Tester approved the independent `.dockerignore` revision after **9 source/context gates**. Actual scratch-export filename probes verify filtering, not a production Unity build. |
 
@@ -100,7 +101,12 @@ approval. Tester's actual-caller review found two startup/resize bugs; their
 independent revisions passed the regression and affected suites. Current
 revision evidence is `artifacts/test-results/lead-browser-caller-evidence.json`
 and `lead-browser-{integration-final,source-tests,typecheck,build}.log`.
-Final browser/first-iteration approval is still pending.
+The real-browser receipts are
+`artifacts/test-results/migration-browser-actual/browser-unavailable-receipt.json`
+and `browser-social-receipt.json`. The lock-matched Playwright **1.60.0**
+Linux/amd64 container worked despite the local host Chrome `SIGTRAP` launch
+failure. The revised browser runner's focused evidence review remains pending.
+See [repeatable browser-shell commands and prerequisites](docs/integration/docker-build-and-run.md#real-chromium-container-shell-checks).
 
 For an already-provisioned development/CI Node environment (not an additional
 host prerequisite for Docker packaging), the existing manifest exposes:
@@ -116,11 +122,13 @@ npm run test:unity
 See the [exact source-check commands and receipts](docs/integration/docker-build-and-run.md#verified-source-checks).
 
 Missing-license and missing-artifact commands were executed and failed loudly
-with exit 1. No GameCI image was pulled, Unity activation performed, or genuine
-player output generated. Real Editor/EditMode/WebGL, rendered browser/device
-input, multiplayer gameplay, and container gameplay qualification remain
-unexecuted. Do not substitute source/mock tests, DOM readiness, localhost
-transport smoke, or file integrity for those checks.
+with exit 1. The actual Unity build remains an owner-controlled activation gate;
+builder/image preparation is not a licensed build or genuine player output.
+These six browser-shell cases do not close that gate or qualify Unity-rendered
+board/input, physical mobile devices/touch/performance, multiplayer gameplay,
+or the runtime hosting container's gameplay. Do not substitute source/mock
+tests, shell-browser success, DOM readiness, localhost transport smoke, or file
+integrity for those checks.
 
 **Redistribution is also gated:** the owner has not selected a root/original
 additions license, and a complete shipped dependency notice inventory is still
