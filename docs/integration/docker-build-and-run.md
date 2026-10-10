@@ -291,6 +291,49 @@ syntax parsing**, not Unity API/shader compilation. Its authored EditMode tests
 and genuine BuildPlayer output remain unexecuted. These source tools are
 optional diagnostics, not extra host prerequisites for Docker packaging.
 
+### Real Chromium-container shell checks
+
+**Six actual Chromium-container cases passed** against the published localhost
+API and served Vite bundle: two desktop/phone-sized lobby-only and missing-build
+route cases, plus four social cases covering lobby controls, invitations/join,
+chat send/receive/reload, and desktop/portrait/landscape viewport routing while
+the table is unavailable. No Unity files, loader fallback, or rendered-frame
+receipt was fabricated.
+
+Use a prepared **local source qualification environment** with Python 3, Git,
+a Linux-container Docker daemon, Node 20/npm with the installed lockfile-matched
+Playwright packages and Vite bundle, and .NET 10 SDK/runtime with the actual
+Release API published at `artifacts/api/`. The runner starts and stops its own
+isolated localhost API. These are test-environment prerequisites, **not new
+host production-tool requirements** for the Docker packaging/hosting flow.
+No host Chrome installation is required.
+
+The runner requires the cached, lock-matched official Playwright **1.60.0**
+image on **linux/amd64**. Explicitly pull the exact image first if absent;
+the runner inspects it and uses **`--pull=never`**, not an automatic pull:
+
+```bash
+docker pull --platform linux/amd64 \
+  mcr.microsoft.com/playwright:v1.60.0-noble@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
+python3 tests/migration/run_browser_integration.py
+python3 tests/migration/run_browser_integration.py --probe browser-social.mjs
+```
+
+The default is `browser-unavailable.mjs` (two cases); `browser-social.mjs`
+contains the four social/routing cases. Persistent results and source hashes
+are at
+`artifacts/test-results/migration-browser-actual/browser-unavailable-receipt.json`
+and `browser-social-receipt.json`, with matching probe logs. The revised
+runner's focused evidence rereview is pending; these successful executions
+are not a claim of final release approval.
+
+Local host Chrome's `SIGTRAP` launch failure remains an environment limitation;
+Chromium in the pinned official container worked. Phone-sized/emulated viewports
+are **not real iOS/Android device evidence**, Unity board/touch input tests, or
+mobile-performance qualification. These probes leave the table visibly
+unavailable and do not close the owner's actual Unity activation/build gate or
+the separate license/dependency redistribution gates.
+
 ### Portable source CI
 
 `.github/workflows/migration-build.yml` runs mandatory source jobs on `dev` and
@@ -355,6 +398,7 @@ already executed remotely.
   build. Health, DOM readiness, static/mocked checks, and a valid manifest are
   not proof of a rendered playable table.
 - **Before claiming completion:** execute the real Editor tests/build, then
-  browser, mobile, multiplayer, and container gameplay checks. None is claimed
-  as run by this document. Root/additions license selection and dependency
+  Unity-rendered browser/input, real mobile, multiplayer, and runtime-container
+  gameplay checks. The six shell/social Chromium cases above do not satisfy
+  those unqualified checks. Root/additions license selection and dependency
   notices remain separate redistribution gates.
