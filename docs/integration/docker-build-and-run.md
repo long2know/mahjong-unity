@@ -99,6 +99,12 @@ with `UNITY_BUILD_UID` / `UNITY_BUILD_GID` available for deliberate matching.
 Resolve access to those specific paths, not with global permission changes.
 Raw Editor logs/client state must be reviewed/redacted before sharing.
 
+The builder root filesystem remains read-only. A private, disposable `/tmp`
+tmpfs (`rw,nosuid,nodev,mode=1777,size=512m`) provides writable UPM Unix-socket
+and filesystem-backed licensing IPC space; `TMPDIR` under `artifacts/` does not
+replace literal `/tmp`. This runtime allowance neither activates Unity nor
+qualifies an Editor/WebGL build.
+
 ## Existing artifacts and optional host Editor
 
 `--skip-unity-build` (`-SkipUnityBuild`) consumes **existing real** artifacts;

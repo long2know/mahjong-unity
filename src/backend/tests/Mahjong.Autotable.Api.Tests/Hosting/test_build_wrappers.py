@@ -198,9 +198,14 @@ class PipelineSourceTests(unittest.TestCase):
             fixture.mkdir(parents=True)
             empty_env = fixture / ".env.example"
             empty_env.write_text("")
+            docker_config = fixture / "docker-config"
+            docker_config.mkdir()
             environment = dict(os.environ)
             environment.update({
+                "DOCKER_CONFIG": str(docker_config),
                 "JWT_SIGNING_KEY": "FABRICATED-COMPOSE-CONFIG-CHECK-NOT-A-LIVE-KEY",
+                "UNITY_BUILD_UID": "1000",
+                "UNITY_BUILD_GID": "1000",
                 "UNITY_LICENSE_MOUNT_SOURCE": str(fixture / "FABRICATED-NONEXISTENT-TEST.ulf"),
                 "UNITY_LICENSE_MOUNT_TARGET": "/workspace/artifacts/unity-builder-home/.local/share/unity3d/Unity/Unity_lic.ulf",
                 "ALLOW_SOURCE_DIRTY": "0",
@@ -214,12 +219,47 @@ class PipelineSourceTests(unittest.TestCase):
             for files in filesets:
                 with self.subTest(files=files):
                     command = ["docker", "compose", "--env-file", str(empty_env)]
+                    if files == ("docker-compose.unity-build.yml",):
+                        command.extend(("--profile", "unity-build"))
                     for name in files:
                         command.extend(("-f", str(ROOT / name)))
-                    command.extend(("config", "--quiet"))
-                    result = subprocess.run(command, text=True, capture_output=True, env=environment)
+                    result = subprocess.run([*command, "config", "--quiet"],
+                                            text=True, capture_output=True, env=environment)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout, "")
+                    if files == ("docker-compose.unity-build.yml",):
+                        rendered = subprocess.run([*command, "config", "--format", "json"],
+                                                  text=True, capture_output=True, env=environment)
+                        self.assertEqual(rendered.returncode, 0, rendered.stderr)
+                        builder = json.loads(rendered.stdout)["services"]["unity-builder"]
+                        self.assertEqual(builder.get("tmpfs"),
+                                         ["/tmp:rw,nosuid,nodev,mode=1777,size=512m"])
+                        self.assertIs(builder["read_only"], True)
+                        self.assertEqual(builder["user"], "1000:1000")
+                        self.assertEqual(builder["security_opt"], ["no-new-privileges:true"])
+                        self.assertEqual(builder["image"], "mahjong-unity-builder:6000.3.24f1-webgl-3.2.2")
+                        self.assertEqual(builder["platform"], "linux/amd64")
+                        self.assertFalse(builder.get("privileged", False))
+                        self.assertFalse(builder.get("cap_add", []))
+                        mounts = {mount["target"]: mount for mount in builder["volumes"]}
+                        license_target = environment["UNITY_LICENSE_MOUNT_TARGET"]
+                        self.assertEqual(set(mounts), {
+                            "/workspace/.git", "/workspace/.gitignore", "/workspace/scripts",
+                            "/workspace/contracts", "/workspace/unity/MahjongRenderer",
+                            "/workspace/artifacts", license_target,
+                        })
+                        for relative in (".git", ".gitignore", "scripts", "contracts",
+                                         "unity/MahjongRenderer", "artifacts"):
+                            mount = mounts["/workspace/" + relative]
+                            self.assertEqual(mount["type"], "bind")
+                            self.assertEqual(mount["source"], str(ROOT / relative))
+                            self.assertEqual(mount.get("read_only", False),
+                                             relative not in ("unity/MahjongRenderer", "artifacts"))
+                        self.assertEqual(mounts[license_target]["type"], "bind")
+                        self.assertEqual(mounts[license_target]["source"],
+                                         environment["UNITY_LICENSE_MOUNT_SOURCE"])
+                        self.assertIs(mounts[license_target]["read_only"], True)
+                        self.assertIs(mounts[license_target]["bind"]["create_host_path"], False)
         finally:
             if fixture.exists():
                 shutil.rmtree(fixture)
