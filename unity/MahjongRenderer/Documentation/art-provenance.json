@@ -1,0 +1,24 @@
+{
+  "assetProvenanceVersion": "1.0.0",
+  "creator": "Unity specialist (GitHub Copilot), original source implementation for Stephen Long",
+  "createdAtUtcDate": "2026-10-10",
+  "licenseDisposition": "Original project work; owner root/additions license decision and distribution notices remain Lead-owned. No blanket MIT grant is implied.",
+  "originalProceduralAssets": [
+    "Unit box and horizontal quad meshes constructed in Assets/Renderer/Art/ProceduralArt.cs",
+    "37 suit/rank/honor/red-five faces and shared back patterns generated from geometric pips/bars and original bitmap labels",
+    "Point-stick value patterns, EAST marker, six die pip patterns",
+    "Original 5x7 ASCII glyph source arrays and procedural public label meshes",
+    "Board, rail, slot shadows, selection/highlight cues and original built-in surface shader"
+  ],
+  "referenceUse": {
+    "baseline": "d10d351e543aa3e341960de9800828b6c0662a82",
+    "use": "Inspect-only numeric coordinate/slot/appearance semantics from allowlisted pinned source; no imported code, scenes, artwork, atlas, font, mesh, audio or SDK files."
+  },
+  "excluded": [
+    "Kanojo/noncommercial autotable tile artwork and derivatives",
+    "Majsoul resources",
+    "Unity example code/scenes/assets",
+    "Photon, DOTween, third-party fonts, static audio, networking, ads and analytics"
+  ],
+  "engineComponents": "Unity runtime/compiler, UnityCG shader include, Newtonsoft package and Unity Test Framework retain their own applicable terms; OnGUI failure messages use engine-provided runtime components, not an imported font."
+}

@@ -1,0 +1,2005 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:mahjong-unity:renderer:1.0.0",
+  "title": "Mahjong browser/Unity renderer boundary v1",
+  "definitions": {
+    "Vector3": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "Quaternion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z",
+        "w"
+      ]
+    },
+    "Size3": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "y": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "z": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "Pose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "$ref": "#/definitions/Vector3"
+        },
+        "rotation": {
+          "$ref": "#/definitions/Quaternion"
+        },
+        "size": {
+          "$ref": "#/definitions/Size3"
+        }
+      },
+      "required": [
+        "position",
+        "rotation",
+        "size"
+      ]
+    },
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gameType": {
+          "enum": [
+            "CHANGSHA",
+            "FOUR_PLAYER",
+            "THREE_PLAYER",
+            "BAMBOO",
+            "MINEFIELD"
+          ]
+        },
+        "back": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fives": {
+          "enum": [
+            "000",
+            "111",
+            "121"
+          ]
+        },
+        "points": {
+          "enum": [
+            "25",
+            "30",
+            "35",
+            "40",
+            "100"
+          ]
+        },
+        "dealType": {
+          "enum": [
+            "INITIAL",
+            "WINDS",
+            "HANDS",
+            "UNSHUFFLED"
+          ]
+        },
+        "baseUnit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 11184810
+        },
+        "dealMode": {
+          "enum": [
+            "manual",
+            "auto"
+          ]
+        }
+      },
+      "required": [
+        "gameType",
+        "back",
+        "fives",
+        "points",
+        "dealType",
+        "baseUnit",
+        "dealMode"
+      ]
+    },
+    "Match": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dealer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "honba": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "conditions": {
+          "$ref": "#/definitions/Conditions"
+        }
+      },
+      "required": [
+        "dealer",
+        "honba",
+        "conditions"
+      ]
+    },
+    "Session": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gameId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "enum": [
+            "offline",
+            "relay",
+            "changsha"
+          ]
+        },
+        "connected": {
+          "type": "boolean"
+        },
+        "snapshotReady": {
+          "type": "boolean"
+        },
+        "actorSeat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "viewSeat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "viewerRevision": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "gameId",
+        "mode",
+        "connected",
+        "snapshotReady",
+        "actorSeat",
+        "viewSeat",
+        "viewerRevision"
+      ]
+    },
+    "Presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "viewMode": {
+          "enum": [
+            "perspective",
+            "flat"
+          ]
+        },
+        "boardLayout": {
+          "enum": [
+            "classic",
+            "rectangular"
+          ]
+        },
+        "handLayout": {
+          "enum": [
+            "in-table",
+            "separate"
+          ]
+        },
+        "tileLabels": {
+          "type": "boolean"
+        },
+        "lookDown": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "zoom": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "viewMode",
+        "boardLayout",
+        "handLayout",
+        "tileLabels",
+        "lookDown",
+        "zoom"
+      ]
+    },
+    "Display": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "hovered": {
+          "type": "boolean"
+        },
+        "held": {
+          "type": "boolean"
+        },
+        "temporary": {
+          "type": "boolean"
+        },
+        "bottom": {
+          "type": "boolean"
+        },
+        "drawn": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "selected",
+        "hovered",
+        "held",
+        "temporary",
+        "bottom",
+        "drawn",
+        "highlight"
+      ]
+    },
+    "Interaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "canSelect": {
+          "type": "boolean"
+        },
+        "canDrag": {
+          "type": "boolean"
+        },
+        "canFlip": {
+          "type": "boolean"
+        },
+        "canDiscard": {
+          "type": "boolean"
+        },
+        "canPickup": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "canSelect",
+        "canDrag",
+        "canFlip",
+        "canDiscard",
+        "canPickup"
+      ]
+    },
+    "Appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "faceIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 36
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "knownFace": {
+          "type": "boolean"
+        },
+        "showFace": {
+          "type": "boolean"
+        },
+        "backIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "valueIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "faceIndex",
+        "knownFace",
+        "showFace",
+        "backIndex",
+        "valueIndex"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "knownFace": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "faceIndex": {
+                "const": null
+              },
+              "showFace": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "knownFace": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "faceIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 36
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "enum": [
+            "TILE",
+            "STICK",
+            "MARKER"
+          ]
+        },
+        "slotName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "group": {
+          "enum": [
+            "hand",
+            "meld",
+            "wall",
+            "wall.open",
+            "discard",
+            "kita",
+            "tray",
+            "payment",
+            "riichi",
+            "marker"
+          ]
+        },
+        "seat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "indexes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "rotationIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "pose": {
+          "$ref": "#/definitions/Pose"
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "appearance": {
+          "$ref": "#/definitions/Appearance"
+        },
+        "display": {
+          "$ref": "#/definitions/Display"
+        },
+        "interaction": {
+          "$ref": "#/definitions/Interaction"
+        }
+      },
+      "required": [
+        "entityId",
+        "kind",
+        "slotName",
+        "group",
+        "seat",
+        "indexes",
+        "rotationIndex",
+        "pose",
+        "scale",
+        "appearance",
+        "display",
+        "interaction"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "TILE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "appearance": {
+                "properties": {
+                  "valueIndex": {
+                    "const": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "STICK",
+                  "MARKER"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "appearance": {
+                "properties": {
+                  "knownFace": {
+                    "const": false
+                  },
+                  "faceIndex": {
+                    "const": null
+                  },
+                  "showFace": {
+                    "const": false
+                  },
+                  "valueIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "slotName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "group": {
+          "enum": [
+            "hand",
+            "meld",
+            "wall",
+            "wall.open",
+            "discard",
+            "kita",
+            "tray",
+            "payment",
+            "riichi",
+            "marker"
+          ]
+        },
+        "seat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "indexes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "kind": {
+          "enum": [
+            "TILE",
+            "STICK",
+            "MARKER"
+          ]
+        },
+        "poses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Pose"
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "drawShadow": {
+          "type": "boolean"
+        },
+        "shadowRotationIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "canFlipMultiple": {
+          "type": "boolean"
+        },
+        "rotateHeld": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "slotName",
+        "group",
+        "seat",
+        "indexes",
+        "kind",
+        "poses",
+        "drawShadow",
+        "shadowRotationIndex",
+        "canFlipMultiple",
+        "rotateHeld"
+      ]
+    },
+    "SeatDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seat": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "playerId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nick": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 280
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "seat",
+        "playerId",
+        "nick",
+        "score"
+      ]
+    },
+    "LocalHand": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entityIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "drawnEntityId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "seat",
+        "entityIds",
+        "drawnEntityId"
+      ]
+    },
+    "Turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "activeSeat": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "enum": [
+                "Seating",
+                "RollingDice",
+                "Dealing",
+                "BreakPointMarked",
+                "PickupRound1",
+                "PickupRound2",
+                "PickupRound3",
+                "SingleTilePickup",
+                "DealerExtra",
+                "AwaitingDiscard",
+                "AwaitingClaim",
+                "DeclaringKong",
+                "DrawingReplacement",
+                "Scoring",
+                "EndHand",
+                "RotatingBanker",
+                "WallExhausted",
+                "GameComplete"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "awaitingDiscard": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "activeSeat",
+        "phase",
+        "awaitingDiscard"
+      ]
+    },
+    "BreakPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "wallIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "stackIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tileIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 107
+        }
+      },
+      "required": [
+        "wallIndex",
+        "stackIndex",
+        "tileIndex"
+      ]
+    },
+    "PickupDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "enum": [
+            "Seating",
+            "RollingDice",
+            "Dealing",
+            "BreakPointMarked",
+            "PickupRound1",
+            "PickupRound2",
+            "PickupRound3",
+            "SingleTilePickup",
+            "DealerExtra",
+            "AwaitingDiscard",
+            "AwaitingClaim",
+            "DeclaringKong",
+            "DrawingReplacement",
+            "Scoring",
+            "EndHand",
+            "RotatingBanker",
+            "WallExhausted",
+            "GameComplete"
+          ]
+        },
+        "seatIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "dealMode": {
+          "enum": [
+            "manual",
+            "auto"
+          ]
+        },
+        "breakPoint": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BreakPoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wallIndex": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "triggerSlotName": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "batchPreviewSlotNames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "canTake": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "phase",
+        "seatIndex",
+        "count",
+        "dealMode",
+        "breakPoint",
+        "wallIndex",
+        "triggerSlotName",
+        "batchPreviewSlotNames",
+        "canTake"
+      ]
+    },
+    "DiceDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "state": {
+          "enum": [
+            "ignore",
+            "rolled"
+          ]
+        },
+        "canRoll": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "values",
+        "state",
+        "canRoll"
+      ]
+    },
+    "Configure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "configure"
+        },
+        "buildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type",
+        "buildId"
+      ]
+    },
+    "Clear": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "clear"
+        },
+        "reason": {
+          "enum": [
+            "join",
+            "disconnect",
+            "authority-change",
+            "protocol-unavailable",
+            "dispose"
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "reason"
+      ]
+    },
+    "Playback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "playback"
+        },
+        "suspended": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type",
+        "suspended"
+      ]
+    },
+    "RendererLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "layout"
+        },
+        "layoutRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "gameType": {
+          "enum": [
+            "CHANGSHA",
+            "FOUR_PLAYER",
+            "THREE_PLAYER",
+            "BAMBOO",
+            "MINEFIELD"
+          ]
+        },
+        "activeSeats": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "minItems": 2,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "canonicalBoard": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "width": {
+              "const": 174
+            },
+            "depth": {
+              "const": 174
+            }
+          },
+          "required": [
+            "width",
+            "depth"
+          ]
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Slot"
+          }
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "layoutRevision",
+        "gameType",
+        "activeSeats",
+        "canonicalBoard",
+        "slots"
+      ]
+    },
+    "RendererFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "frame"
+        },
+        "frameId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "layoutRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "session": {
+          "$ref": "#/definitions/Session"
+        },
+        "presentation": {
+          "$ref": "#/definitions/Presentation"
+        },
+        "match": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Match"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        },
+        "seats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SeatDisplay"
+          },
+          "maxItems": 4
+        },
+        "localHand": {
+          "$ref": "#/definitions/LocalHand"
+        },
+        "turn": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Turn"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pickup": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PickupDisplay"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dice": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DiceDisplay"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "frameId",
+        "layoutRevision",
+        "session",
+        "presentation",
+        "match",
+        "entities",
+        "seats",
+        "localHand",
+        "turn",
+        "pickup",
+        "dice"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "session": {
+                "properties": {
+                  "snapshotReady": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "entities": {
+                "maxItems": 0
+              },
+              "localHand": {
+                "properties": {
+                  "entityIds": {
+                    "maxItems": 0
+                  },
+                  "drawnEntityId": {
+                    "const": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "viewport"
+        },
+        "resizeRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "widthCssPx": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "heightCssPx": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "devicePixelRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "renderPixelRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "widthPx": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "heightPx": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "insetsCssPx": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "top": {
+              "type": "number",
+              "minimum": 0
+            },
+            "right": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bottom": {
+              "type": "number",
+              "minimum": 0
+            },
+            "left": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ]
+        },
+        "handBandCssPx": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type",
+        "resizeRevision",
+        "widthCssPx",
+        "heightCssPx",
+        "devicePixelRatio",
+        "renderPixelRatio",
+        "widthPx",
+        "heightPx",
+        "insetsCssPx",
+        "handBandCssPx"
+      ]
+    },
+    "ArtifactFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_./-]+$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ]
+    },
+    "BuildManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifactKind": {
+          "const": "unity-webgl"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "buildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "unityVersion": {
+          "const": "6000.3.24f1"
+        },
+        "unityRevision": {
+          "const": "4e7b9b5b6244"
+        },
+        "compression": {
+          "const": "none"
+        },
+        "threading": {
+          "const": "single-threaded"
+        },
+        "developmentBuild": {
+          "type": "boolean"
+        },
+        "baselineRevision": {
+          "const": "d10d351e543aa3e341960de9800828b6c0662a82"
+        },
+        "rendererSourceRevision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "rendererSourceTreeSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sourceDirty": {
+          "type": "boolean"
+        },
+        "builtAtUtc": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "loader": {
+          "$ref": "#/definitions/ArtifactFile"
+        },
+        "framework": {
+          "$ref": "#/definitions/ArtifactFile"
+        },
+        "data": {
+          "$ref": "#/definitions/ArtifactFile"
+        },
+        "wasm": {
+          "$ref": "#/definitions/ArtifactFile"
+        },
+        "streamingAssetsPath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_./-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "artifactKind",
+        "contractVersion",
+        "buildId",
+        "unityVersion",
+        "unityRevision",
+        "compression",
+        "threading",
+        "developmentBuild",
+        "baselineRevision",
+        "rendererSourceRevision",
+        "rendererSourceTreeSha256",
+        "sourceDirty",
+        "builtAtUtc",
+        "loader",
+        "framework",
+        "data",
+        "wasm",
+        "streamingAssetsPath"
+      ]
+    },
+    "RendererAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "action"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "contextFrameId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "intent": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "discard"
+                },
+                "entityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "kind",
+                "entityId"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "takePickup"
+                },
+                "triggerEntityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "kind",
+                "triggerEntityId"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "rollDice"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "hover"
+                },
+                "entityId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "entityId"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "select"
+                },
+                "entityIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "kind",
+                "entityIds"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "beginDrag"
+                },
+                "gestureId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "anchorEntityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "entityIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "kind",
+                "gestureId",
+                "anchorEntityId",
+                "entityIds"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "dragToSlot"
+                },
+                "gestureId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "slotName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "kind",
+                "gestureId",
+                "slotName"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "endDrag"
+                },
+                "gestureId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "commit": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "gestureId",
+                "commit"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "flip"
+                },
+                "entityIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                },
+                "direction": {
+                  "enum": [
+                    -1,
+                    1
+                  ]
+                },
+                "animated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "entityIds",
+                "direction",
+                "animated"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "actionId",
+        "contextFrameId",
+        "intent"
+      ]
+    },
+    "ActionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "actionResult"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "status": {
+          "enum": [
+            "submitted",
+            "local",
+            "ignored",
+            "rejected"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "stale-session",
+                "stale-entity",
+                "not-actionable",
+                "invalid-target",
+                "protocol-unavailable"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "actionId",
+        "status",
+        "reason"
+      ]
+    },
+    "Ready": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "ready"
+        },
+        "buildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "unityVersion": {
+          "const": "6000.3.24f1"
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type",
+        "buildId",
+        "unityVersion"
+      ]
+    },
+    "FrameRendered": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "frameRendered"
+        },
+        "frameId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "layoutRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "sessionId",
+        "type",
+        "frameId",
+        "layoutRevision"
+      ]
+    },
+    "RendererError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "error"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "code": {
+          "enum": [
+            "unsupported-contract",
+            "invalid-message",
+            "missing-layout",
+            "stale-frame",
+            "renderer-failure"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type",
+        "sessionId",
+        "code",
+        "message"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/definitions/Configure"
+    },
+    {
+      "$ref": "#/definitions/Clear"
+    },
+    {
+      "$ref": "#/definitions/Playback"
+    },
+    {
+      "$ref": "#/definitions/RendererLayout"
+    },
+    {
+      "$ref": "#/definitions/RendererFrame"
+    },
+    {
+      "$ref": "#/definitions/Viewport"
+    },
+    {
+      "$ref": "#/definitions/RendererAction"
+    },
+    {
+      "$ref": "#/definitions/ActionResult"
+    },
+    {
+      "$ref": "#/definitions/Ready"
+    },
+    {
+      "$ref": "#/definitions/FrameRendered"
+    },
+    {
+      "$ref": "#/definitions/RendererError"
+    },
+    {
+      "$ref": "#/definitions/BuildManifest"
+    }
+  ]
+}

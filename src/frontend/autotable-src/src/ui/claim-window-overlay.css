@@ -1,0 +1,344 @@
+/* Ferro — Claim-window countdown overlay.
+ *
+ * Fixed-position translucent bar pinned to the bottom-center of the
+ * viewport.  Coexists with the side-panel claim buttons rendered by
+ * game-ui.ts (which we don't modify).  Touch targets are ≥44px tall
+ * at the iPhone-SE viewport.
+ */
+
+.ferro-claim-overlay {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translate(-50%, 32px);
+    z-index: 1080; /* above bootstrap tooltips (1070) */
+    width: min(720px, calc(100vw - 24px));
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    padding: 12px 14px;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(20, 24, 32, 0.92), rgba(10, 14, 20, 0.96));
+    color: #f4ecd6;
+    border: 1px solid rgba(255, 206, 93, 0.55);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55),
+                0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 160ms ease-out;
+}
+.ferro-claim-overlay-visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Tile column ---------------------------------------------------------- */
+
+.ferro-claim-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 56px;
+}
+.ferro-claim-tile-face {
+    width: 48px;
+    height: 60px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #fff7e4 0%, #e7d6a8 100%);
+    color: #2a1d05;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 60px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4),
+                inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+    font-feature-settings: "ss01" on;
+}
+.ferro-claim-tile-source {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #c3b58c;
+}
+
+/* Center column -------------------------------------------------------- */
+
+.ferro-claim-center {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+.ferro-claim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+.ferro-claim-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #ffce5d;
+}
+.ferro-claim-timer {
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fffbe8;
+}
+.ferro-claim-timer-suffix {
+    font-size: 12px;
+    color: #c3b58c;
+    margin-left: 2px;
+}
+
+.ferro-claim-progress {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.ferro-claim-progress-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ffe48a 0%, #ffce5d 40%, #f0a430 100%);
+    border-radius: 999px;
+    transition: width 100ms linear, background 200ms ease-out;
+}
+
+.ferro-claim-badges {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 2px;
+}
+.ferro-claim-badge {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: #5b5644;
+    border-radius: 8px;
+    padding: 6px 8px;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    cursor: not-allowed;
+    transition: background 140ms ease-out, color 140ms ease-out,
+                border-color 140ms ease-out, transform 100ms ease-out;
+    position: relative;
+    font-family: inherit;
+}
+.ferro-claim-badge-zh {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+.ferro-claim-badge-py {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.ferro-claim-badge-key {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    opacity: 0.55;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+}
+.ferro-claim-badge-available {
+    background: linear-gradient(180deg, #fff2c2 0%, #f7d56b 100%);
+    color: #221603;
+    border-color: rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 206, 93, 0.6);
+}
+.ferro-claim-badge-available .ferro-claim-badge-key {
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    opacity: 0.9;
+}
+.ferro-claim-badge-hu.ferro-claim-badge-available {
+    background: linear-gradient(180deg, #ffd0d0 0%, #ff7470 100%);
+    color: #2a0a0a;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 116, 112, 0.65),
+                0 0 12px rgba(255, 116, 112, 0.4);
+}
+.ferro-claim-badge-available:hover {
+    transform: translateY(-1px);
+}
+.ferro-claim-badge-available:focus-visible {
+    outline: 2px solid #ffce5d;
+    outline-offset: 2px;
+}
+.ferro-claim-badge-available:active {
+    transform: translateY(0);
+}
+
+.ferro-claim-hint {
+    font-size: 11px;
+    color: #a89e7c;
+    margin-top: 1px;
+}
+
+/* Pass column ---------------------------------------------------------- */
+
+.ferro-claim-pass-wrap {
+    display: flex;
+    align-items: stretch;
+}
+.ferro-claim-pass {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+    color: #d6cfb6;
+    border-radius: 10px;
+    padding: 8px 14px;
+    min-width: 70px;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 140ms ease-out, color 140ms ease-out,
+                border-color 140ms ease-out, transform 100ms ease-out;
+}
+.ferro-claim-pass:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.ferro-claim-pass:focus-visible {
+    outline: 2px solid #ffce5d;
+    outline-offset: 2px;
+}
+.ferro-claim-pass:active {
+    transform: translateY(0);
+}
+.ferro-claim-pass-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.05;
+}
+.ferro-claim-pass-label .zh {
+    font-size: 15px;
+    font-weight: 700;
+}
+.ferro-claim-pass-label .py {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.ferro-claim-pass-key {
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+/* Urgency states ------------------------------------------------------- */
+
+.ferro-claim-urgent .ferro-claim-progress-fill {
+    background: linear-gradient(90deg, #ffd06b 0%, #ff8a3a 100%);
+}
+.ferro-claim-urgent .ferro-claim-timer-value {
+    color: #ffc46b;
+}
+.ferro-claim-critical .ferro-claim-progress-fill {
+    background: linear-gradient(90deg, #ff8866 0%, #ff4040 100%);
+    animation: ferro-claim-pulse 350ms ease-in-out infinite alternate;
+}
+.ferro-claim-critical .ferro-claim-timer-value {
+    color: #ff7470;
+}
+.ferro-claim-critical {
+    border-color: rgba(255, 116, 112, 0.85);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55),
+                0 0 24px rgba(255, 116, 112, 0.32),
+                0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+}
+@keyframes ferro-claim-pulse {
+    from { filter: brightness(0.95); }
+    to   { filter: brightness(1.25); }
+}
+
+/* Spectator mode: even though we re-use the same collection plumbing, a
+ * spectator never has a `seat` and therefore never receives a claim
+ * entry — but a defensive rule guards against any future regression. */
+body.spectating .ferro-claim-overlay { display: none !important; }
+
+/* Mobile viewport (iPhone-SE 375px) ------------------------------------ */
+
+@media (max-width: 480px) {
+    .ferro-claim-overlay {
+        width: calc(100vw - 12px);
+        bottom: 8px;
+        padding: 10px;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+        gap: 10px;
+    }
+    .ferro-claim-pass-wrap {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: stretch;
+    }
+    .ferro-claim-pass {
+        width: 100%;
+        flex-direction: row;
+        gap: 10px;
+        justify-content: center;
+    }
+    .ferro-claim-tile-face {
+        width: 42px;
+        height: 54px;
+        font-size: 28px;
+        line-height: 54px;
+    }
+    .ferro-claim-badges {
+        gap: 4px;
+    }
+    .ferro-claim-badge {
+        padding: 4px 4px;
+    }
+    .ferro-claim-badge-zh { font-size: 16px; }
+    .ferro-claim-badge-py { font-size: 9px; }
+}
+
+/* Prefers-reduced-motion ----------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .ferro-claim-overlay,
+    .ferro-claim-progress-fill,
+    .ferro-claim-badge,
+    .ferro-claim-pass {
+        transition: none !important;
+    }
+    .ferro-claim-critical .ferro-claim-progress-fill {
+        animation: none !important;
+    }
+}

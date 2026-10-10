@@ -1,0 +1,44 @@
+{
+  "name": "autotable",
+  "version": "1.0.0",
+  "author": "Paweł Marczewski <pwmarcz@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "e2e": "playwright test --config tests/e2e/playwright.config.ts",
+    "e2e:install": "playwright install --with-deps chromium",
+    "build": "npm run build:vite",
+    "build:vite": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:unity": "node --test tests/node/unity-*.test.mjs",
+    "watch": "vite build --watch",
+    "build:metric": "node scripts/build-with-cache-metric.js",
+    "build:post": "node scripts/generate-sw-manifest.js",
+    "capture:screenshots": "node scripts/capture-screenshots.js",
+    "verify:bundle-sync": "node scripts/verify-bundle-in-sync.js",
+    "bundle:hash": "node scripts/bundle-hash.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.45.0",
+    "@types/events": "^3.0.3",
+    "@types/jquery": "^3.5.33",
+    "@types/three": "^0.179.0",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "eslint": "^9.34.0",
+    "hls.js": "^1.5.13",
+    "lighthouse": "^13.3.0",
+    "process": "^0.11.10",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.21"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
+    "@sentry/browser": "^8.55.2",
+    "bootstrap": "^4.4.1",
+    "events": "^3.1.0",
+    "jquery": "^3.7.1",
+    "popper.js": "^1.16.1",
+    "three": "^0.179.0"
+  }
+}

@@ -1,0 +1,50 @@
+# Build-only profile. Invoke through the wrappers to validate private mount paths.
+# No license/account material enters the build context, image layers or build args.
+services:
+  unity-builder:
+    profiles: ["unity-build"]
+    build:
+      context: .
+      dockerfile: docker/unity-builder.Dockerfile
+    image: mahjong-unity-builder:6000.3.24f1-webgl-3.2.2
+    platform: linux/amd64
+    user: "${UNITY_BUILD_UID:-1000}:${UNITY_BUILD_GID:-1000}"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    working_dir: /workspace
+    environment:
+      ALLOW_SOURCE_DIRTY: "${ALLOW_SOURCE_DIRTY:-0}"
+      UNITY_EDITOR: /opt/unity/Editor/Unity
+      HOME: /workspace/artifacts/unity-builder-home
+      TMPDIR: /workspace/artifacts/tool-work
+      TMP: /workspace/artifacts/tool-work
+      TEMP: /workspace/artifacts/tool-work
+    volumes:
+      - type: bind
+        source: ./.git
+        target: /workspace/.git
+        read_only: true
+      - type: bind
+        source: ./.gitignore
+        target: /workspace/.gitignore
+        read_only: true
+      - type: bind
+        source: ./scripts
+        target: /workspace/scripts
+        read_only: true
+      - type: bind
+        source: ./contracts
+        target: /workspace/contracts
+        read_only: true
+      - type: bind
+        source: ./unity/MahjongRenderer
+        target: /workspace/unity/MahjongRenderer
+      - type: bind
+        source: ./artifacts
+        target: /workspace/artifacts
+      - type: bind
+        source: "${UNITY_LICENSE_MOUNT_SOURCE:?run scripts/build-unity-docker.sh with a privately provisioned UNITY_LICENSE_FILE or UNITY_LICENSE_DIR}"
+        target: "${UNITY_LICENSE_MOUNT_TARGET:-/workspace/artifacts/unity-builder-home/.local/share/unity3d/Unity/Unity_lic.ulf}"
+        read_only: true
+        bind:
+          create_host_path: false

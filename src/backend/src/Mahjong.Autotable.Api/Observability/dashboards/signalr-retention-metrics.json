@@ -1,0 +1,206 @@
+{
+  "$schema": "https://grafana.com/schema/dashboard.json",
+  "_phaseKWave20Bishop": {
+    "owner": "Bishop (Backend)",
+    "wave": "Phase-K-Wave-20",
+    "metrics": [
+      "signalr_retention_applied",
+      "signalr_retention_cap_triggered",
+      "signalr_retention_policy_capped_total",
+      "replay_expired_total"
+    ],
+    "notes": "Forward-looking SignalR retention dashboard. The W19 lifecycle metrics emit per-tenant applied + cap-triggered counters; the W18 capped counter (signalr_retention_policy_capped_total) is the historical fire count. The W20 replay_expired_total counter is rendered as a neighbouring panel because the auto-expiry CronJob is part of the same retention lifecycle. Wired through Observability/MetricsEndpoint.cs (see Phase K Wave 20 — Bishop comment in that file). The dashboard JSON is COPIED to the build output by Mahjong.Autotable.Api.csproj (the W18 dashboard-copy hook) so the apone-owned infra/ repo can pull it during the W20 fold."
+  },
+  "uid": "bishop-signalr-retention",
+  "title": "SignalR Retention Lifecycle",
+  "tags": ["bishop", "phase-k", "wave-20", "signalr", "retention", "lifecycle"],
+  "timezone": "utc",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "label": "Tenant",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(signalr_retention_applied, tenant)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Retention applied — rate / 5m",
+      "description": "Per-tenant rate of signalr_retention_applied. One observation per applied retention sweep (the W19 lifecycle observer). Filterable by tenant.",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (rate(signalr_retention_applied{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Retention cap-triggered — rate / 5m",
+      "description": "Per-tenant rate of signalr_retention_cap_triggered. Fires every time the retention sweep observed the configured cap; a sustained non-zero rate indicates either a misconfigured cap or a tenant whose volume is outgrowing the W19 envelope.",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.05 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (rate(signalr_retention_cap_triggered{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Retention cap historical fires (W18)",
+      "description": "Cumulative count from the W18 signalr_retention_policy_capped_total counter. Distinct from the W19 cap_triggered rate above (which is the per-sweep observer); this is the historical fire count carried forward across deploys.",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "sum(signalr_retention_policy_capped_total)",
+          "legendFormat": "total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Replay auto-expiry — rate / 5m",
+      "description": "Per-tenant rate of replay_expired_total (W20). The replay auto-expiry CronJob is part of the SignalR retention lifecycle envelope — its fire-rate is rendered alongside the retention metrics so the operator can correlate retention pressure with replay-store eviction pressure.",
+      "gridPos": { "x": 8, "y": 8, "w": 16, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (rate(replay_expired_total{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Replay auto-expiry — total fires",
+      "description": "Cumulative replay_expired_total since process start (W20). Surfaced as a stand-alone stat so the operator can see at a glance whether the auto-expiry CronJob is converging or accumulating.",
+      "gridPos": { "x": 0, "y": 14, "w": 8, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1000 },
+              { "color": "red", "value": 100000 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "expr": "sum(replay_expired_total)",
+          "legendFormat": "total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Per-tenant retention activity (last hour)",
+      "description": "Cross-tenant rollup of applied vs cap_triggered counts over the trailing hour. The operator can sort by cap_triggered to surface the noisiest tenants without filtering the timeseries panels.",
+      "gridPos": { "x": 8, "y": 14, "w": 16, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (increase(signalr_retention_applied{tenant=~\"$tenant\"}[1h]))",
+          "legendFormat": "applied",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "expr": "sum by (tenant) (increase(signalr_retention_cap_triggered{tenant=~\"$tenant\"}[1h]))",
+          "legendFormat": "cap_triggered",
+          "refId": "B",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

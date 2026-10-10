@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);TESTING_SHIM</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <!-- Phase J Wave 8 — Apone's SentryConfigurationApiTests calls
+       WebApplication.CreateBuilder directly (not via the testing
+       harness), which requires the AspNetCore shared framework. The
+       Microsoft.NET.Sdk (non-Web) SDK doesn't pull this in transitively
+       from a ProjectReference, so add the framework reference
+       explicitly. Vasquez (QA), 2026-05-XX. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj" />
+  </ItemGroup>
+
+  <!-- Phase K Wave 23 — Vasquez (Rules Engineer / Tester). Copy
+       xunit.runner.json into the test binary output so xUnit picks it
+       up at test-host launch. The config disables cross-collection
+       parallelism, which is required for the per-process throwaway
+       Postgres DB pattern in
+       TestInfrastructure/PostgresTestDatabaseLifetime.cs to be safe.
+       See `.squad/decisions/inbox/vasquez-db-providers-isolation.md`
+       for the design rationale. -->
+  <ItemGroup>
+    <None Update="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

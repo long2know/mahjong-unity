@@ -1,0 +1,78 @@
+{
+  "milestone": "U1",
+  "evidenceLevel": "source-only",
+  "recordedUtcDate": "2026-10-10",
+  "contractVersion": "1.0.0",
+  "canonicalSchemaSha256": "c19fb5e9ba52a2e11a5a61316073f7e1f7dea005f2dfabfa74728ca69850b935",
+  "checks": [
+    {
+      "command": "python3 unity/MahjongRenderer/Tools/asset_metadata.py",
+      "result": "passed",
+      "meaning": "Deterministic source asset GUID/importer and scene reference checks only."
+    },
+    {
+      "command": "python3 unity/MahjongRenderer/Tools/check-source.py --frozen-contract <provided frozen migration-contract.json>",
+      "result": "passed",
+      "meaning": "Exact frozen/published schema comparison, package/assembly/scene/receiver/camera receipt/build guard/source invariants."
+    },
+    {
+      "command": "node --check unity/MahjongRenderer/Assets/WebGLTemplates/MahjongHost/host.mjs; node --check < unity/MahjongRenderer/Assets/Plugins/WebGL/MahjongBridge.jslib",
+      "result": "passed",
+      "meaning": "Actual JavaScript source syntax, not a Unity loader build."
+    },
+    {
+      "command": "node --test unity/MahjongRenderer/Tools/bridge-source.test.mjs",
+      "result": "passed",
+      "testsPassed": 5,
+      "meaning": "Source-only UTF8 callback, missing callback, viewport, path and manifest metadata tests; no Unity player/browser rendered."
+    },
+    {
+      "command": "Existing .NET 10.0.100 SDK: dotnet run --project unity/MahjongRenderer/Tools/CSharpSyntax/CSharpSyntax.csproj with project-local intermediate/output/cache paths",
+      "result": "passed",
+      "sourceFiles": 26,
+      "language": "C#9",
+      "branches": ["UNITY_EDITOR", "UNITY_WEBGL player"],
+      "syntaxErrors": 0,
+      "meaning": "Roslyn parses actual source syntax only. No Unity assembly/API typechecking, package restore, shader compilation or EditMode execution."
+    },
+    {
+      "command": "bash -n scripts/build-unity-webgl.sh",
+      "result": "passed",
+      "meaning": "Actual producer shell syntax."
+    },
+    {
+      "command": "With UNITY_EDITOR unset: bash scripts/build-unity-webgl.sh [--build|--test|--test-and-build]",
+      "result": "expected-failure-verified",
+      "exitCodes": [1, 1, 1],
+      "messageIncludes": ["6000.3.24f1", "4e7b9b5b6244", "Web Build Support", "No editor/image is installed or activated automatically"],
+      "meaning": "All modes explicitly reject the absent configured editor without success manifest or generated player artifacts."
+    },
+    {
+      "probe": "Actual Assets/Editor/WebGlBuild.cs threadsSupport=false temporarily changed to true; source gate rejected missing disabled-thread setting; restored false and source gate rerun",
+      "result": "mutation-detected-and-restored",
+      "meaning": "Protects the actual producer source gate; not an actual Unity build or artifact mutation test."
+    }
+  ],
+  "implementedUnexecutedTests": "Assets/Tests/Editor: parser/coherence/privacy/seat basis/layout/no-overlap/hand band/frame lifecycle/semantic actions/actual Physics picking assertions.",
+  "notExecuted": [
+    "Unity package resolution/editor import",
+    "Actual Unity C# assembly/API compilation",
+    "Shader import/compilation",
+    "Unity EditMode tests",
+    "Actual Unity WebGL BuildPlayer",
+    "Wasm/data/framework/loader generation",
+    "Real browser/mobile rendering, touch or orientation qualification",
+    "Playable runtime Docker qualification"
+  ],
+  "realUnityArtifactsProduced": [],
+  "editorConfigured": false,
+  "legitimateLicenseExecutionProven": false,
+  "licenseContentsRead": false,
+  "activationPerformed": false,
+  "unityEditorModuleImageDownloaded": false,
+  "remainingBlocker": "U2 requires a legitimately provisioned licensed pinned editor/module (Backend container or approved executable), actual editor tests/build, then browser/mobile/container evidence.",
+  "unqualifiedFrozenBoundaryLimitations": [
+    "Cross-group held rectangular source-pose translation preserves original Thing/Slot metadata and does not infer shiftSlot/rules.",
+    "Sticky preference has no frozen Configure/Presentation field; browser keeps that control visibly disabled rather than inventing semantics."
+  ]
+}

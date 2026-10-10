@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "es2017",
+        "module": "esnext",
+        "lib": ["DOM", "DOM.Iterable", "ES2022"],
+        "esModuleInterop": true,
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "noImplicitOverride": true,
+        "types": ["vite/client"],
+        "noEmit": true
+    },
+    "include": [
+        "src/index.ts",
+        "src/hls-light.d.ts",
+        "server/protocol.ts"
+    ]
+}

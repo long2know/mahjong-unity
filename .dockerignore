@@ -1,0 +1,133 @@
+# Keep the Docker build context small and reproducible.
+# Anything that is rebuilt inside the image — or that has no business inside
+# the image at all — gets ignored here.
+
+# VCS + IDE noise
+.git/
+.gitignore
+.gitattributes
+.github/
+.vscode/
+.idea/
+.mcp.json
+*.swp
+*.swo
+
+# Squad / Copilot orchestration state (not part of the runtime)
+.squad/
+.copilot/
+.copilot-instructions/
+
+# Qualification/playtest outputs and agent-local work are never build inputs.
+session-files/
+playtest-artifacts/
+.work/
+.apone_uat_scratch/
+.frost_uat_scratch/
+.drake/
+.dtb-out/
+Phase_K_W*/
+**/artifacts/
+**/test-results*/
+**/playwright-report/
+**/.cache/
+**/.fuse_hidden*
+
+# Node / Vite build artefacts — Stage 1 rebuilds these from scratch
+**/node_modules/
+**/.vite/
+**/dist/
+**/build/
+
+# Pre-built frontend bundle checked into the repo — Stage 1 produces a fresh
+# one, so excluding the committed copy keeps the context lean and prevents
+# stale assets from sneaking into the image.
+src/frontend/autotable/
+
+# .NET intermediates — Stage 2 publishes from source
+**/bin/
+**/obj/
+**/*.user
+**/TestResults/
+
+# Test projects are not part of the runtime image
+src/backend/tests/
+src/frontend/autotable-src/tests/
+tests/
+mobile/
+helm/
+
+# Existing scaffold Dockerfile (kept for legacy compose references). The
+# canonical Dockerfile is at the repo root.
+infra/
+
+# Documentation + local notes (don't ship into the image)
+docs/
+README.md
+**/README.md
+
+# Local runtime data — never bake host DBs into the image
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs / coverage / scratch
+*.log
+logs/
+tmp/
+coverage/
+*.tar
+*.tar.gz
+*.tgz
+
+# Compose overrides + env files (developer-local)
+docker-compose.override.yml
+compose.override.yml
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+**/appsettings.*.local.json
+**/appsettings.*.Local.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Runtime builds consume only the real, validated Unity output, not editor caches.
+unity/
+# Reopen the parent before excluding its children; its negation must not admit other artifacts.
+!artifacts/
+artifacts/**
+!artifacts/unity-webgl/
+!artifacts/unity-webgl/**
+
+# These exclusions must follow the artifact exception: never copy licensing,
+# operator configuration, database files, or build/test logs into an image.
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+**/appsettings.Development.json
+**/appsettings.*.local.json
+**/appsettings.*.Local.json
+**/*.ulf
+**/*.alf
+**/*.pem
+**/*.pfx
+**/*.p12
+**/*.key
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+artifacts/unity-webgl/**/*.log
+artifacts/unity-webgl/**/*.tmp
+**/.test-fixtures/
+**/__pycache__/
+**/*.pyc

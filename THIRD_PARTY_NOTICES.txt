@@ -1,0 +1,80 @@
+THIRD-PARTY NOTICES — FIRST SOURCE ITERATION
+
+Scope
+-----
+This file preserves the inherited Autotable code notice. It is not a root
+license, a grant for all fork additions or the .NET backend, or a complete
+binary-distribution notice inventory. The repository owner has not selected
+a license for the root/original additions. That selection and the dependency
+notice inventory are release gates before redistributing an image or build;
+they do not prevent the owner's authorized local source development.
+
+Inherited Autotable code
+-----------------------
+Imported behavioral baseline: long2know/mahjong-autotable
+Revision: d10d351e543aa3e341960de9800828b6c0662a82
+Inherited renderer source: pwmarcz/autotable
+Revision recorded upstream: 8b81d92aa37997dcfbcc6724d3bd3f694f9cc53a
+
+Original files remain at:
+  src/frontend/autotable-src/COPYING
+  src/frontend/autotable-src/UPSTREAM_SHA
+
+The original COPYING follows verbatim. Its code grant expressly excludes
+images and sounds; do not interpret it as a license for every imported file.
+
+The following license (MIT) applies to my code. Note that that doesn't include
+the images and sounds. See README.md for details.
+
+Copyright (c) 2020 Paweł Marczewski <pwmarcz@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Assets and references not imported
+---------------------------------
+The inherited noncommercial tile artwork, generated tile/icon/atlas/model
+derivatives, external sound/font/table assets, and cheatsheet PDFs are not
+included in this iteration. Their exclusion is not a new license grant.
+Browser labels/icons and Unity meshes/textures are original procedural work;
+the owner must select the license for those new contributions as well.
+
+ArcturusZhang/Mahjong at c833d787146210f55e2ceec2cfcded40ecf53a4d was an
+inspect-only layout reference. Its code MIT notice does not establish rights
+to Majsoul resources or its bundled Photon, DOTween, or font assets. None of
+that sample code/project/asset tree is imported.
+
+tomowatt/unity-docker-example is a static-serving reference, not this
+project's compiler, activation implementation, or source/asset dependency.
+No files or assets from that example are imported.
+
+Dependency and engine notice gate
+--------------------------------
+The npm lockfile, NuGet project/restore graph, and Unity package manifest
+identify separate dependencies. A package.json MIT field does not relicense
+them. Unity Editor/runtime and GameCI/container tooling also have their own
+applicable terms. Build tools are separate from the ASP.NET hosting image.
+
+Before image/build redistribution, inventory the actual shipped dependency
+versions and base-image components, retain their copyright/license/NOTICE
+files, and satisfy their individual terms, including any Apache or MPL
+obligations where applicable. This source-iteration notice is not evidence
+that that distribution inventory has been completed.
+
+See docs/integration/licensing-and-provenance.md and
+contracts/source-provenance.json for the import receipt and release gates.

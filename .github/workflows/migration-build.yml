@@ -1,0 +1,110 @@
+name: Source migration and licensed Unity qualification
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      build_unity:
+        description: Run actual tests/Web build on an approved, privately licensed runner
+        type: boolean
+        default: false
+      allow_source_dirty:
+        description: Explicit local qualification only, never a release/integrity bypass
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  source-tools:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Source/validator/wrapper contracts
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          mkdir -p artifacts/tool-work artifacts/test-results
+          bash -n build.sh scripts/build-unity-docker.sh docker/unity-build-entrypoint.sh scripts/compose-bootstrap.sh src/backend/tools/collect-nuget-notices.sh
+          python3 -m unittest discover -s src/backend/tests/Mahjong.Autotable.Api.Tests/Hosting -p 'test_*.py' -v
+      - name: Docker must fail early without a real Unity artifact
+        run: |
+          if docker build --target unity-artifacts-check --progress plain . > artifacts/test-results/backend-ci-missing-unity.log 2>&1; then
+            echo "Unexpected artifact-gate success in a source-only checkout" >&2
+            exit 1
+          fi
+          grep -F 'Unity build unavailable: missing manifest' artifacts/test-results/backend-ci-missing-unity.log
+          grep -F 'bash scripts/build-unity-webgl.sh' artifacts/test-results/backend-ci-missing-unity.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: backend-source-tools
+          path: artifacts/test-results/backend-*
+
+  backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Existing compatibility, Unity hosting and actual API publish
+        run: |
+          mkdir -p artifacts/tool-work artifacts/test-results
+          docker run --rm \
+            --mount "type=bind,source=$PWD,target=/workspace" \
+            --workdir /workspace \
+            --env TMPDIR=/workspace/artifacts/tool-work \
+            --env TMP=/workspace/artifacts/tool-work \
+            --env TEMP=/workspace/artifacts/tool-work \
+            --env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            --env DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+            mcr.microsoft.com/dotnet/sdk:10.0 bash -euc '
+              dotnet restore src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj --disable-build-servers
+              dotnet test src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj --no-restore --disable-build-servers -p:UseSharedCompilation=false --filter "FullyQualifiedName~.Autotable.ViewerAuthorityContractTests|FullyQualifiedName~.Autotable.ChangshaPrivacyStartupValidatorTests|FullyQualifiedName~.Autotable.ChangshaPrivacyProjectorDelegationTests|FullyQualifiedName~.Autotable.HumanClaimWireContractTests|FullyQualifiedName~.Autotable.ResultTombstoneLifecycleTests|FullyQualifiedName~.Chat.ChatMessageTests|FullyQualifiedName~.Changsha.Acceptance.VariantSwitchAcceptanceTests|FullyQualifiedName~.Hosting.UnityStaticHostingTests|FullyQualifiedName~.Observability.SecurityHeadersMiddlewareTests" --logger "trx;LogFileName=backend-ci.trx" --results-directory artifacts/test-results/backend-ci
+              dotnet publish src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj --no-restore --disable-build-servers -p:UseSharedCompilation=false -p:UseAppHost=false -c Release -o artifacts/api
+            '
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: backend-compatibility
+          path: artifacts/test-results/backend-*
+
+  frontend-source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Browser source compatibility (not actual Unity browser qualification)
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/workspace" \
+            --workdir /workspace/src/frontend/autotable-src node:20-alpine sh -euc '
+              npm ci --no-audit --no-fund
+              node --test tests/node/room-startup-readiness.test.mjs tests/node/hand-result-render-and-wire.test.mjs tests/node/sc2-slot-owner.invariants.test.mjs tests/node/perspective-settings.test.mjs tests/node/unity-*.test.mjs
+              npm run build
+            '
+
+  licensed-unity:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_unity
+    needs: [source-tools, backend, frontend-source]
+    runs-on: [self-hosted, linux, x64, unity-6000.3.24f1]
+    environment: licensed-unity-build
+    env:
+      UNITY_LICENSE_FILE: ${{ vars.UNITY_LICENSE_FILE }}
+      UNITY_LICENSE_DIR: ${{ vars.UNITY_LICENSE_DIR }}
+      ALLOW_SOURCE_DIRTY: ${{ inputs.allow_source_dirty && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Privately provisioned licensing, actual tests/build and separate runtime image
+        run: bash build.sh --tag mahjong-unity:qualification
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: success()
+        with:
+          name: actual-unity-webgl
+          path: artifacts/unity-webgl
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: actual-unity-editor-tests
+          path: artifacts/test-results/unity-*
+          if-no-files-found: warn

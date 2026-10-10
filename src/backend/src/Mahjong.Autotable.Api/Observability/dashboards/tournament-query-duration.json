@@ -1,0 +1,246 @@
+{
+  "$schema": "https://grafana.com/schema/dashboard.json",
+  "_phaseKWave16Bishop": {
+    "owner": "Bishop (Backend)",
+    "wave": "Phase-K-Wave-16",
+    "metric": "tournament_query_duration_seconds",
+    "alertThresholdSecondsP99": 0.5,
+    "errorBudgetMinutesPerMonth": 21.6,
+    "notes": "Side-channel histogram emitted by TournamentQueryLatencyMetrics. Labels: endpoint, page_size_bucket. Bucket bounds: 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s, 10s, +Inf."
+  },
+  "uid": "bishop-tournament-query-duration",
+  "title": "Tournament Query Duration",
+  "tags": ["bishop", "phase-k", "wave-16", "tournament", "latency", "slo"],
+  "timezone": "utc",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "endpoint",
+        "type": "query",
+        "label": "Endpoint",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(tournament_query_duration_seconds_count, endpoint)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "page_size_bucket",
+        "type": "query",
+        "label": "Page Size Bucket",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\"}, page_size_bucket)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "p50 latency (5m window)",
+      "description": "histogram_quantile(0.50, ...) over the 5-minute rate of tournament_query_duration_seconds_bucket. Filterable by endpoint + page_size_bucket.",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.1 },
+              { "color": "red", "value": 0.25 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "p95 latency (5m window)",
+      "description": "histogram_quantile(0.95, ...) over the 5-minute rate of tournament_query_duration_seconds_bucket.",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.25 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "p99 latency (5m window)",
+      "description": "histogram_quantile(0.99, ...) over the 5-minute rate. Alert threshold at 500ms.",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.25 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": { "mode": "line" }
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "A"
+        }
+      ],
+      "alert": {
+        "name": "tournament-query-p99-over-500ms",
+        "conditions": [
+          {
+            "evaluator": { "type": "gt", "params": [0.5] },
+            "operator": { "type": "and" },
+            "query": { "params": ["A", "5m", "now"] },
+            "reducer": { "type": "avg", "params": [] },
+            "type": "query"
+          }
+        ],
+        "for": "10m",
+        "frequency": "1m",
+        "noDataState": "no_data",
+        "executionErrorState": "alerting",
+        "message": "Tournament query p99 latency exceeded the 500ms SLO threshold for >10m. Investigate via the per-endpoint breakdown panel + the request-rate panel; common causes are page-size growth past 100 and unindexed bracket scans. See docs/per-tenant-jwks-rotation.md (operator runbook) and docs/signalr-sequence-slo.md (paired SLO) for context."
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Request rate (per endpoint)",
+      "description": "rate(tournament_query_duration_seconds_count[1m]) grouped by endpoint. Use this panel to correlate latency spikes with traffic spikes.",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (endpoint) (rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[1m]))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "p99 by endpoint",
+      "description": "Per-endpoint p99 breakdown. Identifies which endpoint is dragging the aggregate p99 panel above the 500ms threshold.",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, endpoint) (rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m])))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Total queries last 24h",
+      "description": "Lifetime counter delta over 24h. Sanity-check for traffic volume + cardinality.",
+      "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "expr": "sum(increase(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[24h]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Burn-rate (5m, 30m, 1h)",
+      "description": "Fraction of requests breaching the 500ms p99 SLO threshold over a sliding window. Burn-rate >1 over 1h = error budget shrinking faster than monthly target.",
+      "gridPos": { "x": 6, "y": 16, "w": 9, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [
+        {
+          "expr": "(sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m])) - sum(rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\", le=\"0.5\"}[5m]))) / sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[5m]))",
+          "legendFormat": "5m burn",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[30m])) - sum(rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\", le=\"0.5\"}[30m]))) / sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[30m]))",
+          "legendFormat": "30m burn",
+          "refId": "B"
+        },
+        {
+          "expr": "(sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[1h])) - sum(rate(tournament_query_duration_seconds_bucket{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\", le=\"0.5\"}[1h]))) / sum(rate(tournament_query_duration_seconds_count{endpoint=~\"$endpoint\", page_size_bucket=~\"$page_size_bucket\"}[1h]))",
+          "legendFormat": "1h burn",
+          "refId": "C"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "p99 SLO breach",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "enable": true,
+        "iconColor": "red",
+        "expr": "(histogram_quantile(0.99, sum by (le) (rate(tournament_query_duration_seconds_bucket[5m]))) > 0.5)"
+      }
+    ]
+  }
+}
