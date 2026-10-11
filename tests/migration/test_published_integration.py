@@ -31,6 +31,7 @@ class Peer:
         self.socket = socket.create_connection(("127.0.0.1", port), timeout=10)
         self.pending = bytearray()
         self.messages = deque()
+        self.transcript = {"sent": [], "received": [], "close": None}
         key = base64.b64encode(os.urandom(16)).decode()
         headers = [
             f"GET {path} HTTP/1.1", f"Host: 127.0.0.1:{port}",
@@ -89,6 +90,7 @@ class Peer:
         ))
 
     def send(self, value, signalr=False):
+        self.transcript["sent"].append(value)
         text = json.dumps(value, separators=(",", ":")) + ("\x1e" if signalr else "")
         self.send_bytes(text.encode())
 
@@ -110,7 +112,10 @@ class Peer:
                     payload = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
                 opcode = first & 15
                 if opcode == 8:
-                    raise AssertionError("Actual WebSocket closed before the expected message")
+                    code = struct.unpack("!H", payload[:2])[0] if len(payload) >= 2 else None
+                    reason = payload[2:].decode("utf-8", errors="replace") if len(payload) > 2 else ""
+                    self.transcript["close"] = {"code": code, "reason": reason}
+                    raise AssertionError(f"Actual WebSocket closed before the expected message ({code}: {reason})")
                 if opcode == 9:
                     self.send_bytes(payload, 10)
                     continue
@@ -123,7 +128,9 @@ class Peer:
                     break
             for text in data.decode().split("\x1e"):
                 if text:
-                    self.messages.append(json.loads(text))
+                    message = json.loads(text)
+                    self.messages.append(message)
+                    self.transcript["received"].append(message)
         return self.messages.popleft()
 
     def wait(self, predicate, timeout=10):
@@ -146,6 +153,10 @@ class Peer:
 
 
 class PublishedIntegrationTests(unittest.TestCase):
+    runtime_environment = "Development"
+    build_sha = "migration-native-source-test"
+    listen_port = 0
+
     @classmethod
     def setUpClass(cls):
         binary = ROOT / "artifacts/api/Mahjong.Autotable.Api.dll"
@@ -165,7 +176,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             content / "appsettings.json",
         )
         with socket.socket() as probe:
-            probe.bind(("127.0.0.1", 0))
+            probe.bind(("127.0.0.1", cls.listen_port))
             cls.port = probe.getsockname()[1]
         cls.base = f"http://127.0.0.1:{cls.port}"
         cls.peers = []
@@ -182,7 +193,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             "XDG_DATA_HOME": str(home / ".local/share"),
             "XDG_CONFIG_HOME": str(home / ".config"),
             "XDG_CACHE_HOME": str(home / ".cache"),
-            "ASPNETCORE_ENVIRONMENT": "Development", "DOTNET_ENVIRONMENT": "Development",
+            "ASPNETCORE_ENVIRONMENT": cls.runtime_environment, "DOTNET_ENVIRONMENT": cls.runtime_environment,
             "ASPNETCORE_URLS": cls.base,
             "Persistence__Provider": "Sqlite",
             "ConnectionStrings__Sqlite": f"Data Source={cls.fixture / 'state.db'};Pooling=False",
@@ -191,7 +202,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             "Logging__LogLevel__Default": "Warning", "RateLimiting__Enabled": "false",
             "Sentry__Dsn": "", "TMPDIR": str(WORK), "TMP": str(WORK), "TEMP": str(WORK),
             "DOTNET_CLI_TELEMETRY_OPTOUT": "1", "DOTNET_NOLOGO": "1",
-            "BUILD_SHA": "migration-native-source-test",
+            "BUILD_SHA": cls.build_sha,
         })
         cls.log = (RESULTS / "migration-published-api.log").open("w")
         cls.receipt["publishedBinarySha256"] = hashlib.sha256(binary.read_bytes()).hexdigest()
@@ -279,6 +290,7 @@ class PublishedIntegrationTests(unittest.TestCase):
     def peer(self, path, cookie=""):
         peer = Peer(self.port, path, cookie)
         self.peers.append(peer)
+        self.receipt.setdefault("nativeWire", []).append(peer.transcript)
         return peer
 
     def test_01_actual_health_lobby_static_404_headers_and_transport_negotiation(self):

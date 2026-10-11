@@ -22,14 +22,24 @@ class Element extends EventTarget {
   append(...children) { children.forEach(child => this.appendChild(child)); }
   appendChild(child) { this.children.push(child); child.parent = this; return child; }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); }
-  getBoundingClientRect() { return this.rect; }
+  getBoundingClientRect() {
+    const { left = 0, top = 0, width, height } = this.rect;
+    return { left, top, width, height, right: left + width, bottom: top + height };
+  }
 }
-function fixture({ missing = false, mime = 'application/json', html = false, unsupported = false, loaderFailure = false, deferred = false, dirty = false, development = false, allow = false, corrupt } = {}) {
+function fixture({ missing = false, mime = 'application/json', html = false, unsupported = false, loaderFailure = false, deferred = false, dirty = false, development = false, allow = false, corrupt, chatRect } = {}) {
   const requests = [], calls = [], actions = [], notices = [], resizes = [];
   let failures = 0, quits = 0, reloads = 0, resolveInstance;
   const body = new Element('body'), head = new Element('head');
   const main = new Element('main');
   body.append(main);
+  const chat = chatRect ? new Element('section') : null;
+  if (chat) {
+    chat.id = 'chat-panel';
+    chat.rect = chatRect;
+    chat.computed = { display: 'flex', visibility: 'visible' };
+    body.append(chat);
+  }
   const walk = (element, id) => element.id === id ? element : element.children.map(child => walk(child, id)).find(Boolean);
   const document = Object.assign(new EventTarget(), {
     body, head, hidden: false, documentElement: new Element('html'),
@@ -91,17 +101,24 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
   const observers = [];
   class Observer {
     constructor(callback) { this.callback = callback; observers.push(this); }
-    observe() {}
+    observed = [];
+    observe(target, options) { this.observed.push({ target, options }); }
     disconnect() { this.disconnected = true; }
   }
+  const mutations = [];
+  class Mutation extends Observer {
+    constructor(callback) { super(callback); observers.pop(); mutations.push(this); }
+  }
   const { UnityHost, validateBuildManifest, artifactUrl } = sourceLoader({
-    document, window, fetch, ResizeObserver: Observer,
-    getComputedStyle: () => ({ paddingTop: '20px', paddingRight: '0px', paddingBottom: '10px', paddingLeft: '0px' }),
+    document, window, fetch, ResizeObserver: Observer, MutationObserver: Mutation,
+    getComputedStyle: element => element === chat ? chat.computed
+      : { paddingTop: '20px', paddingRight: '0px', paddingBottom: '10px', paddingLeft: '0px' },
   }).load('renderer/unity-host.ts');
-  const host = new UnityHost(main, {
+  const hooks = {
     action: value => actions.push(value), resized: value => resizes.push(value), resumed() {},
     failure: () => failures++, notice: value => notices.push(value),
-  }, { allowUnqualifiedBuild: allow });
+  };
+  const host = new UnityHost(main, hooks, { allowUnqualifiedBuild: allow });
   const sessionId = 'test-session';
   host.clear(sessionId, 'join');
   const layout = {
@@ -123,8 +140,8 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
     contractVersion: '1.0.0', instanceId: host.instanceId, sessionId, type: 'frameRendered', frameId, layoutRevision: 1,
   });
   return {
-    host, manifest, layout, frame, ready, rendered, emit, document, window, main, calls, requests, resizes, notices, actions,
-    validateBuildManifest, artifactUrl, observers, failures: () => failures, quits: () => quits,
+    host, manifest, layout, frame, ready, rendered, emit, document, window, main, chat, hooks, calls, requests, resizes, notices, actions,
+    validateBuildManifest, artifactUrl, observers, mutations, failures: () => failures, quits: () => quits,
     resolveInstance: () => resolveInstance?.(MockUnityInstance),
   };
 }
@@ -213,7 +230,7 @@ test('corrupt files, wrong handshake and loader rejection fail visibly and never
   }
 });
 
-test('resizes/orientation/DPR/insets/hand band update the real host buffer and cancel before changed picking transforms', async t => {
+test('resizes/orientation/DPR/chat insets/hand band update the real host buffer without stale reentrant picking transforms', async t => {
   const f = fixture();
   t.after(() => f.host.dispose());
   await f.host.mount();
@@ -237,6 +254,102 @@ test('resizes/orientation/DPR/insets/hand band update the real host buffer and c
   assert.equal(f.calls.at(-1).method, 'SetViewport');
   f.host.setPresentation({ ...f.frame(1).presentation, handLayout: 'in-table' });
   assert.equal(f.host.viewport.handBandCssPx, 0);
+
+  const g = fixture({ chatRect: { left: 38, top: 792, width: 340, height: 44 } });
+  t.after(() => g.host.dispose());
+  await g.host.mount();
+  g.ready();
+  g.host.setPresentation({ ...g.frame(1).presentation, handLayout: 'separate' });
+  assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 0, bottom: 52, left: 0 },
+    'the entire hand starts above the actual collapsed chat rectangle, not only the CSS safe area');
+  assert.equal(g.host.viewport.handBandCssPx, 96, 'chat clearance must not shrink the portrait hand tiles');
+  assert(g.observers[0].observed.some(entry => entry.target === g.main));
+  assert(g.observers[0].observed.some(entry => entry.target === g.chat), 'chat size changes must trigger measurement');
+  assert(g.mutations[0].observed.some(entry => entry.target === g.chat
+    && entry.options.attributeFilter.includes('class') && entry.options.attributeFilter.includes('style')));
+  assert(g.mutations[0].observed.some(entry => entry.target === g.document.body
+    && entry.options.attributeFilter.includes('class')), 'lobby/compact layout changes can move unchanged chat boxes');
+  let revision = g.host.viewport.resizeRevision;
+  g.observers[0].callback();
+  g.mutations[0].callback();
+  assert.equal(g.host.viewport.resizeRevision, revision, 'unchanged reflows do not consume viewport revisions');
+
+  g.chat.rect = { left: 38, top: 777, width: 340, height: 59 };
+  g.observers[0].callback();
+  assert.equal(g.host.viewport.insetsCssPx.bottom, 67, 'clearance follows the actual header height');
+  assert(g.host.viewport.resizeRevision > revision);
+  revision = g.host.viewport.resizeRevision;
+  g.chat.rect = { left: 8, top: 146, width: 374, height: 202.5 };
+  g.mutations[0].callback();
+  assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 348.5, right: 0, bottom: 10, left: 0 },
+    'portrait expanded chat reserves its existing top band rather than hiding or intercepting hand input');
+  assert.equal(g.host.viewport.handBandCssPx, 96);
+  assert(g.host.viewport.resizeRevision > revision);
+  for (const computed of [{ display: 'none', visibility: 'visible' }, { display: 'flex', visibility: 'hidden' }]) {
+    g.chat.computed = computed;
+    g.mutations[0].callback();
+    assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 0, bottom: 10, left: 0 });
+  }
+  g.chat.computed = { display: 'flex', visibility: 'visible' };
+  g.chat.rect = { left: 900, top: 792, width: 340, height: 44 };
+  g.mutations[0].callback();
+  assert.equal(g.host.viewport.insetsCssPx.bottom, 10, 'off-canvas chat does not reserve fictitious space');
+  g.chat.rect = { left: -96, top: 500, width: 120, height: 344 };
+  g.mutations[0].callback();
+  assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 0, bottom: 10, left: 24 },
+    'partially intersecting side chrome reserves only the intersecting footprint');
+
+  g.main.rect = { left: 0, top: 50, width: 390, height: 744 };
+  g.window.visualViewport.offsetTop = 50;
+  g.window.visualViewport.height = 744;
+  g.chat.rect = { left: 38, top: 742, width: 340, height: 44 };
+  g.window.visualViewport.dispatchEvent(new Event('resize'));
+  assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 0, bottom: 52, left: 0 },
+    'DOM coordinates are relative to the visible canvas; visual viewport offsets are not added twice');
+  assert.equal(g.host.canvas.height, 1488);
+
+  g.main.rect = { width: 844, height: 390 };
+  g.window.innerHeight = 390;
+  g.window.visualViewport.offsetTop = 0;
+  g.window.visualViewport.height = 390;
+  g.window.devicePixelRatio = 1;
+  g.chat.rect = { left: 492, top: 114, width: 340, height: 268 };
+  g.window.dispatchEvent(new Event('orientationchange'));
+  assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 352, bottom: 10, left: 0 },
+    'landscape expanded chat leaves the largest clear table rectangle beside the existing drawer');
+  assert.equal(g.host.canvas.width, 844);
+  assert.equal(g.host.canvas.height, 390);
+  assert.equal(g.host.viewport.handBandCssPx, 108);
+  g.host.setPresentation({ ...g.frame(1).presentation, handLayout: 'in-table' });
+  assert.equal(g.host.viewport.handBandCssPx, 0);
+  assert.equal(g.host.viewport.insetsCssPx.right, 352, 'classic/in-table mode must still respect preserved chat chrome');
+
+  const sentBefore = g.calls.filter(call => call.method === 'SetViewport').length;
+  const resized = g.hooks.resized;
+  let reenter = true;
+  g.hooks.resized = viewport => {
+    resized(viewport);
+    if (reenter) {
+      reenter = false;
+      g.chat.rect = { left: 704, top: 62, width: 128, height: 44 };
+      g.host.setPresentation({ ...g.frame(1).presentation, handLayout: 'separate' });
+      g.mutations[0].callback();
+    }
+  };
+  g.chat.rect = { left: 38, top: 340, width: 340, height: 44 };
+  g.observers[0].callback();
+  assert.equal(g.host.viewport.insetsCssPx.right, 140);
+  assert(g.host.viewport.handBandCssPx > 0);
+  assert.equal(g.calls.filter(call => call.method === 'SetViewport').length, sentBefore + 1,
+    'only the newest nested chat/presentation measurement reaches Unity');
+  assert.equal(g.calls.at(-1).value.resizeRevision, g.host.viewport.resizeRevision);
+  assert(g.resizes.every((viewport, index) => index === 0 || viewport.resizeRevision > g.resizes[index - 1].resizeRevision));
+  await g.host.dispose();
+  const count = g.calls.length;
+  g.observers[0].callback();
+  g.mutations[0].callback();
+  assert.equal(g.calls.length, count);
+  assert.equal(g.mutations[0].disconnected, true);
 });
 
 test('visibility suspends visual playback only; disposal detaches observers/bridge and awaits runtime Quit', async () => {

@@ -48,6 +48,7 @@ RUN --mount=type=cache,id=mahjong-npm,target=/root/.npm \
 # rebuilds (CI on a small source change) cheap. The cache is content-
 # keyed so we don't need to invalidate manually.
 COPY src/frontend/autotable-src/ ./
+COPY contracts/renderer-v1.schema.json /contracts/renderer-v1.schema.json
 COPY src/backend/tools/collect-npm-notices.mjs /collect-npm-notices.mjs
 # The same public identity is embedded in the loaded UI and runtime /health.
 # Keep this after dependency installation to preserve the npm ci cache.

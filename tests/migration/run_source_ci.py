@@ -81,6 +81,8 @@ def plans():
                     kind="unittest", expected=33),
             command("source-gates", ["python3", "tests/migration/test_source_gate.py", "-v"],
                     kind="unittest", expected=9),
+            command("player-packaging", ["python3", "tests/migration/test_player_packaging.py", "-v"],
+                    kind="unittest", expected=1),
             command("missing-unity-artifact", [
                 "docker", "build", "--target", "unity-artifacts-check", "--progress", "plain", ".",
             ], kind="missing-unity"),
@@ -110,6 +112,11 @@ def plans():
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
                     cwd=FRONTEND, kind="node", expected=80),
+            command("renderer-regressions", [
+                "node", "--test", "--test-reporter=tap",
+                "tests/migration/renderer-backend-shape.test.mjs",
+                "tests/migration/relay-authority-delta.test.mjs",
+            ], kind="node", expected=6),
             command("typecheck", ["npm", "run", "typecheck"], cwd=FRONTEND),
             command("vite-build", ["npm", "run", "build"], cwd=FRONTEND, kind="vite"),
         ],
@@ -235,6 +242,8 @@ class SourceRun:
         source += {
             "source-tools": [
                 "tests/migration/run_backend_tools.py", "tests/migration/test_source_gate.py",
+                "tests/migration/test_player_packaging.py",
+                FRONTEND + "/src/renderer/renderer-contract.ts",
                 "scripts/import-baseline.py", "scripts/verify-unity-build.py",
                 ".gitignore", ".dockerignore", "Dockerfile",
                 *[p.relative_to(ROOT).as_posix() for p in
@@ -245,7 +254,13 @@ class SourceRun:
                 FRONTEND + "/package.json", FRONTEND + "/package-lock.json",
                 FRONTEND + "/tsconfig.json", FRONTEND + "/vite.config.ts",
                 "tests/migration/browser-source-integration.test.mjs",
+                "tests/migration/renderer-backend-shape.test.mjs",
+                "tests/migration/relay-authority-delta.test.mjs",
                 FRONTEND + "/tests/node/unity-test-support.mjs",
+                FRONTEND + "/src/client.ts", FRONTEND + "/src/world.ts", FRONTEND + "/src/types.ts",
+                FRONTEND + "/src/renderer/renderer-frame.ts",
+                FRONTEND + "/src/renderer/renderer-sink.ts",
+                FRONTEND + "/src/renderer/renderer-contract.ts",
             ],
             "unity-source": [SYNTAX_PROJECT, "unity/MahjongRenderer/Tools/CSharpSyntax/Program.cs"],
         }[self.group]

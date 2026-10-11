@@ -123,27 +123,58 @@ test('malformed envelopes and arbitrary UPDATE/seat/tile payloads are rejected v
 });
 
 for (const slotName of ['hand.0@0', 'hand.extra@0']) {
-  test(`actual relay ${slotName} drag reaches retained Movement instead of the Changsha discard intercept`, t => {
-    const h = gameHarness('FOUR_PLAYER');
-    t.after(h.close);
-    h.join();
-    const entries = Array.from({ length: 14 }, (_, id) => [id, thing(id === 13 ? 'hand.extra@0' : `hand.${id}@0`, undefined, 1)]);
-    const frame = h.snapshot(entries);
-    const anchor = frame.entities.find(e => e.slotName === slotName);
-    const r = router(h);
-    h.sockets.at(-1).sent.length = 0;
-    assert.equal(r.send({ kind: 'beginDrag', gestureId: 'gesture-one', anchorEntityId: anchor.entityId, entityIds: [anchor.entityId] }).status, 'submitted');
-    assert.equal(h.world.things.get(slotName === 'hand.extra@0' ? 13 : 0).claimedBy, 0);
-    assert.equal(r.wire().some(([kind]) => kind === 'discard'), false);
-    assert.equal(r.send({ kind: 'dragToSlot', gestureId: 'gesture-one', slotName: 'discard.0.0@0' }).status, 'submitted');
-    assert.equal(r.send({ kind: 'endDrag', gestureId: 'gesture-one', commit: true }).status, 'submitted');
-    const moved = h.world.things.get(slotName === 'hand.extra@0' ? 13 : 0);
-    assert.equal(moved.slot.name, 'discard.0.0@0');
-    assert.equal(moved.slot.thing, moved);
-    assert.equal(moved.claimedBy, null);
-    assert.equal(h.adapter.latest.entities.find(e => e.slotName === 'discard.0.0@0').entityId, anchor.entityId,
-      'relay source-local movement keeps opaque identity and geometry until server echo');
-    assert.equal(r.wire().some(([kind]) => kind === 'things'), true);
+  test(`actual relay ${slotName} drag survives its own claim through release in every variant`, t => {
+    for (const variant of ['FOUR_PLAYER', 'THREE_PLAYER', 'BAMBOO', 'MINEFIELD']) {
+      const h = gameHarness(variant);
+      t.after(h.close);
+      h.join();
+      h.snapshot([]);
+      const source = variant === 'MINEFIELD'
+        ? slotName === 'hand.0@0' ? 'wall.open.0.0@0' : 'wall.open.0.1@0'
+        : slotName === 'hand.extra@0' && !h.world.slots.has(slotName) ? 'hand.13@0' : slotName;
+      const group = variant === 'MINEFIELD' ? 'wall.open' : 'hand';
+      const sourceSlots = [...h.world.slots.values()].filter(slot => slot.group === group && slot.seat === 0).slice(0, 14);
+      if (!sourceSlots.some(slot => slot.name === source)) sourceSlots[13] = h.world.slots.get(source);
+      const entries = sourceSlots.map((slot, id) => [id, thing(slot.name, undefined, 1)]);
+      const frame = h.snapshot(entries);
+      const anchor = frame.entities.find(e => e.slotName === source);
+      const key = entries.find(([, info]) => info.slotName === source)[0];
+      const r = router(h);
+      h.sockets.at(-1).sent.length = 0;
+      assert.equal(r.send({ kind: 'beginDrag', gestureId: 'gesture-one', anchorEntityId: anchor.entityId, entityIds: [anchor.entityId] }).status, 'submitted');
+      const held = h.world.things.get(key);
+      assert.equal(held.claimedBy, 0);
+      const claim = r.wire().filter(([kind, id]) => kind === 'things' && id === key).at(-1);
+      assert.equal(claim[2].claimedBy, 0, 'the real retained beginDrag caller authors the exclusive claim');
+      h.delta([claim]);
+      const claimed = h.adapter.latest.entities.find(e => e.entityId === anchor.entityId);
+      assert.equal(claimed.interaction.canDrag, true, `${variant}: the actual claimed frame must not cancel the pressed gesture`);
+      assert.equal(claimed.interaction.canSelect, false, 'an active claim does not authorize a new selection');
+      assert.equal(claimed.interaction.canFlip, false, 'holding does not authorize flipping');
+      assert.equal(claimed.display.held, true);
+      assert.equal(h.world.handPointerDown, true);
+      assert.notEqual(h.world.heldMouse, null);
+      assert.equal(held.slot.name, source, 'acquiring the claim must not move the source slot');
+      assert.equal(r.wire().some(([kind]) => kind === 'discard'), false);
+      assert.equal(r.send({ kind: 'dragToSlot', gestureId: 'gesture-one', slotName: 'discard.0.0@0' }).status, 'submitted');
+      const whilePressed = r.wire().filter(([kind, id]) => kind === 'things' && id === key);
+      assert.equal(whilePressed.some(([, , info]) => info.slotName === 'discard.0.0@0'), false);
+      h.adapter.refresh();
+      assert.equal(h.adapter.latest.entities.find(e => e.entityId === anchor.entityId).interaction.canDrag, true);
+      assert.equal(r.send({ kind: 'endDrag', gestureId: 'gesture-one', commit: true }).status, 'submitted');
+      const moved = h.world.things.get(key);
+      assert.equal(moved.slot.name, 'discard.0.0@0');
+      assert.equal(moved.slot.thing, moved);
+      assert.equal(moved.claimedBy, null);
+      assert.equal(h.adapter.latest.entities.find(e => e.slotName === 'discard.0.0@0').entityId, anchor.entityId,
+        'relay source-local movement keeps opaque identity and geometry until server echo');
+      assert.equal(r.wire().filter(([kind, id, info]) => kind === 'things' && id === key
+        && info.slotName === 'discard.0.0@0' && info.claimedBy === null).length, 1,
+      'one release authors exactly one requested source-slot mutation');
+      assert.equal(h.world.handPointerDown, false);
+      assert.equal(h.world.heldMouse, null);
+      assert.equal(r.send({ kind: 'endDrag', gestureId: 'gesture-one', commit: true }).status, 'rejected');
+    }
   });
 }
 
@@ -160,6 +191,13 @@ test('actual relay multiselect flip, shifts and cancel finish source state witho
   const latest = h.adapter.latest;
   const anchor = latest.entities.find(e => e.slotName === 'hand.0@0');
   assert.equal(r.send({ kind: 'beginDrag', gestureId: 'g', anchorEntityId: anchor.entityId, entityIds: [anchor.entityId] }).status, 'submitted');
+  const unheld = h.world.things.get(2);
+  h.delta([['things', 2, { ...thing('hand.2@0', undefined, 1), claimedBy: 0 }]]);
+  assert.equal(h.world.rendererInteraction(unheld).canDrag, false, 'another self-claim is not part of this active gesture');
+  assert.equal(h.world.rendererCanSelect(unheld), false, 'self ownership alone must never grant new selection');
+  assert.equal(h.world.rendererInteraction(h.world.things.get(0)).canDrag, false,
+    'an unrelated held self-claim must not be swept into the retained Movement');
+  h.delta([['things', 2, thing('hand.2@0', undefined, 1)]]);
   assert.equal(r.send({ kind: 'dragToSlot', gestureId: 'different', slotName: 'hand.1@0' }).status, 'rejected');
   assert.equal(r.send({ kind: 'dragToSlot', gestureId: 'g', slotName: 'hiddenpool@0' }).status, 'rejected');
   assert.equal(r.send({ kind: 'dragToSlot', gestureId: 'g', slotName: 'hand.1@0' }).status, 'submitted');
@@ -184,7 +222,50 @@ test('point sticks use the actual source Movement/tray/payment operations and ne
   assert.equal(h.world.things.get(1000).slot.name, 'payment.0@2');
 });
 
-test('a removed active relay gesture cannot resurrect its tombstoned source Thing or block future gestures', t => {
+test('foreign claims, privacy loss, authority changes and removal revoke actual relay gestures without stale writes', t => {
+  for (const loss of ['foreign', 'hidden', 'moved', 'pointer', 'disconnect', 'spectator', 'room']) {
+    const h = gameHarness('FOUR_PLAYER');
+    t.after(h.close);
+    h.join();
+    const frame = h.snapshot([[0, thing('hand.0@0', undefined, 1)], [1, thing('hand.1@0', undefined, 1)]]);
+    const r = router(h);
+    const ids = frame.entities.map(e => e.entityId);
+    assert.equal(r.send({ kind: 'select', entityIds: ids }).status, 'local');
+    assert.equal(r.send({ kind: 'beginDrag', gestureId: 'pressed', anchorEntityId: ids[0], entityIds: ids }).status, 'submitted');
+    const claims = r.wire().filter(([kind]) => kind === 'things');
+    h.delta(claims);
+    assert.equal(h.adapter.latest.entities.filter(e => ids.includes(e.entityId)).every(e => e.interaction.canDrag), true);
+    const release = r.action({ kind: 'endDrag', gestureId: 'pressed', commit: true });
+    const held = h.world.things.get(0);
+    if (loss === 'foreign') h.delta([['things', 0, { ...thing('hand.0@0', undefined, 1), claimedBy: 1 }]]);
+    if (loss === 'hidden') { held.hidden = true; h.adapter.refresh(); }
+    if (loss === 'moved') h.delta([['things', 0, { ...thing('discard.0.0@0', undefined, 1), claimedBy: 0 }]]);
+    if (loss === 'pointer') h.world.setHandPointerDown(false);
+    if (loss === 'disconnect') h.client.disconnect();
+    if (loss === 'spectator') h.delta([['seats', 'verified-player', { seat: null }]]);
+    if (loss === 'room') h.join('other-room');
+    assert.equal(h.world.rendererInteraction(held).canDrag, false, loss);
+    if (['foreign', 'hidden', 'moved', 'pointer'].includes(loss)) {
+      assert.equal(h.world.rendererInteraction(h.world.things.get(1)).canDrag, false,
+        'loss of one exclusively held member revokes the whole multiselect gesture');
+    }
+    h.sockets.at(-1).sent.length = 0;
+    const slotsBeforeCancel = new Map([...h.world.things].map(([key, thing]) => [key, thing.slot.name]));
+    r.actions.cancelGesture();
+    assert.equal(r.actions.handle(release).status === 'submitted', false);
+    assert.equal(r.wire().filter(([kind]) => kind === 'things')
+      .every(([, key, info]) => info.slotName === slotsBeforeCancel.get(key)), true,
+    'cancel only releases local claims; it must not move any source slot');
+    if (loss === 'foreign') {
+      assert.equal(held.claimedBy, 1, 'cancel must not release a foreign claim');
+      assert.equal(h.world.rendererCanSelect(held), false);
+    }
+    if (loss === 'disconnect' || loss === 'spectator' || loss === 'room') {
+      assert.equal(r.wire().length, 0, 'revocation must not author stale relay writes');
+      assert.equal(h.world.heldMouse, null);
+      assert.equal(h.world.handPointerDown, false);
+    }
+  }
   const h = gameHarness('FOUR_PLAYER');
   t.after(h.close);
   h.join();

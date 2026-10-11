@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -20,6 +20,28 @@ const groups = ['source-tools', 'backend', 'frontend-source', 'unity-source'];
 const pin = 'd10d351e543aa3e341960de9800828b6c0662a82';
 const plan = group => description.plans[group];
 const named = (group, name) => plan(group).find(item => item.name === name);
+
+function assertRegressionCommands(value) {
+  assert.deepEqual(value.plans['frontend-source'].find(item => item.name === 'renderer-regressions'), {
+    name: 'renderer-regressions',
+    argv: [
+      'node', '--test', '--test-reporter=tap',
+      'tests/migration/renderer-backend-shape.test.mjs',
+      'tests/migration/relay-authority-delta.test.mjs',
+    ],
+    cwd: '.', kind: 'node', expected: 6, dependency: false,
+  });
+  assert.deepEqual(value.plans['source-tools'].find(item => item.name === 'player-packaging'), {
+    name: 'player-packaging',
+    argv: ['python3', 'tests/migration/test_player_packaging.py', '-v'],
+    cwd: '.', kind: 'unittest', expected: 1, dependency: false,
+  });
+  for (const path of [
+    'tests/migration/renderer-backend-shape.test.mjs',
+    'tests/migration/relay-authority-delta.test.mjs',
+  ]) assert(!value.plans['frontend-source'].find(item => item.name === 'frontend-tests')
+    .argv.some(argument => argument.endsWith(path)), `Keep ${path} separate from the retained 80 cases`);
+}
 
 function assertSourceJobs(value) {
   assert.deepEqual(value.permissions, { contents: 'read' });
@@ -70,9 +92,11 @@ test('mandatory source jobs explicitly provision Node/.NET and execute without l
 });
 
 test('actual frontend command covers retained/Unity/production callers plus distinct strict typecheck and Vite', () => {
+  assertRegressionCommands(description);
   const source = named('frontend-source', 'frontend-tests');
   assert.equal(source.cwd, 'src/frontend/autotable-src');
   assert.equal(source.expected, 80);
+  assert.equal(named('frontend-source', 'workflow-contracts').expected, 12);
   for (const path of [
     'tests/node/room-startup-readiness.test.mjs',
     'tests/node/hand-result-render-and-wire.test.mjs',
@@ -88,7 +112,8 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assert.equal(JSON.parse(readFileSync(join(root, 'src/frontend/autotable-src/tsconfig.json'))).compilerOptions.strict, true);
 });
 
-test('tools execute relocated 33 cases and all 9 actual object/ignore/Docker gates using a public full pin', () => {
+test('tools execute relocated 33 cases, all 9 object/ignore/Docker gates and 1 packaging regression using a public full pin', () => {
+  assertRegressionCommands(description);
   const fetch = named('source-tools', 'baseline-fetch');
   assert.equal(description.baselineRevision, pin);
   assert.deepEqual(fetch.argv, [
@@ -142,6 +167,10 @@ test('Unity source job executes metadata/frozen guards, five JS cases and actual
 });
 
 test('failure evidence uploads only named logs/receipts/TRX/source graph, never fixture stores or private input areas', () => {
+  for (const [group, log] of [
+    ['frontend-source', 'renderer-regressions.log'],
+    ['source-tools', 'player-packaging.log'],
+  ]) assert(description.evidencePaths[group].includes(`artifacts/test-results/migration-ci/${group}/${log}`));
   for (const group of groups) {
     for (const path of description.evidencePaths[group]) {
       assert.doesNotMatch(path, /\*|migration-work|baseline\.git|\.env|license|unity-builder-home|artifacts\/api|unity-webgl/);
@@ -175,30 +204,76 @@ test('mutating actual workflow command/evidence or accepting command failure is 
     value => { value.jobs['frontend-source'].steps.find(step => step.run).run += ' || true'; },
     value => { value.jobs['source-tools'].steps.find(step => step.run)['continue-on-error'] = true; },
     value => { value.jobs['unity-source'].steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path = 'artifacts/**'; },
+    value => {
+      const upload = value.jobs['frontend-source'].steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+      upload.with.path = upload.with.path.replace(/.*\/renderer-regressions\.log\n/, '');
+    },
+    value => {
+      const upload = value.jobs['source-tools'].steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+      upload.with.path = upload.with.path.replace(/.*\/player-packaging\.log\n/, '');
+    },
   ]) {
     const changed = structuredClone(workflow);
     mutate(changed);
     assert.throws(() => assertSourceJobs(changed));
   }
+  for (const [group, name] of [
+    ['frontend-source', 'renderer-regressions'],
+    ['source-tools', 'player-packaging'],
+  ]) {
+    for (const mutate of [
+      value => { value.plans[group] = value.plans[group].filter(item => item.name !== name); },
+      value => { value.plans[group].find(item => item.name === name).expected++; },
+      value => { value.plans[group].find(item => item.name === name).dependency = true; },
+      value => { value.plans[group].find(item => item.name === name).kind = null; },
+      value => { value.plans[group].find(item => item.name === name).cwd = 'src/frontend/autotable-src'; },
+    ]) {
+      const changed = structuredClone(description);
+      mutate(changed);
+      assert.throws(() => assertRegressionCommands(changed));
+    }
+  }
 });
 
-test('actual runner fails missing prerequisites with a persistent failure receipt, not a skipped/pass status', t => {
+test('actual runner fails missing prerequisites with persistent regression source hashes, not a skipped/pass status', t => {
   const fixture = join(root, 'artifacts/test-results/migration-work', 'ci-contract-' + randomUUID());
   mkdirSync(fixture, { recursive: true });
   t.after(() => rmSync(fixture, { recursive: true, force: true }));
-  const result = spawnSync(python, [runner, 'source-tools', '--results-dir', relative(root, fixture)], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, PATH: '', PYTHONDONTWRITEBYTECODE: '1' },
-  });
-  assert.equal(result.status, 1, result.stderr);
-  const receipt = JSON.parse(readFileSync(join(fixture, 'receipt.json')));
-  assert.equal(receipt.status, 'failed');
-  assert.equal(receipt.scope, 'SOURCE-ONLY');
-  assert.equal(receipt.unityEditorApiShaderEditModeWebGlQualification, false);
-  assert.match(receipt.error, /Required source-CI executable unavailable: git/);
-  assert.deepEqual(receipt.commands, []);
-  assert(receipt.sourceSha256[runner]);
-  assert(receipt.declaredEvidencePaths.includes(relative(root, join(fixture, 'receipt.json'))));
-  assert.match(readFileSync(join(fixture, 'prerequisites.log'), 'utf8'), /unavailable: git/);
+  for (const [group, sources] of [
+    ['source-tools', [
+      'tests/migration/test_player_packaging.py',
+      'src/frontend/autotable-src/src/renderer/renderer-contract.ts',
+    ]],
+    ['frontend-source', [
+      'tests/migration/renderer-backend-shape.test.mjs',
+      'tests/migration/relay-authority-delta.test.mjs',
+      'src/frontend/autotable-src/tests/node/unity-test-support.mjs',
+      'src/frontend/autotable-src/src/client.ts',
+      'src/frontend/autotable-src/src/world.ts',
+      'src/frontend/autotable-src/src/types.ts',
+      'src/frontend/autotable-src/src/renderer/renderer-frame.ts',
+      'src/frontend/autotable-src/src/renderer/renderer-sink.ts',
+      'src/frontend/autotable-src/src/renderer/renderer-contract.ts',
+    ]],
+  ]) {
+    const directory = join(fixture, group);
+    const result = spawnSync(python, [runner, group, '--results-dir', relative(root, directory)], {
+      cwd: root, encoding: 'utf8', env: { ...process.env, PATH: '', PYTHONDONTWRITEBYTECODE: '1' },
+    });
+    assert.equal(result.status, 1, result.stderr);
+    const receipt = JSON.parse(readFileSync(join(directory, 'receipt.json')));
+    assert.equal(receipt.status, 'failed');
+    assert.equal(receipt.scope, 'SOURCE-ONLY');
+    assert.equal(receipt.unityEditorApiShaderEditModeWebGlQualification, false);
+    assert.match(receipt.error, /Required source-CI executable unavailable: git/);
+    assert.deepEqual(receipt.commands, []);
+    assert(receipt.sourceSha256[runner]);
+    for (const path of sources) {
+      assert.equal(receipt.sourceSha256[path], createHash('sha256').update(readFileSync(join(root, path))).digest('hex'), path);
+    }
+    assert(receipt.declaredEvidencePaths.includes(relative(root, join(directory, 'receipt.json'))));
+    assert.match(readFileSync(join(directory, 'prerequisites.log'), 'utf8'), /unavailable: git/);
+  }
 });
 
 test('actual immutable-object tests that skip for an absent override cannot pass the source-CI validator', () => {

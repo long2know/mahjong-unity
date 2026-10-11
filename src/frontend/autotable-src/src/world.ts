@@ -97,7 +97,9 @@ export class World {
 
   private movement: Movement | null = null;
   private heldMouse: Vector3 | null = null;
-  private rendererGesture: { anchor: Thing; actor: number; target: Slot | null } | null = null;
+  private rendererGesture: {
+    anchor: Thing; actor: number; selection: readonly Thing[]; sourceSlots: readonly Slot[]; target: Slot | null;
+  } | null = null;
   mouseTracker: MouseTracker;
 
   private handMode: HandSortMode = 'suit';
@@ -465,7 +467,7 @@ export class World {
       // full snapshot, so the translator authors the owner's own hand FACE-UP
       // per-viewer (RC-2 was ViewerSeat==null ⇒ every hand treated as foreign).
       // This client override is therefore a REDUNDANT, consistent fallback — NOT
-      // the fix. Kept as belt-and-suspenders so a pre-BE-5 / relay backend that
+      // the fix. Kept as belt-and-suspenders so a pre-BE-5 Changsha backend that
       // strips or forgets to flip own-hand rotation still shows the local seat's
       // hand face-up (hand rotations [STANDING, FACE_UP, FACE_DOWN] ⇒ index 1),
       // and a face-stripped foreign hand stays face-down.
@@ -474,7 +476,9 @@ export class World {
         slot.group === 'hand' &&
         this.seat !== null &&
         slot.seat === this.seat;
-      if (isLocalSeatHand) {
+      // Relay owners may use every hand pose; their authoritative flip echo
+      // must not be replaced by Changsha's face-up normalization.
+      if (this.isChangsha() && isLocalSeatHand) {
         rotationIndex = 1;
       } else if (
         thingInfo.face === null &&
@@ -1518,6 +1522,22 @@ export class World {
       && thing.slot.thing === thing && thing.claimedBy === null && this.canSelect(thing, [...selection]);
   }
 
+  private rendererOwnsDrag(thing: Thing): boolean {
+    const gesture = this.rendererGesture;
+    return gesture !== null && !this.isChangsha() && this.rendererSnapshotReady()
+      && this.seat === gesture.actor && this.handPointerDown && this.heldMouse !== null
+      && (this.client.connectionMode === 'offline' || (this.client.seat === gesture.actor
+        && this.client.seatPlayers[gesture.actor] === this.client.playerId()))
+      && gesture.selection.includes(thing)
+      && [...this.things.values()].every(held => held.claimedBy !== gesture.actor
+        || held.shiftSlot !== null || gesture.selection.includes(held))
+      && gesture.selection.every((held, index) => held.slot === gesture.sourceSlots[index]
+        && this.things.get(held.index) === held
+        && this.slots.get(held.slot.name) === held.slot && !held.slot.offTable
+        && held.slot.thing === held && held.claimedBy === gesture.actor && held.shiftSlot === null
+        && this.canSelect(held, [...gesture.selection]));
+  }
+
   rendererInteraction(thing: Thing, selection: readonly Thing[] = []): Interaction {
     const canSelect = this.rendererCanSelect(thing, selection);
     const relay = !this.isChangsha();
@@ -1527,7 +1547,8 @@ export class World {
       && thing.slot.thing === thing;
     return {
       canSelect,
-      canDrag: canSelect && relay,
+      // The claim revokes new selection, not the exclusively owned pressed gesture.
+      canDrag: relay && (canSelect || this.rendererOwnsDrag(thing)),
       canFlip: canSelect && relay,
       canDiscard: canSelect && !relay && ownHand && this.isMyDiscardTurn(),
       canPickup: canSelect && !relay && this.wallTileInteractive(thing),
@@ -1550,14 +1571,16 @@ export class World {
     this.onSelect(selection.map(thing => thing.index));
     this.onHover(anchor.index);
     if (!this.onDragStart()) return false;
-    this.rendererGesture = { anchor, actor: this.seat!, target: null };
+    this.rendererGesture = {
+      anchor, actor: this.seat!, selection: [...selection], sourceSlots: selection.map(thing => thing.slot), target: null,
+    };
     this.setHandPointerDown(true);
     return true;
   }
 
   dragRendererToSlot(slot: Slot): boolean {
     const gesture = this.rendererGesture;
-    if (!gesture || !this.rendererSnapshotReady() || this.seat !== gesture.actor
+    if (!gesture || !this.rendererOwnsDrag(gesture.anchor)
       || !this.heldMouse || slot.offTable || this.slots.get(slot.name) !== slot
       || slot.type !== gesture.anchor.type || gesture.anchor.claimedBy !== gesture.actor) return false;
     const from = gesture.anchor.place().position;
@@ -1573,7 +1596,7 @@ export class World {
   endRendererDrag(commit: boolean): boolean {
     const gesture = this.rendererGesture;
     if (!gesture) return false;
-    const accepted = commit && gesture.target !== null && this.canDrop()
+    const accepted = commit && this.rendererOwnsDrag(gesture.anchor) && gesture.target !== null && this.canDrop()
       && this.movement?.get(gesture.anchor) === gesture.target;
     if (accepted) this.onDragEnd();
     else this.dropInPlace();

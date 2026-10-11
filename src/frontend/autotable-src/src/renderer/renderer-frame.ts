@@ -93,7 +93,7 @@ export class RendererFrameAdapter {
     client.on('connect', this.joining);
     client.on('disconnect', this.disconnected);
     client.on('protocol-unavailable', this.protocolFailed);
-    // Registered after Client/Collection/World listeners: a FULL UPDATE has finished here.
+    // Registered after Client/Collection/World listeners: the complete UPDATE has finished here.
     client.on('update', this.updated);
     this.authority = this.authorityKey();
     port.clear(this.sessionId, 'join');
@@ -238,11 +238,16 @@ export class RendererFrameAdapter {
     return !!context && (!rules || context.rule === this.ruleContext()) && !this.failed;
   }
 
+  private hasSnapshotAuthority(): boolean {
+    // Relay seat deltas retain the bound room snapshot; Changsha must rebind private state with a fresh FULL.
+    return this.world.rendererSnapshotReady()
+      && (this.client.connectionMode !== 'changsha' || this.fullAuthority === this.authorityKey());
+  }
+
   actionable(): boolean {
     this.reconcileAuthority();
     return !this.failed && !!this.latest?.session.snapshotReady && this.latest.session.actorSeat !== null
-      && this.world.rendererSnapshotReady()
-      && (this.client.connectionMode === 'offline' || this.fullAuthority === this.authorityKey());
+      && this.hasSnapshotAuthority();
   }
 
   refresh(): Frame | null {
@@ -250,8 +255,7 @@ export class RendererFrameAdapter {
     try {
       this.reconcileAuthority();
       this.world.updateView();
-      const snapshotReady = this.world.rendererSnapshotReady()
-        && (this.client.connectionMode === 'offline' || this.fullAuthority === this.authorityKey());
+      const snapshotReady = this.hasSnapshotAuthority();
       if (this.ready && !snapshotReady) this.reset('authority-change');
       this.ready = snapshotReady;
       if (this.layout === null || this.catalog !== this.world.slots || this.sinkGeneration !== this.sink.generation) {
@@ -317,7 +321,15 @@ export class RendererFrameAdapter {
           snapshotReady, actorSeat: actor, viewSeat: this.world.viewSeat, viewerRevision: this.client.viewerAuthority?.revision ?? null,
         },
         presentation: { ...this.presentation },
-        match: match ? { dealer: match.dealer, honba: match.honba, conditions: { ...this.world.conditions } } : null,
+        match: match ? {
+          dealer: match.dealer, honba: match.honba,
+          conditions: {
+            gameType: this.world.conditions.gameType, back: this.world.conditions.back,
+            fives: this.world.conditions.fives, points: this.world.conditions.points,
+            dealType: this.world.conditions.dealType, baseUnit: this.world.conditions.baseUnit,
+            dealMode: this.world.conditions.dealMode,
+          },
+        } : null,
         entities,
         seats: this.layout.activeSeats.map(seat => {
           const playerId = snapshotReady ? this.client.seatPlayers[seat] ?? null : null;

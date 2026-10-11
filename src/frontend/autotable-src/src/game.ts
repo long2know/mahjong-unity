@@ -149,6 +149,7 @@ export class Game {
     this.keys.add(event.key);
     switch (event.key) {
       case 'f': case 'F': case 'r': case 'R':
+        if (event.key.toLowerCase() === 'f' && active === this.renderer.canvas) break;
         if (this.renderer.state === 'ready' && this.adapter?.actionable()
           && this.world.conditions.gameType !== GameType.CHANGSHA) {
           this.world.onFlip(event.key.toLowerCase() === 'f' ? 1 : -1, event.key === event.key.toUpperCase());

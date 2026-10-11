@@ -24,6 +24,9 @@ namespace Mahjong.Renderer.Input
 
         public void Initialize(RendererState state, SemanticActions actions, CameraPicker picker)
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WebGLInput.captureAllKeyboardInput = false;
+#endif
             this.state = state;
             this.actions = actions;
             this.picker = picker;
