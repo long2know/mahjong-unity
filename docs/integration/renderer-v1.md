@@ -3,9 +3,9 @@
 This documents the accepted **renderer contract** and Tester's approved scoped
 local browser/Docker gameplay. Actual **99/99 EditMode tests** and genuine
 production-settings WebGL passed. The final committed **clean 99-test rebuild
-and strict validator also passed**. The reviewed native runtime used disclosed
-dirty source; canonical clean-image packaging and minimal runtime checks still
-precede preview upgrade/final delivery. The contract authority is
+and strict validator also passed**. The earlier broad native review used
+disclosed dirty source; final canonical clean-image packaging, native runtime
+checks and the live preview upgrade have now passed. The contract authority is
 [`contracts/renderer-v1.schema.json`](../../contracts/renderer-v1.schema.json),
 with source mappings in
 [`contracts/migration-contract.json`](../../contracts/migration-contract.json).
@@ -151,7 +151,8 @@ artifact/runtime identities and preserved earlier evidence, not a hardcoded
 current hash, define the approved iteration.
 
 Genuine loader/framework/wasm/data and hosted MIME/hashes were verified.
-The approved runtime records **`sourceDirty: true`, `developmentBuild: false`**.
+The earlier broad native-review runtime records
+**`sourceDirty: true`, `developmentBuild: false`**.
 Read each produced `artifacts/unity-webgl/renderer-build.json` for its actual
 build identity and cleanliness. The validator's
 `--allow-source-dirty` is explicit local qualification only; the browser's
@@ -162,7 +163,7 @@ produced the manifest at **October 11, 2026, 01:07:03 UTC**, with that source
 revision and **`sourceDirty: false`, `developmentBuild: false`**. Strict
 validation passed without an override; the reviewed renderer-input tree is
 unchanged. All four source CI jobs are green. Canonical clean-image packaging,
-minimal health/readiness checks and preview upgrade remain delivery steps.
+native health/player checks and the live preview upgrade also passed.
 See the [verified host command and artifact checks](docker-build-and-run.md#verified-host-editor).
 
 The final review approves actual C# readiness/rendered frames and native
@@ -172,10 +173,16 @@ Changsha manual/automatic pickup/discard, count-only pickup wire, chat,
 privacy/spectator/reconnect and the **21-layout / 294-hand-center** scope are
 retained—not relabeled as a new full rerun.
 
-Docker health/readiness and genuine hosted player input now have actual proof.
-This does not relabel the older user preview as the final clean image, qualify
-physical iOS/Android or touchscreen double-tap discard, or approve every
-gesture/target surface. Those limits do not block this first working iteration.
+Final clean runtime evidence is
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`.
+The **`mahjong-unity:final-684f678`** preview is healthy at
+**`http://127.0.0.1:5086/autotable/`**, without `unityLocalBuild`.
+Clean isolated Changsha native discard and THREE_PLAYER tile/stick/keyboard
+passed; post-upgrade actual C# rendering, `frameRendered` and native discard
+also passed. Earlier all-mode/mobile scopes remain preserved, not a new full
+rerun. Physical iOS/Android, touchscreen double-tap discard and exhaustive
+gesture/target coverage remain advisory limits of this first working iteration.
 
 F1's final receipt records **38 preserved + 40 renderer-specific Node tests**,
 strict primary-graph TypeScript checking, and an asset-free Vite build
@@ -203,8 +210,8 @@ syntax snapshot alone is not Unity assembly/API/shader compilation, Editor
 import, EditMode tests, or a BuildPlayer result. The separate actual host
 receipt above supplies real Editor/build evidence and the separate final review
 supplies scoped player/runtime acceptance. Physical-device/performance limits
-are separate from the remaining clean-image delivery checks; the actual
-post-commit clean Editor build is complete.
+are separate from local delivery; the actual post-commit clean Editor build,
+clean runtime checks and live preview upgrade are complete.
 
 ## Failure behavior
 

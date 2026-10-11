@@ -7,11 +7,11 @@ Tester approved native actions across all five existing modes and a healthy
 Docker-hosted player, retaining the previously approved Changsha and mobile
 layout evidence. This is no longer an unbuilt/source-only renderer.
 
-The approved runtime iteration used a disclosed dirty-source artifact. Final
-source revisions are now committed, all four source CI jobs are green, and the
-actual **clean 99-test WebGL rebuild passed strict validation**. Canonical
-clean-image packaging, minimal runtime/player checks and user-preview upgrade
-remain delivery steps. Physical iOS/Android and touchscreen double-tap discard
+The earlier approved runtime iteration used a disclosed dirty-source artifact.
+Final source revisions are committed, all four source CI jobs are green, and
+the **clean 99-test WebGL rebuild, strict validation, canonical image packaging,
+native runtime checks and live preview upgrade passed**. The first working
+local iteration is delivered. Physical iOS/Android and touchscreen double-tap discard
 are limits of this first working iteration, not current completion blockers;
 redistribution clearance is separate. Missing or invalid artifacts still produce a visible
 **table unavailable** state, not a fake or legacy renderer fallback.
@@ -54,13 +54,15 @@ a claim of complete legacy renderer-input or benchmark parity.
 
 ## Build/run and local preview
 
-The existing user preview is at **`http://localhost:5086/autotable/`**. At this
-handoff it still serves the older desktop-qualified dirty-source image—not the
-final clean build. Preserve its protected private operator state outside
-`/data`; do not replace its configuration or persistent data with a new
-installation. After the verified clean-image upgrade, use the bare URL without
-`unityLocalBuild=1`. Until then, dirty-source inspection requires the explicit
-loopback-only opt-in on table URLs, retaining room/variant/join parameters.
+The upgraded clean user preview is running at
+**`http://127.0.0.1:5086/autotable/`**, with no `unityLocalBuild` parameter.
+Seeded Changsha:
+`http://127.0.0.1:5086/autotable/?gameId=preview&createGame=preview&variant=changsha&seat=0&botCount=3&dealMode=auto&seed=20261010`.
+An existing named room can retain occupied seats; the link does not guarantee
+seat 0 to a fresh browser. Use the normal join/seat UI or a different table.
+Protected private operator state outside `/data` was preserved; do not replace
+its configuration or persistent data with a new installation. The healthy
+preview remains running with restart policy `unless-stopped`.
 
 The final real-Editor rebuild has produced **genuine clean WebGL artifacts**.
 The strict Docker packaging command consumes those existing outputs:
@@ -73,7 +75,7 @@ BUILDX_BUILDER=default ALLOW_SOURCE_DIRTY=0 bash build.sh \
 PowerShell counterpart: `./build.ps1 -SkipUnityBuild -Tag mahjong-unity:local`,
 with `ALLOW_SOURCE_DIRTY` unset or `0`. This runs artifact validation and
 Node/.NET/runtime packaging in Docker; it does not create missing Unity output
-or replace the remaining clean-image runtime/player checks. See the
+or replace actual native/runtime verification. See the
 [protected configuration and startup commands](docs/integration/docker-build-and-run.md#start-the-hosting-image).
 New Compose installations default to `http://127.0.0.1:8950/autotable/`;
 existing operators must retain their project/volume identity.
@@ -120,7 +122,7 @@ activation or a paid/free headless licensing route.
 | Unity Editor/WebGL | Actual **6000.3.24f1 / 4e7b9b5b6244** host Editor accepted Hub licensing, compiled/imported the project and IL2CPP WebGL, passed **99/99 EditMode tests**, and passed the successful WebGL BuildReport gate. Final committed-source rebuild: **`sourceDirty: false`, `developmentBuild: false`**, strict artifact validation passed without the dirty override. |
 | Native relay gameplay | All four relay modes: **8 tile/stick drag gestures**, each with one committed target write and actual server echo; **16 F / Shift+F / right-click / R routes** verified. Real C# callbacks and rendered pixels, not simulated readiness. |
 | Changsha and mobile layouts | Previously approved actual manual/automatic C# pickup/discard, count-only pickup wire, chat, privacy, spectator and reconnect scopes retained. **294/294 hand centers across 21 browser layouts**, portrait/landscape, DPR **1/2/3**, chat collapsed/open; formerly blocked lower-row native selection/discard passed. These preserved scopes were not all rerun in the final relay review. |
-| Docker-hosted player | Actual runtime health and Docker healthcheck passed, with genuine hosted Unity files/MIME, matching frontend assets and native/server-echo evidence. Non-root, read-only rootfs, dropped capabilities and no-new-privileges retained. The exact reviewed image is recorded in the final receipt; this does not relabel the older user preview as current. |
+| Docker-hosted player | Actual runtime health and Docker healthcheck passed, with genuine hosted Unity files/MIME, matching frontend assets and native/server-echo evidence. Final clean **`mahjong-unity:final-684f678`** image and live preview upgrade passed without dirty opt-in. Non-root, read-only rootfs, dropped capabilities and no-new-privileges retained. |
 | Docker context | Tester approved the independent `.dockerignore` revision after **9 source/context gates**. Actual scratch-export filename probes verify filtering, not a production Unity build. |
 
 Authoritative scoped approval:
@@ -135,6 +137,15 @@ The final clean build is recorded in
 `artifacts/test-results/unity-editmode.xml`. Read each produced manifest for its
 identity/cleanliness rather than treating an earlier hash as current.
 These are local ignored outputs, not files supplied by a fresh source checkout.
+
+Final clean runtime and preview-upgrade evidence:
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`.
+The operational handoff was recorded **October 11, 2026, 02:12:40 UTC**.
+Clean isolated Changsha native discard and THREE_PLAYER tile/stick/keyboard
+checks passed; after upgrade, actual C# rendering, `frameRendered` and native
+discard passed on the live preview without dirty opt-in. Existing private
+key/configuration and persistent database identities were preserved.
 
 Source evidence: `artifacts/test-results/backend-summary.json`,
 `artifacts/test-results/backend-final-compatibility/backend-final-compatibility.trx`,
@@ -173,9 +184,9 @@ See the [exact source-check commands and receipts](docs/integration/docker-build
 Final approved source/CI/test revisions are committed at
 `684f67837eb9fbef0475162702f5d3542d87b949`. Its actual **99-test clean rebuild
 and strict validation passed**, and all four source CI jobs are green. Earlier
-native runtime proof remains the approved local scope; canonical clean-image
-packaging, minimal health/player checks and the unchanged `localhost:5086`
-preview upgrade still require completion receipts before final PR delivery.
+all-mode/mobile proof remains the approved scope; final canonical clean-image
+packaging, native health/player checks and the live 5086 preview upgrade also
+passed. See PR #10 for delivery history.
 Physical iOS/Android, touchscreen double-tap discard, exhaustive gesture/target
 coverage and performance remain qualification limits, not blockers to this
 first working local iteration.

@@ -8,8 +8,9 @@ approved Changsha and mobile-layout scopes; it is not a new exhaustive rerun.
 The reviewed runtime used **`sourceDirty: true`, `developmentBuild: false`**.
 The final committed **99-test clean WebGL rebuild and strict validator now
 pass**, with **`sourceDirty: false`, `developmentBuild: false`**. All four source
-CI jobs are green. Canonical clean-image packaging, minimal runtime/player
-checks and user-preview upgrade remain delivery steps. Physical iOS/Android
+CI jobs are green. Canonical clean-image packaging, native runtime/player
+checks and the live 5086 preview upgrade also passed, delivering the first
+working local iteration. Physical iOS/Android
 and touchscreen double-tap discard are qualification limits of the first
 working iteration, not current completion blockers.
 
@@ -107,9 +108,9 @@ all 99 cases in `artifacts/test-results/unity-editmode.xml` passed. The reviewed
 renderer-input tree is preserved. Use the actual manifest/completion evidence;
 never edit cleanliness flags or synthesize output.
 
-Canonical clean-image packaging and minimal health/Unity-readiness checks are
-next, followed by the preview upgrade. These have not yet been relabeled as
-completed runtime proof.
+Canonical clean-image packaging, native health/player checks and the preview
+upgrade are complete. The final operational receipts below record actual clean
+runtime proof, distinct from the preserved earlier broad gameplay scopes.
 
 The producer executes `Mahjong.Renderer.Editor.WebGlBuild.Build`. Standard
 logs are `artifacts/test-results/unity-webgl-build.log` / `unity-tests.log`;
@@ -215,8 +216,8 @@ The browser separately rejects dirty-source artifacts by default. For explicit
 local inspection, append **`unityLocalBuild=1` to the existing table URL**,
 preserving its room/variant/join parameters. This opt-in works only on
 `localhost`, `127.0.0.1`, or `[::1]`; it is not a server authorization or a
-release qualification. After a verified clean-image upgrade, remove that
-parameter and confirm the bare table URL loads. Development builds remain
+release qualification. The upgraded user preview is already clean and loads
+without that parameter. Development builds remain
 rejected even with the opt-in.
 
 For direct diagnostics in an existing Python environment:
@@ -254,13 +255,28 @@ evidence retains **294/294 hand centers across 21 configurations**, DPR
 lower-row native select/discard passing. The final review explicitly preserves
 these earlier scopes rather than calling them a full new rerun.
 
-The test runtime's recorded origin is evidence of that isolated run, not a
-permanent preview address. The user preview at
-**`http://localhost:5086/autotable/`** still uses the older desktop-qualified
-dirty image at this handoff. Upgrade to the final clean tested image is pending.
-Its protected private operator state lives outside `/data`; preserve that state,
-configuration and persistent database. Do not replace it with the new-install
-commands below or broaden permissions.
+Final clean operational evidence:
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`,
+recorded **October 11, 2026, 02:12:40 UTC**. Runtime source commit:
+`684f67837eb9fbef0475162702f5d3542d87b949`. The immutable image is
+**`mahjong-unity:final-684f678`** /
+`sha256:cb420dcd543212ea1d29e9d9e8b44a16ef559bf110a1f6c6b0b03df931b39a90`;
+served manifest SHA-256:
+`3730e734f0a9c599e565a2fbb40efe06e1988b9509b6f27b206048087eaf8c43`,
+with **`sourceDirty: false`, `developmentBuild: false`**.
+Clean isolated Changsha C# select/discard and THREE_PLAYER tile/stick/keyboard
+checks passed. After preview cutover, actual C# rendering, `frameRendered` and
+native discard/server-wire proof passed without dirty opt-in.
+
+The live user preview is **`http://127.0.0.1:5086/autotable/`**, running healthy
+as UID/GID 1000:1000 with a read-only root filesystem and `unless-stopped`
+restart policy. Existing protected private key/configuration and database
+inodes/mounts were preserved; all test helpers were removed. Its host-side
+private operator state remains outside the `/data` checkout. Do not replace it
+with the new-install commands below or broaden permissions. Named-room seat
+ownership is retained; a seeded URL does not grant an already occupied seat
+to a new browser. Use normal join/seat controls or a different table.
 
 ## Start the hosting image
 
@@ -538,8 +554,9 @@ licensed CI Editor/build execution.
 - **Local gameplay is approved, not an unrestricted release:** the final
   review supplies actual native/player/server/Docker scope. Clean post-commit
   build, strict validation and all four source CI jobs passed. Canonical
-  clean-image packaging, minimal health/readiness checks and preview upgrade
-  remain before final PR delivery. Physical iOS/Android, touchscreen double-tap
+  clean-image packaging, native runtime checks and the live preview upgrade
+  also passed. The first working local iteration is delivered; see PR #10 for
+  delivery history. Physical iOS/Android, touchscreen double-tap
   discard, exhaustive gesture/target coverage and performance limit this
   first working iteration; they are not new completion blockers. Root/additions
   licensing/dependency notices remain separate redistribution gates.

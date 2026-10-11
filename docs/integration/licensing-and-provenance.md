@@ -85,8 +85,13 @@ dirty-source artifact. The final committed **99-test clean WebGL rebuild and
 strict validation passed**: `artifacts/unity-webgl/renderer-build.json` records
 **October 11, 2026, 01:07:03 UTC**, the final committed source revision and
 **`sourceDirty: false`, `developmentBuild: false`**. Canonical clean-image
-packaging, minimal runtime checks and user-preview upgrade remain delivery
-steps. Actual local gameplay approval, physical-device qualification and
+packaging, native runtime checks and the live user-preview upgrade also passed:
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`.
+The preview now serves **`mahjong-unity:final-684f678`** without dirty opt-in;
+protected private configuration/key and persistent state were preserved.
+This hosting success does not establish a transfer of Hub activation to a
+Docker Editor. Actual local gameplay approval, physical-device qualification and
 source licensing are distinct; physical iOS/Android and touchscreen double-tap
 discard are unclaimed limits, not blockers to the first working iteration.
 
