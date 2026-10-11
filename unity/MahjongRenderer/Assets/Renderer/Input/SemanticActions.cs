@@ -11,9 +11,12 @@ namespace Mahjong.Renderer.Input
         private readonly RendererState state;
         private readonly Action<RendererAction> emit;
         private readonly HashSet<string> selection = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, RendererAction> pendingDragTargets =
+            new Dictionary<string, RendererAction>(StringComparer.Ordinal);
         private string gestureId;
         private string[] dragged;
         private string dragTarget;
+        private string dragTargetActionId;
         private long gestureCounter;
         public IReadOnlyCollection<string> Selection => selection;
         public string Hovered { get; private set; }
@@ -123,11 +126,13 @@ namespace Mahjong.Renderer.Input
         {
             if (!Dragging) return false;
             string gesture = gestureId;
-            bool canCommit = commit && dragTarget != null && state.Actionable &&
+            bool canCommit = commit && dragTarget != null && dragTargetActionId != null &&
+                             !pendingDragTargets.ContainsKey(dragTargetActionId) && state.Actionable &&
                              dragged.All(id => Eligible(id, entity => entity.Interaction.CanDrag));
             gestureId = null;
             dragged = null;
             dragTarget = null;
+            dragTargetActionId = null;
             if (state.Actionable)
                 Send(new JObject { ["kind"] = "endDrag", ["gestureId"] = gesture, ["commit"] = canCommit });
             CuesChanged?.Invoke();
@@ -138,12 +143,14 @@ namespace Mahjong.Renderer.Input
         {
             if (dragTarget == null) return;
             dragTarget = null;
+            dragTargetActionId = null;
             CuesChanged?.Invoke();
         }
 
         public void Cancel()
         {
             EndDrag(false);
+            pendingDragTargets.Clear();
             selection.Clear();
             Hovered = null;
             CuesChanged?.Invoke();
@@ -154,9 +161,32 @@ namespace Mahjong.Renderer.Input
 
         private void Result(ActionResult result)
         {
-            if (result.Status == "ignored" || result.Status == "rejected") Cancel();
+            pendingDragTargets.TryGetValue(result.ActionId, out RendererAction candidate);
+            pendingDragTargets.Remove(result.ActionId);
+            if (result.Status != "ignored" && result.Status != "rejected") return;
+            if (result.Status == "rejected" && result.Reason == "invalid-target" && candidate != null &&
+                candidate.InstanceId == result.InstanceId && candidate.SessionId == result.SessionId)
+            {
+                if (candidate.Intent["gestureId"].Value<string>() != gestureId) return;
+                if (state.Actionable && dragged != null &&
+                    dragged.All(id => Eligible(id, entity => entity.Interaction.CanDrag)))
+                {
+                    if (candidate.ActionId == dragTargetActionId) ClearDragTargetCue();
+                    return;
+                }
+            }
+            Cancel();
         }
 
-        private void Send(JObject intent) { emit(state.MakeAction(intent)); }
+        private void Send(JObject intent)
+        {
+            RendererAction action = state.MakeAction(intent);
+            if (intent["kind"].Value<string>() == "dragToSlot")
+            {
+                pendingDragTargets.Add(action.ActionId, action);
+                dragTargetActionId = action.ActionId;
+            }
+            emit(action);
+        }
     }
 }

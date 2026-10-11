@@ -34,6 +34,13 @@ Optional approved editor invocation from product root:
 Build executeMethod: Mahjong.Renderer.Editor.WebGlBuild.Build
 Actual editor arguments: -batchmode -nographics -quit -buildTarget WebGL.
 Tests use -runTests -testPlatform EditMode, without -quit.
+The Editor-only test assembly explicitly references each Unity test runner once
+and the restored nunit.framework.dll and Newtonsoft.Json.dll. Do not combine
+those runner references with legacy optionalUnityReferences: TestAssemblies;
+the real Editor adds duplicate runners and restricts implicit DLL references.
+Empty TagManager layer entries are quoted strings; bare dash-only entries fail
+the pinned Editor's project-settings parser. EditMode checks the imported
+rendering/picking layer names, not just their source text.
 Actual outputs: artifacts/unity-webgl/{Build/*,renderer-build.json}
 Actual editor evidence only:
   artifacts/test-results/unity-webgl-build.log

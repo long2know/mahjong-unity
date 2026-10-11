@@ -105,16 +105,31 @@ test('authority revision/seat loss blanks cached entitlements until a new FULL a
   const frame = h.snapshot([['4', thing('hand.0@0', 1)]]);
   const { sessionId, frameId } = frame;
   const id = frame.entities[0].entityId;
-  h.delta([['turn', 'current', { activeSeat: null, phase: 'Scoring', awaitingDiscard: false }]], { actor: null, rev: 2 });
+  h.delta([['turn', 'current', { activeSeat: 0, phase: 'AwaitingDiscard', awaitingDiscard: true }]], { rev: 2 });
   assert.notEqual(h.adapter.sessionId, sessionId);
+  assert.equal(h.world.rendererSnapshotReady(), true, 'same-seat revision changes cannot rely on the World seat gate');
   assert.equal(h.adapter.latest.session.snapshotReady, false);
   assert.equal(h.adapter.latest.entities.length, 0);
+  assert.equal(h.adapter.actionable(), false);
   assert.equal(h.adapter.resolveEntity(id, frameId), null);
-  const refreshed = h.snapshot([['h_now_hidden', thing('hand.0@0', null, 2)]], { actor: null, rev: 2, phase: 'Scoring', activeSeat: null });
+  assert.equal(h.adapter.refresh().entities.length, 0, 'animation refresh cannot promote cached private faces');
+  const rebound = h.snapshot([['4', thing('hand.0@0', 1)]], { rev: 2 });
+  assert.equal(rebound.session.snapshotReady, true);
+  assert.equal(h.adapter.actionable(), true);
+  assert.notEqual(rebound.entities[0].entityId, id);
+  h.delta([['turn', 'current', { activeSeat: null, phase: 'Scoring', awaitingDiscard: false }]], { actor: null, rev: 3 });
+  assert.notEqual(h.adapter.sessionId, rebound.sessionId);
+  assert.equal(h.adapter.latest.session.snapshotReady, false);
+  assert.equal(h.adapter.latest.entities.length, 0);
+  assert.equal(h.adapter.actionable(), false);
+  assert.equal(h.adapter.resolveEntity(rebound.entities[0].entityId, rebound.frameId), null);
+  const refreshed = h.snapshot([['h_now_hidden', thing('hand.0@0', null, 2)]], { actor: null, rev: 3, phase: 'Scoring', activeSeat: null });
   assert.equal(refreshed.session.actorSeat, null);
   assert.notEqual(refreshed.entities[0].entityId, id);
   h.client.disconnect();
   assert.equal(h.adapter.latest, null);
+  assert.equal(h.sink.renders.length, 0);
+  assert.equal(h.adapter.actionable(), false);
   const disconnected = h.adapter.refresh();
   assert.equal(disconnected.entities.length, 0);
   assert.equal(disconnected.session.snapshotReady, false);
@@ -192,19 +207,32 @@ test('owned concealed kong knowledge is permitted without showing its face; tomb
 });
 
 for (const variant of ['FOUR_PLAYER', 'THREE_PLAYER', 'BAMBOO', 'MINEFIELD']) {
-  test(`actual ${variant} Setup slots, extras and public relay faces are preserved without foreign hand disclosure`, t => {
+  test(`actual ${variant} Setup slots, extras and relay seat deltas stay coherent without foreign hand disclosure`, t => {
     const h = gameHarness(variant);
     t.after(h.close);
-    h.join();
+    h.join('room-a', null);
+    const sourceMatch = {
+      dealer: 0, honba: 0,
+      conditions: { ...h.types.Conditions.defaultsFor(h.types.GameType[variant]), variant: variant.toLowerCase() },
+    };
+    const extra = [['match', 0, sourceMatch]];
+    const unbound = h.delta(extra);
+    assert.equal(unbound.session.snapshotReady, false, 'initial relay deltas cannot bind a room without its first FULL');
+    assert.equal(unbound.entities.length, 0);
+    assert.equal(h.adapter.actionable(), false);
     // The first full match selects the actual variant before things are projected.
-    h.snapshot([]);
+    assert.notEqual(h.snapshot([], { extra }), null, h.failures.join('; '));
     const tiles = [...h.world.things.values()].filter(t => t.type === 'TILE');
     const id = tiles[0].index;
     const another = tiles[1].index;
-    const frame = h.snapshot([
+    const own = tiles[2].index;
+    let frame = h.snapshot([
       [id, thing('discard.0.0@2', null, 0)], [another, thing('hand.0@2', null, 2)],
-      [2000, thing('marker@0', undefined)],
-    ]);
+      [own, thing('hand.0@0', undefined)], [2000, thing('marker@0', undefined)],
+    ], { extra });
+    assert.notEqual(frame, null, h.failures.join('; '));
+    assert.equal(h.client.match.get(0).conditions.variant, variant.toLowerCase());
+    assert.deepEqual(plain(frame.match.conditions), plain(h.types.Conditions.defaultsFor(h.types.GameType[variant])));
     assert.equal(frame.entities.find(e => e.slotName === 'discard.0.0@2').appearance.knownFace, true, 'legacy relay face:null cannot hide public discards');
     assert.equal(frame.entities.find(e => e.slotName === 'hand.0@2').appearance.faceIndex, null);
     const groups = new Set(h.adapter.layout.slots.map(s => s.group));
@@ -217,6 +245,80 @@ for (const variant of ['FOUR_PLAYER', 'THREE_PLAYER', 'BAMBOO', 'MINEFIELD']) {
     const { makeSlots } = h.load('setup-slots.ts');
     assert.deepEqual(h.adapter.layout.slots.map(s => s.slotName).sort(), makeSlots(h.types.GameType[variant]).map(s => s.name).sort());
     assert.equal(h.adapter.layout.slots.some(s => s.slotName === 'hiddenpool@0'), false);
+    assert.equal(frame.session.actorSeat, null);
+    assert.equal(frame.entities.find(e => e.slotName === 'hand.0@0').appearance.faceIndex, null);
+    const spectator = frame;
+    const previousIds = new Set(frame.entities.map(e => e.entityId));
+    frame = h.delta([['seats', 'verified-player', { seat: 0 }]], { actor: 0 });
+    assert.equal(frame.session.snapshotReady, true, 'standard relay seat deltas preserve the coherent bound snapshot');
+    assert.equal(frame.session.actorSeat, 0);
+    assert.equal(frame.session.viewSeat, 0);
+    assert.equal(h.world.seat, h.client.seat);
+    assert.equal(h.adapter.actionable(), true, 'the live relay player must be actionable without an invented FULL');
+    assert.notEqual(frame.sessionId, spectator.sessionId);
+    assert.equal(h.clears.at(-1).reason, 'authority-change');
+    assert.equal(frame.frameId, 1);
+    assert.equal(frame.entities.some(e => previousIds.has(e.entityId)), false);
+    assert.equal(h.adapter.resolveEntity(spectator.entities[0].entityId, spectator.frameId), null);
+    assert.deepEqual(plain(frame.match.conditions), plain(h.types.Conditions.defaultsFor(h.types.GameType[variant])));
+    assert.equal(frame.entities.find(e => e.slotName === 'hand.0@2').appearance.faceIndex, null);
+    const owned = frame.entities.find(e => e.slotName === 'hand.0@0');
+    assert.equal(owned.appearance.faceIndex, h.world.things.get(own).typeIndex % 37);
+    assert.equal(owned.interaction.canSelect, true);
+    assert.equal(h.sockets.length, 1, 'seat authority changes must not force a reconnect');
+    assert.equal(h.sockets[0].sent.filter(message => message.type === 'JOIN').length, 1);
+    assert.equal(h.sockets[0].sent.some(message => message.type === 'UPDATE' && message.full), false);
+    const actorFrame = frame;
+    frame = h.delta([['things', own, null]]);
+    assert.equal(frame.sessionId, actorFrame.sessionId);
+    assert.equal(frame.entities.some(e => e.entityId === owned.entityId), false);
+    assert.equal(h.adapter.resolveEntity(owned.entityId, actorFrame.frameId), null);
+    frame = h.delta([['things', own, thing('hand.0@0', undefined)]]);
+    assert.notEqual(frame.entities.find(e => e.slotName === 'hand.0@0').entityId, owned.entityId);
+    frame = h.delta([['seats', 'verified-player', { seat: 2 }]], { actor: 2 });
+    assert.equal(frame.session.snapshotReady, true);
+    assert.equal(frame.session.actorSeat, 2);
+    assert.equal(frame.session.viewSeat, 2);
+    assert.equal(frame.entities.find(e => e.slotName === 'hand.0@0').appearance.faceIndex, null);
+    assert.equal(frame.entities.find(e => e.slotName === 'hand.0@2').appearance.faceIndex, null,
+      'taking a seat cannot invent a face concealed by the source projection');
+    frame = h.delta([['seats', 'verified-player', null]], { actor: null });
+    assert.equal(frame.session.snapshotReady, true);
+    assert.equal(frame.session.actorSeat, null);
+    assert.equal(h.adapter.actionable(), false);
+    h.world.seat = 0;
+    frame = h.adapter.refresh();
+    assert.equal(frame.session.viewSeat, 0);
+    assert.equal(frame.session.actorSeat, null);
+    assert.equal(frame.entities.find(e => e.slotName === 'hand.0@0').appearance.faceIndex, null);
+    frame = h.delta([['seats', 'verified-player', { seat: 0 }]], { actor: 0 });
+    assert.equal(frame.session.snapshotReady, true, 'same-room seat rejoin requires no extra FULL');
+    assert.equal(h.adapter.actionable(), true);
+    const rejoined = frame;
+    h.join('room-b', 0);
+    frame = h.delta([['seats', 'verified-player', { seat: 0 }]]);
+    assert.equal(frame.session.gameId, 'room-b');
+    assert.equal(frame.session.snapshotReady, false, 'room switch cannot reuse the previous room collections');
+    assert.equal(frame.entities.length, 0);
+    assert.equal(h.adapter.actionable(), false);
+    frame = h.snapshot([[own, thing('hand.0@0', undefined)]], { extra });
+    assert.equal(frame.session.snapshotReady, true);
+    assert.equal(frame.entities.length, 1, 'a new FULL omits and removes the old room entities');
+    assert.notEqual(frame.entities[0].entityId, rejoined.entities.find(e => e.slotName === 'hand.0@0').entityId);
+    const beforeDisconnect = frame;
+    h.client.disconnect();
+    assert.equal(h.adapter.latest, null);
+    assert.equal(h.sink.renders.length, 0);
+    assert.equal(h.adapter.actionable(), false);
+    assert.equal(h.adapter.refresh().entities.length, 0);
+    h.join('room-b', 0);
+    frame = h.delta([['seats', 'verified-player', { seat: 0 }]]);
+    assert.equal(frame.session.snapshotReady, false, 'reconnect must bind a new initial room snapshot');
+    frame = h.snapshot([[own, thing('hand.0@0', undefined)]], { extra });
+    assert.equal(frame.session.snapshotReady, true);
+    assert.equal(h.adapter.actionable(), true);
+    assert.notEqual(frame.sessionId, beforeDisconnect.sessionId);
+    assert.notEqual(frame.entities[0].entityId, beforeDisconnect.entities[0].entityId);
     assert.deepEqual(h.failures, []);
   });
 }

@@ -20,6 +20,8 @@ namespace Mahjong.Renderer.Bridge
         private bool dirty;
         private float nextVisual;
         private long acknowledgedGeneration;
+        private string acknowledgedSessionId;
+        private long acknowledgedFrameId;
         private long tableGeneration;
         private long handGeneration;
         private string visibleFailure;
@@ -85,6 +87,8 @@ namespace Mahjong.Renderer.Bridge
             dirty = false;
             visibleFailure = null;
             acknowledgedGeneration = scene.Generation;
+            acknowledgedSessionId = null;
+            acknowledgedFrameId = 0;
         });
 
         public void ApplyLayout(string json) => Receive<RendererLayout>(json, "RendererLayout", message =>
@@ -163,11 +167,19 @@ namespace Mahjong.Renderer.Bridge
                 yield return end;
                 if (state?.Frame == null || state.Suspended || scene.ActiveFrame == null ||
                     state.Frame.FrameId != scene.ActiveFrame.FrameId || state.SessionId != scene.ActiveFrame.SessionId ||
-                    scene.Generation == acknowledgedGeneration || tableGeneration != scene.Generation ||
+                    scene.Generation == acknowledgedGeneration || !scene.TableCamera.enabled ||
+                    tableGeneration != scene.Generation ||
                     scene.HandCamera.enabled && handGeneration != scene.Generation ||
-                    state.Viewport == null || Screen.width != state.Viewport.WidthPx || Screen.height != state.Viewport.HeightPx)
+                    state.Viewport == null || scene.ActiveResizeRevision != state.Viewport.ResizeRevision ||
+                    Screen.width != state.Viewport.WidthPx || Screen.height != state.Viewport.HeightPx)
                     continue;
                 acknowledgedGeneration = scene.Generation;
+                // Viewport redraws complete separately, but the wire receipt identifies only the accepted frame.
+                if (acknowledgedSessionId == scene.ActiveFrame.SessionId &&
+                    acknowledgedFrameId == scene.ActiveFrame.FrameId)
+                    continue;
+                acknowledgedSessionId = scene.ActiveFrame.SessionId;
+                acknowledgedFrameId = scene.ActiveFrame.FrameId;
                 Emit(new FrameRendered
                 {
                     Type = "frameRendered", InstanceId = state.InstanceId, SessionId = state.SessionId,

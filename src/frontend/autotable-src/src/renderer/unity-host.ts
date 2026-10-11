@@ -79,6 +79,7 @@ export class UnityHost {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private startupTimer: ReturnType<typeof setTimeout> | null = null;
   private observer: ResizeObserver | null = null;
+  private chromeObserver: MutationObserver | null = null;
   private media: MediaQueryList | null = null;
   private readonly events = new AbortController();
   private readonly requests = new AbortController();
@@ -90,6 +91,7 @@ export class UnityHost {
   private readonly progress: HTMLProgressElement;
   private readonly retry: HTMLButtonElement;
   private readonly insets: HTMLElement;
+  private readonly chat: HTMLElement | null;
   private separateHand = false;
 
   constructor(private readonly main: HTMLElement, private readonly hooks: HostHooks, private readonly options: { allowUnqualifiedBuild?: boolean } = {}) {
@@ -136,9 +138,16 @@ export class UnityHost {
     window.visualViewport?.addEventListener('scroll', this.resize, { signal: this.events.signal });
     document.addEventListener('visibilitychange', this.visibility, { signal: this.events.signal });
     document.addEventListener('securitypolicyviolation', this.csp, { signal: this.events.signal });
+    this.chat = document.getElementById('chat-panel');
     if (typeof ResizeObserver !== 'undefined') {
       this.observer = new ResizeObserver(this.resize);
       this.observer.observe(main);
+      if (this.chat) this.observer.observe(this.chat);
+    }
+    if (this.chat && typeof MutationObserver !== 'undefined') {
+      this.chromeObserver = new MutationObserver(this.resize);
+      this.chromeObserver.observe(this.chat, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+      this.chromeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     }
     this.watchDpr();
     this.resize();
@@ -426,9 +435,29 @@ export class UnityHost {
     if (rect.width <= 0 || rect.height <= 0) return;
     const padding = getComputedStyle(this.insets);
     const number = (value: string): number => Math.max(0, parseFloat(value) || 0);
+    let insets = { top: number(padding.paddingTop), right: number(padding.paddingRight), bottom: number(padding.paddingBottom), left: number(padding.paddingLeft) };
+    if (this.chat && !this.chat.hidden) {
+      const style = getComputedStyle(this.chat);
+      const bounds = this.chat.getBoundingClientRect();
+      const left = Math.max(rect.left, bounds.left), right = Math.min(rect.right, bounds.right);
+      const top = Math.max(rect.top, bounds.top), bottom = Math.min(rect.bottom, bounds.bottom);
+      if (style.display !== 'none' && style.visibility !== 'hidden' && style.visibility !== 'collapse'
+        && right > left && bottom > top) {
+        // Use the largest clear rectangle: below/above docked chat, or beside its existing drawer.
+        const candidates = [
+          { ...insets, bottom: Math.max(insets.bottom, rect.bottom - top) },
+          { ...insets, top: Math.max(insets.top, bottom - rect.top) },
+          { ...insets, right: Math.max(insets.right, rect.right - left) },
+          { ...insets, left: Math.max(insets.left, right - rect.left) },
+        ];
+        const area = (value: Viewport['insetsCssPx']): number =>
+          Math.max(0, rect.width - value.left - value.right) * Math.max(0, rect.height - value.top - value.bottom);
+        insets = candidates.reduce((best, candidate) => area(candidate) > area(best) ? candidate : best);
+      }
+    }
     const measurement = {
       width: rect.width, height: rect.height, dpr: window.devicePixelRatio || 1, separateHand: this.separateHand,
-      insets: { top: number(padding.paddingTop), right: number(padding.paddingRight), bottom: number(padding.paddingBottom), left: number(padding.paddingLeft) },
+      insets,
     };
     const next = rendererViewport(this.instanceId, (this.viewport?.resizeRevision ?? 0) + 1, measurement);
     const previous = this.viewport ? { ...this.viewport, resizeRevision: next.resizeRevision } : null;
@@ -492,6 +521,7 @@ export class UnityHost {
     this.events.abort();
     this.requests.abort();
     this.observer?.disconnect();
+    this.chromeObserver?.disconnect();
     this.media?.removeEventListener('change', this.dprChanged);
     if (this.timer) clearTimeout(this.timer);
     if (this.startupTimer) clearTimeout(this.startupTimer);

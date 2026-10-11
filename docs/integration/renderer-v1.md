@@ -1,7 +1,11 @@
 # Renderer v1 integration
 
-This is the accepted **source contract**, not evidence of a compiled or playable
-Unity browser build. The authority is
+This documents the accepted **renderer contract** and Tester's approved scoped
+local browser/Docker gameplay. Actual **99/99 EditMode tests** and genuine
+production-settings WebGL passed. The final committed **clean 99-test rebuild
+and strict validator also passed**. The earlier broad native review used
+disclosed dirty source; final canonical clean-image packaging, native runtime
+checks and the live preview upgrade have now passed. The contract authority is
 [`contracts/renderer-v1.schema.json`](../../contracts/renderer-v1.schema.json),
 with source mappings in
 [`contracts/migration-contract.json`](../../contracts/migration-contract.json).
@@ -110,18 +114,20 @@ rectangular/separate; at 768 px or above, classic/in-table. Explicit choices
 persist and override that automatic fit. Resize republishes presentation; it
 does not change the variant, actor seat, or concealed-hand entitlement.
 
-| v1 capability | Source boundary | Evidence still required |
+| v1 capability | Source boundary | Verified local scope and limits |
 | --- | --- | --- |
-| `perspective` / `flat` | Unity camera presentation; browser settings, no rule change | Real WebGL camera/picking checks |
-| `classic` / `rectangular` | Fit/reposition slot groups without stretching tiles or changing semantic slots | All five variants, held/shifted transforms, landscape/portrait geometry |
-| `in-table` / `separate` hand | One canvas, independent orthographic local-hand band; no duplicate local entities in the table camera | Entitled hand ordering, drawn tile, remote concealment, touch targets |
-| Resize, orientation, DPR, safe areas | Browser measures the canvas; pixel ratio capped at 2; viewport changes cancel active gestures | Real mobile rotation, chat scrolling, pointer/touch alignment |
-| Relay extras | Sticks/markers, Kita, tray/payment/riichi, extra/open-wall slots remain in scope | Real interactive relay regression |
+| `perspective` / `flat` | Unity camera presentation; browser settings, no rule change | Actual rendered frames/camera and native picking scopes approved; no performance guarantee |
+| `classic` / `rectangular` | Fit/reposition groups without stretching tiles or changing semantic slots | Real all-mode startup and retained portrait/landscape layout scopes; not exhaustive held-pose coverage |
+| `in-table` / `separate` hand | One canvas, independent orthographic local-hand band; no duplicate local entities in the table camera | Changsha entitlement/concealment and 294/294 hand centers across 21 browser layouts; formerly blocked lower-row native select/discard passed |
+| Resize, orientation, DPR, safe areas | Canvas measurements; pixel ratio capped at 2; viewport changes cancel active gestures | Retained browser DPR1/2/3, portrait/landscape and chat collapsed/open results, not physical phone rotation/performance |
+| Relay extras | Sticks/markers, Kita, tray/payment/riichi, extra/open-wall slots remain in scope | Four modes' 8 native tile/stick target commits and server echoes approved; not every extra/target-cell gesture |
 
-Layout helpers and renderer/browser source are not device evidence.
-Rectangular cross-group held/drag transforms remain a runtime qualification
-item; do not infer a new target slot or rewrite the semantic descriptor to hide
-an unverified remap.
+These are actual browser/native-input scopes, not physical iOS/Android evidence.
+Do not infer a new semantic target slot or claim exhaustive cross-group/raycast
+coverage. The review records a nonblocking payment-cell caveat: exact center
+aim at `payment.0@1` missed in FOUR_PLAYER/MINEFIELD, while exposed alternative
+real payment cells committed. A calculated geometric witness is not a native
+hit receipt.
 
 **Known v1 UI limits:** sticky click-to-grab is visibly disabled; the supported
 input source is press/drag/release. The legacy GPU benchmark is visibly retired
@@ -129,7 +135,54 @@ because Unity owns rendering. No sticky field, synthetic Unity benchmark, or
 hidden legacy fallback is added to the frozen contract. Do not claim complete
 legacy renderer-input parity or performance qualification.
 
-## Verified source evidence
+## Verified Editor/build, player and source evidence
+
+On **October 10, 2026**, the actual **6000.3.24f1 / 4e7b9b5b6244** host
+Editor accepted existing portable Hub activation, imported packages, compiled
+C#/APIs and the IL2CPP WebGL player, and passed **99/99 EditMode tests** after
+independent repairs.
+The unchanged producer enforced a successful WebGL BuildReport with zero
+errors and nonzero output. Evidence:
+`artifacts/test-results/relay-native-target-repair/editor-rebuild-receipt.json`.
+Tester **APPROVE**, recorded **October 11, 2026, 01:01:59 UTC
+(October 10, 18:01:59 PDT)**, is
+`artifacts/test-results/migration-player-final-relay-review.json`. Its exact
+artifact/runtime identities and preserved earlier evidence, not a hardcoded
+current hash, define the approved iteration.
+
+Genuine loader/framework/wasm/data and hosted MIME/hashes were verified.
+The earlier broad native-review runtime records
+**`sourceDirty: true`, `developmentBuild: false`**.
+Read each produced `artifacts/unity-webgl/renderer-build.json` for its actual
+build identity and cleanliness. The validator's
+`--allow-source-dirty` is explicit local qualification only; the browser's
+loopback-only `unityLocalBuild=1` opt-in is likewise not a release gate bypass.
+Final source/CI/tests are committed at
+`684f67837eb9fbef0475162702f5d3542d87b949`; its actual **99-test clean rebuild**
+produced the manifest at **October 11, 2026, 01:07:03 UTC**, with that source
+revision and **`sourceDirty: false`, `developmentBuild: false`**. Strict
+validation passed without an override; the reviewed renderer-input tree is
+unchanged. All four source CI jobs are green. Canonical clean-image packaging,
+native health/player checks and the live preview upgrade also passed.
+See the [verified host command and artifact checks](docker-build-and-run.md#verified-host-editor).
+
+The final review approves actual C# readiness/rendered frames and native
+gameplay: **8 tile/stick commits with one server echo each** across the four
+relay modes, plus **16 F / Shift+F / right-click / R routes**. Previously approved
+Changsha manual/automatic pickup/discard, count-only pickup wire, chat,
+privacy/spectator/reconnect and the **21-layout / 294-hand-center** scope are
+retained—not relabeled as a new full rerun.
+
+Final clean runtime evidence is
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`.
+The **`mahjong-unity:final-684f678`** preview is healthy at
+**`http://127.0.0.1:5086/autotable/`**, without `unityLocalBuild`.
+Clean isolated Changsha native discard and THREE_PLAYER tile/stick/keyboard
+passed; post-upgrade actual C# rendering, `frameRendered` and native discard
+also passed. Earlier all-mode/mobile scopes remain preserved, not a new full
+rerun. Physical iOS/Android, touchscreen double-tap discard and exhaustive
+gesture/target coverage remain advisory limits of this first working iteration.
 
 F1's final receipt records **38 preserved + 40 renderer-specific Node tests**,
 strict primary-graph TypeScript checking, and an asset-free Vite build
@@ -147,22 +200,26 @@ regressions**, **78 affected Node tests**, strict typecheck and Vite build passe
 after revision. Supplemental source evidence verifies correct hand bands,
 backing buffers and strictly newer transmitted resize revisions; its runtime
 handshake is explicitly simulated
-(`artifacts/test-results/lead-browser-caller-evidence.json`). Browser/overall
-source-gate approval remains pending.
+(`artifacts/test-results/lead-browser-caller-evidence.json`). These are source
+regressions, not player/browser acceptance.
 
 U1's [source receipt](../../unity/MahjongRenderer/Documentation/source-evidence.json)
 records metadata/schema/scene guards, **5 JS source tests**, and C#9 parsing of
-**26 files** for editor/player branches with zero syntax errors. That is not
-Unity assembly/API/shader compilation, Editor import, EditMode tests, or a
-BuildPlayer result. The source-iteration integration gate still requires
-Tester's approval; runtime/device/performance qualification remains absent.
+**26 files** for editor/player branches with zero syntax errors. That earlier
+syntax snapshot alone is not Unity assembly/API/shader compilation, Editor
+import, EditMode tests, or a BuildPlayer result. The separate actual host
+receipt above supplies real Editor/build evidence and the separate final review
+supplies scoped player/runtime acceptance. Physical-device/performance limits
+are separate from local delivery; the actual post-commit clean Editor build,
+clean runtime checks and live preview upgrade are complete.
 
 ## Failure behavior
 
 Missing manifest/artifacts, failed loading/handshake, or invalid renderer input
 must produce a visible **table unavailable** state. The source/dev lobby and
 available DOM controls may remain accessible, but there is **no legacy GPU,
-JavaScript-canvas, or synthetic Unity fallback** and no completed-game claim.
+JavaScript-canvas, or synthetic Unity fallback**. Lobby-only survival is not
+player success.
 
 The hosting image requires actual Unity artifacts and fails its build when they
 are absent or invalid. Manifest/hash/WebAssembly checks establish file

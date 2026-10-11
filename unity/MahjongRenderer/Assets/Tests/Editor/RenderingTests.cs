@@ -12,6 +12,17 @@ namespace Mahjong.Renderer.Tests
     public sealed class RenderingTests
     {
         [Test]
+        public void ImportedProjectKeepsDistinctRenderingAndPickingLayers()
+        {
+            Assert.That(LayerMask.LayerToName(RendererLayers.Table), Is.EqualTo("MahjongTable"));
+            Assert.That(LayerMask.LayerToName(RendererLayers.Hand), Is.EqualTo("MahjongHand"));
+            Assert.That(LayerMask.LayerToName(RendererLayers.TableSlots), Is.EqualTo("MahjongTableSlots"));
+            Assert.That(LayerMask.LayerToName(RendererLayers.HandSlots), Is.EqualTo("MahjongHandSlots"));
+            Assert.That(new[] { RendererLayers.Table, RendererLayers.Hand,
+                RendererLayers.TableSlots, RendererLayers.HandSlots }.Distinct().Count(), Is.EqualTo(4));
+        }
+
+        [Test]
         public void OriginalLabelsDistinguishAllThirtySevenFacesIncludingWhiteDragon()
         {
             Assert.That(Enumerable.Range(0, 37).Select(ProceduralArt.FaceLabel).Distinct().Count(), Is.EqualTo(37));

@@ -6,10 +6,11 @@ Stephen Long authorized development and the allowlisted baseline import. No
 root license has been selected for this repository or for original fork/backend
 additions. The inherited browser `package.json` license field and nested MIT
 `COPYING` are **not** a grant for all code, dependencies, artwork, or binaries.
-Local source work can continue; owner license selection and complete shipped
-notices are gates **before image/build redistribution**, not proof supplied by
-opening or merging a source PR. This document is a provenance record, not legal
-advice or a replacement license.
+Authorized local development/build/testing can continue; owner license
+selection and complete shipped notices are gates **before image/build
+redistribution**, not blockers for that local work or proof supplied by opening
+or merging a source PR. This document is a provenance record, not legal advice
+or a replacement license.
 
 ## Imported source
 
@@ -63,6 +64,37 @@ The repository's default Docker builder packages a pinned Editor and Web Build
 Support. It does **not** create an entitlement, activate an account, or guarantee
 that a license file works in a headless container.
 
+**The host activation/build gate has now passed.** On **October 10, 2026**,
+the actual pinned **6000.3.24f1** host Editor accepted the existing legitimate
+portable Hub licensing through its LicensingClient, passed **99/99 EditMode
+tests** after independent repairs, and produced genuine non-development WebGL
+output. Actual build evidence is
+`artifacts/test-results/relay-native-target-repair/editor-rebuild-receipt.json`.
+Scoped browser/Docker gameplay approval is
+`artifacts/test-results/migration-player-final-relay-review.json`, recorded
+**October 11, 2026, 01:01:59 UTC (October 10, 18:01:59 PDT)**.
+No account credentials or activation/license-file contents were inspected by
+the agents for that evidence.
+Repeat that route with the [per-process portable Hub HOME/XDG environment](docker-build-and-run.md#verified-host-editor);
+do not reactivate it, change the user's normal HOME, or export license contents.
+
+This is observed host Editor acceptance, **not** a selection of a license tier,
+a paid/free headless activation claim, proof that the same activation works in
+Docker, or clearance for redistribution. The approved local runtime used a
+dirty-source artifact. The final committed **99-test clean WebGL rebuild and
+strict validation passed**: `artifacts/unity-webgl/renderer-build.json` records
+**October 11, 2026, 01:07:03 UTC**, the final committed source revision and
+**`sourceDirty: false`, `developmentBuild: false`**. Canonical clean-image
+packaging, native runtime checks and the live user-preview upgrade also passed:
+`artifacts/test-results/final-clean-runtime/summary.json` and
+`artifacts/test-results/final-clean-runtime/preview-upgrade-receipt.json`.
+The preview now serves **`mahjong-unity:final-684f678`** without dirty opt-in;
+protected private configuration/key and persistent state were preserved.
+This hosting success does not establish a transfer of Hub activation to a
+Docker Editor. Actual local gameplay approval, physical-device qualification and
+source licensing are distinct; physical iOS/Android and touchscreen double-tap
+discard are unclaimed limits, not blockers to the first working iteration.
+
 Primary documentation checked on **October 10, 2026 (UTC)**:
 
 - [Unity 6.3 command-line license management](https://docs.unity3d.com/6000.3/Documentation/Manual/ManagingYourUnityLicense.html)
@@ -81,21 +113,22 @@ Primary documentation checked on **October 10, 2026 (UTC)**:
   govern entitlement and tier eligibility separately from this repository's
   source licensing; the owner must check the terms applicable to their use.
 
-**No supported Personal-only, Hub-free headless activation method has been
-established for this iteration.** The repo wrapper only consumes privately
-provisioned valid licensing; it does not implement GameCI's credential-based
-activation or a license server. The owner must arrange a supported entitlement
-and confirm its use in the actual build environment with Unity. If that cannot
-be established, the real build remains blocked; do not substitute a fake build.
-The existence of a `.ulf` file is not evidence that activation succeeds.
+The working host build uses **existing Hub activation**, not a newly devised
+Hub-free or manual `.ulf` setup. The Docker wrapper only consumes existing,
+privately provisioned compatible licensing; it does not implement GameCI's
+credential-based activation or a license server. Confirm compatibility
+separately before choosing that container route. If a different environment
+rejects licensing, stop and use the supported Unity process; do not substitute
+a fake build. The existence of a `.ulf` file is not evidence of acceptance.
 
 Keep `.ulf`/`.alf`, account credentials, serials, and private licensing state out
 of source, Docker build arguments/layers, published artifacts, and logs. Never
-paste them into issue/PR/chat/state records. Use only the wrapper's narrow
-read-only private input; do not mount a home directory or relax permissions
-globally. Raw Editor logs remain private and must be reviewed/redacted before
-sharing. See [Docker build and run](docker-build-and-run.md) for the implemented
-input boundary.
+paste them into issue/PR/chat/state records. The host command points to the
+existing portable Hub environment without copying its private state. For the
+Docker alternative, use only the wrapper's narrow read-only private input;
+do not mount a home directory or relax permissions globally. Raw Editor logs
+remain private and must be reviewed/redacted before sharing. See
+[Docker build and run](docker-build-and-run.md) for the implemented input boundary.
 
 ## Redistribution checklist
 
