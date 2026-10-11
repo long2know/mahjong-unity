@@ -1,12 +1,17 @@
 # Docker build and run
 
-**Source-iteration status:** the repository contains the real-Editor producer,
-Docker wrapper, artifact validator, and separate hosting Dockerfile. No licensed
-Editor execution, generated WebGL build, or container gameplay qualification has
-been demonstrated. Actual .NET publish/localhost transport smoke and source
-suites passed; they are not a playable image. The commands below are the
-implemented **next execution path**, not a record that a playable image has
-already been built.
+**Tester APPROVE: October 11, 2026, 01:01:59 UTC
+(October 10, 18:01:59 PDT).** Legitimate host Hub activation, actual **99/99
+EditMode tests**, production-settings WebGL and scoped native gameplay in a
+healthy Docker runtime are verified. The final review retains the previously
+approved Changsha and mobile-layout scopes; it is not a new exhaustive rerun.
+The reviewed runtime used **`sourceDirty: true`, `developmentBuild: false`**.
+The final committed **99-test clean WebGL rebuild and strict validator now
+pass**, with **`sourceDirty: false`, `developmentBuild: false`**. All four source
+CI jobs are green. Canonical clean-image packaging, minimal runtime/player
+checks and user-preview upgrade remain delivery steps. Physical iOS/Android
+and touchscreen double-tap discard are qualification limits of the first
+working iteration, not current completion blockers.
 
 ## Prerequisites and pin
 
@@ -17,10 +22,12 @@ Python installation is required for the default packaging flow. Host Git is
 optional for the public build label; renderer provenance uses Git in the build
 container.
 
-**Legitimate, compatible Unity activation must be provisioned separately.**
-Docker does not eliminate licensing. In particular, no supported Personal-only,
-Hub-free activation method has been established here. Read
-[licensing and provenance](licensing-and-provenance.md) before provisioning.
+**Docker does not eliminate licensing.** The host Editor's existing Hub
+activation was accepted; it does not establish licensing compatibility in the
+GameCI container. Use the verified host route below without reactivation.
+For a different build environment, separately confirm legitimate compatible
+licensing; do not invent a manual `.ulf` or paid/free headless activation route.
+Read [licensing and provenance](licensing-and-provenance.md).
 
 The build-only image is pinned in
 [`docker/unity-builder.Dockerfile`](../../docker/unity-builder.Dockerfile) and
@@ -34,30 +41,113 @@ Unity 6000.3.24f1 / revision 4e7b9b5b6244 / Web Build Support
 ```
 
 The digest is the **platform manifest**, not the multi-platform index. The
-receipt records registry-metadata inspection only: no Editor image pull or
-execution. Its compressed layers total about 6.94 GiB; allow additional space
-for extraction/import caches. The Unity builder is amd64; choosing another
+GameCI receipt records registry-metadata inspection only, not an Editor image
+pull or container build. Its compressed layers total about 6.94 GiB; allow
+additional space for extraction/import caches. The Unity builder is amd64; choosing another
 hosting platform does not make the Unity builder native on that platform.
 An operator-invoked Docker build can pull that pinned image when it is not
-cached. This is tool packaging, not activation or evidence that this source
-iteration already executed the Editor.
+cached. This is tool packaging, not container activation. The successful
+Editor execution documented next used the separately installed host Editor.
 
-## Build: default container path
+## Verified host Editor
 
-Privately set **one** of these inputs:
+The actual installed Editor is:
+
+```text
+/data/source/mahjong-unity/artifacts/test-results/unity-u2-archive-route/6000.3.24f1/Editor/Unity
+```
+
+Its adjacent WebGLSupport module and binary match the verified archive. The
+old `unity-u2-archive-route/vendor` path is a preserved compatibility symlink
+to the version-named directory. Hub's manually registered inventory still
+labels the version `vendor`; neither GUI registration nor the future install
+root was changed. Do not use a newly invented path or substitute an installed
+6.6 Editor for the project's **6.3 / 6000.3.24f1** pin.
+
+This host has Python 3, Git, the exact Editor and WebGLSupport installed.
+From `/data/source/mahjong-unity`, match the already-activated portable Hub's
+environment **only for the invoked process**:
+
+```bash
+env HOME="/data/programs/Unity/UnityHubSetup-x86_64.AppImage.home" \
+  XDG_CONFIG_HOME="/data/programs/Unity/UnityHubSetup-x86_64.AppImage.home/.config" \
+  XDG_DATA_HOME="/data/programs/Unity/UnityHubSetup-x86_64.AppImage.home/.local/share" \
+  XDG_CACHE_HOME="/data/programs/Unity/UnityHubSetup-x86_64.AppImage.home/.cache" \
+  UNITY_EDITOR="$PWD/artifacts/test-results/unity-u2-archive-route/6000.3.24f1/Editor/Unity" \
+  bash scripts/build-unity-webgl.sh --test-and-build
+```
+
+`env` leaves the caller's normal HOME/XDG values unchanged. The producer sets
+its own project-local tool scratch under
+`unity/MahjongRenderer/BuildCache/tool-work/`. No reactivation, license export,
+account/token copying, or whole-home container mount is needed for this
+already accepted host route.
+
+The approved **99-test** Editor/build receipt is
+`artifacts/test-results/relay-native-target-repair/editor-rebuild-receipt.json`
+(completed **October 10, 2026, 23:54:48 UTC**). It records successful actual
+EditMode execution and IL2CPP WebGL production. The unchanged producer's
+BuildReport gate requires `BuildResult.Succeeded`, WebGL, zero errors and
+nonzero output. The final approval is
+`artifacts/test-results/migration-player-final-relay-review.json`.
+
+Real output is under `artifacts/unity-webgl/`: `renderer-build.json` and
+`Build/unity-webgl.{loader.js,framework.js,wasm,data}`. Each actual manifest
+records its build ID, source revision/tree hash and artifact hashes. The final
+review's `actualArtifact` identifies the exact tested local iteration; do not
+reuse that identity to claim a later clean build. Production build settings
+alone do not make a dirty-source artifact a clean release.
+
+The final approved source/CI/tests are committed at
+`684f67837eb9fbef0475162702f5d3542d87b949`. Its actual clean **99-test** rebuild
+completed: the manifest's `builtAtUtc` is **2026-10-11T01:07:03.6390440Z**,
+`rendererSourceRevision` is that commit, and `sourceDirty` / `developmentBuild`
+are both **false**. The strict validator passed without a dirty-source option;
+all 99 cases in `artifacts/test-results/unity-editmode.xml` passed. The reviewed
+renderer-input tree is preserved. Use the actual manifest/completion evidence;
+never edit cleanliness flags or synthesize output.
+
+Canonical clean-image packaging and minimal health/Unity-readiness checks are
+next, followed by the preview upgrade. These have not yet been relabeled as
+completed runtime proof.
+
+The producer executes `Mahjong.Renderer.Editor.WebGlBuild.Build`. Standard
+logs are `artifacts/test-results/unity-webgl-build.log` / `unity-tests.log`;
+the actual test XML is `artifacts/test-results/unity-editmode.xml`.
+These outputs/receipts are local ignored files, not included in a fresh source
+checkout. Path names alone never prove execution; do not create placeholders.
+Actual player loading/rendered frames, native actions, server echoes and
+Docker-runtime health now have scoped approval. Physical iOS/Android,
+touchscreen double-tap discard and performance remain separate.
+
+The final review links preserved earlier qualifications and their exact
+receipts. These are prior approved scopes, not all newly rerun against the final
+relay iteration. Earlier repair/build receipts are historical, not the final
+clean-build identity.
+
+## Build: default container wrapper
+
+This remains the default behavior of `build.sh` / `build.ps1`, not the route
+used for the successful host build above. Container licensing compatibility
+must be checked separately; pulling the pinned image or observing host Hub
+acceptance is not that check.
+
+If using this alternative, privately configure **one existing compatible
+input**:
 
 - `UNITY_LICENSE_FILE`: existing absolute `.ulf` file outside the checkout,
   not a symlink.
 - `UNITY_LICENSE_DIR`: a narrow, existing, privately provisioned Unity licensing
   directory outside the checkout—not an account/home directory.
 
-Values are **paths, never license contents**. The wrappers mount the input
-read-only with no host-path auto-creation. They do not accept credentials or
-activate Unity; file existence is not proof that licensed execution will work.
+Values are **paths, never license contents**. These are inputs for an already
+provisioned container-compatible license, not a manual activation recipe.
+The wrappers mount the input read-only with no host-path auto-creation. They
+do not accept credentials or activate Unity; file existence is not proof that
+licensed execution will work. Do not copy the portable Hub home into a mount.
 
 ```bash
-# Replace this path with the privately provisioned, compatible license file.
-export UNITY_LICENSE_FILE="/absolute/private/Unity_lic.ulf"
+# Only after compatible private licensing is confirmed for this container.
 bash build.sh --tag mahjong-unity:local
 ```
 
@@ -105,7 +195,7 @@ and filesystem-backed licensing IPC space; `TMPDIR` under `artifacts/` does not
 replace literal `/tmp`. This runtime allowance neither activates Unity nor
 qualifies an Editor/WebGL build.
 
-## Existing artifacts and optional host Editor
+## Existing artifacts and validation
 
 `--skip-unity-build` (`-SkipUnityBuild`) consumes **existing real** artifacts;
 the Docker validator still runs. `--allow-source-dirty` (`-AllowSourceDirty`)
@@ -114,8 +204,10 @@ the recorded renderer-input dirty state, not missing artifacts, development
 builds, wrong pins, hashes, or WebAssembly magic.
 
 ```bash
-bash build.sh --skip-unity-build --tag mahjong-unity:local
-# Only for disclosed local dirty-source qualification:
+# Consume the actual final clean outputs:
+BUILDX_BUILDER=default ALLOW_SOURCE_DIRTY=0 bash build.sh \
+  --skip-unity-build --tag mahjong-unity:local
+# Disclosed dirty-source local qualification only, never release:
 bash build.sh --skip-unity-build --allow-source-dirty --tag mahjong-unity:local
 ```
 
@@ -123,51 +215,74 @@ The browser separately rejects dirty-source artifacts by default. For explicit
 local inspection, append **`unityLocalBuild=1` to the existing table URL**,
 preserving its room/variant/join parameters. This opt-in works only on
 `localhost`, `127.0.0.1`, or `[::1]`; it is not a server authorization or a
-release qualification. Development builds remain rejected even with this
-opt-in.
-
-An already-provisioned host Editor is an **optional alternative**, not required
-for Docker packaging. That environment needs Python 3, Git, the exact licensed
-Editor, and its WebGLSupport module:
-
-```bash
-UNITY_EDITOR="/absolute/path/to/6000.3.24f1/Editor/Unity" \
-  bash scripts/build-unity-webgl.sh --test-and-build
-```
-
-The producer executes `Mahjong.Renderer.Editor.WebGlBuild.Build`. Successful
-execution writes the manifest and real `.loader.js`, `.framework.js`, `.wasm`,
-and `.data` files under `artifacts/unity-webgl/`. Logs are
-`artifacts/test-results/unity-webgl-build.log` / `unity-tests.log`; EditMode
-results are `unity-editmode.xml`. These files are **not present execution
-evidence** merely because their producer paths exist.
+release qualification. After a verified clean-image upgrade, remove that
+parameter and confirm the bare table URL loads. Development builds remain
+rejected even with the opt-in.
 
 For direct diagnostics in an existing Python environment:
 
 ```bash
-python3 scripts/verify-unity-build.py artifacts/unity-webgl/renderer-build.json
+# Strict check for the actual final clean Editor rebuild:
+PYTHONDONTWRITEBYTECODE=1 ALLOW_SOURCE_DIRTY=0 python3 scripts/verify-unity-build.py \
+  artifacts/unity-webgl/renderer-build.json
+# Previously approved dirty-source local iteration only:
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/verify-unity-build.py \
+  artifacts/unity-webgl/renderer-build.json --allow-source-dirty
 ```
 
 Validation checks frozen pins/schema, safe relative paths, nonzero sizes,
-SHA-256, WebAssembly magic, and the complete artifact tree. Its success proves
+SHA-256, WebAssembly magic, and the complete artifact tree. The strict check
+rejects any dirty-source manifest. The local override does
+not waive development-build, pin, hash or file checks; its success proves
 integrity only, not activation, camera output, or browser/mobile gameplay.
+
+### Verified local runtime and player
+
+`artifacts/test-results/migration-player-final-relay-review.json` records the
+exact reviewed image, actual healthy API/database and Docker healthcheck,
+genuine hosted loader/framework/wasm/data with correct MIME, and **47 matching
+frontend asset hashes**. Runtime hardening remained non-root/read-only,
+capabilities dropped and no-new-privileges. This is actual runtime evidence,
+not merely a successful image build.
+
+All four relay modes passed **8 native tile/stick commits with one target write
+and server echo each**, plus **16 F / Shift+F / right-click / R routes**.
+Previously approved Changsha manual/automatic pickup/discard, count-only wire,
+chat, privacy, spectator and reconnect scopes remain accepted. Phone-layout
+evidence retains **294/294 hand centers across 21 configurations**, DPR
+**1/2/3**, portrait/landscape and chat collapsed/open, with formerly blocked
+lower-row native select/discard passing. The final review explicitly preserves
+these earlier scopes rather than calling them a full new rerun.
+
+The test runtime's recorded origin is evidence of that isolated run, not a
+permanent preview address. The user preview at
+**`http://localhost:5086/autotable/`** still uses the older desktop-qualified
+dirty image at this handoff. Upgrade to the final clean tested image is pending.
+Its protected private operator state lives outside `/data`; preserve that state,
+configuration and persistent database. Do not replace it with the new-install
+commands below or broaden permissions.
 
 ## Start the hosting image
 
-After a real image builds, provision stable runtime signing configuration
-separately from the Unity license:
+For a **new installation**, after building the intended image, privately set
+`OPERATOR_ENV_FILE` to an operator configuration file in a protected directory
+outside the checkout. Runtime signing configuration is separate from Unity
+licensing. These commands are not a replacement for the existing user preview:
 
 ```bash
-bash scripts/compose-bootstrap.sh
-MAHJONG_IMAGE=mahjong-unity:local docker compose -p mahjong-unity up -d --no-build
-docker compose -p mahjong-unity ps
-docker compose -p mahjong-unity exec -T mahjong \
+: "${OPERATOR_ENV_FILE:?Set a protected operator env-file path outside the checkout}"
+bash scripts/compose-bootstrap.sh --env-file "$OPERATOR_ENV_FILE"
+MAHJONG_IMAGE=mahjong-unity:local docker compose --env-file "$OPERATOR_ENV_FILE" \
+  -p mahjong-unity up -d --no-build
+docker compose --env-file "$OPERATOR_ENV_FILE" -p mahjong-unity ps
+docker compose --env-file "$OPERATOR_ENV_FILE" -p mahjong-unity exec -T mahjong \
   curl -fsS http://127.0.0.1:8080/health
 ```
 
 Bootstrap uses restrictive creation permissions and preserves an existing
-configured signing key; it does not print the key. Keep `.env` private and
-stable across restarts. PowerShell operators may provide existing stable
+configured signing key; it does not print the key. Keep operator configuration
+private and stable across restarts. Do not place it under a world-writable
+parent directory, including this host's `/data` checkout. PowerShell operators may provide existing stable
 `JWT_SIGNING_KEY` configuration privately to Compose instead of using the Bash
 bootstrap. For a separate operator file, bootstrap supports
 `--env-file /absolute/private/operator.env`; pass that same file with
@@ -233,9 +348,10 @@ dotnet test src/backend/tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.
 These are local development/CI diagnostics, not additional host requirements
 for Docker packaging or claims that remote GitHub Actions ran.
 
-The actual Docker missing-artifact build/gate and the wrapper with private
-licensing inputs unset exited **1** as expected. No runtime image success,
-GameCI pull, activation, or Unity output is implied by those negative checks.
+Earlier Docker missing-artifact gates and the wrapper with private licensing
+inputs unset exited **1** as expected. Those negative checks neither describe
+the now-successful host Editor nor imply runtime image success, a GameCI pull
+or container activation.
 
 The unchanged source-only Docker filter repro is executable from the repo root:
 
@@ -250,7 +366,7 @@ the actual root ignore rules; no fixture is a Unity build or credential.
 Supplemental export evidence at
 `artifacts/test-results/lead-dockerignore-context-evidence.json` also checks
 non-Unity API/test/tool-work/cache/log/private artifact paths. Tester's
-overall first-iteration integration approval is still pending.
+source/context approval is not runtime-container or gameplay qualification.
 
 The actual Game startup and automatic resize regressions are:
 
@@ -289,13 +405,14 @@ typecheck and Vite build were rerun successfully. Current logs are
 `artifacts/test-results/lead-browser-{source-tests,typecheck,build}.log`;
 `lead-browser-integration-final.log` and `lead-browser-caller-evidence.json`
 record the actual-caller regressions and supplemental outbound viewport checks.
-Browser/overall source approval remains pending.
+These source checks are not player/browser acceptance.
 
 U1's [source receipt](../../unity/MahjongRenderer/Documentation/source-evidence.json)
 records metadata/schema/scene guards, **5 JS source tests** and **26-file C#9
-syntax parsing**, not Unity API/shader compilation. Its authored EditMode tests
-and genuine BuildPlayer output remain unexecuted. These source tools are
-optional diagnostics, not extra host prerequisites for Docker packaging.
+syntax parsing**. That earlier source snapshot is not Unity API/shader
+compilation. The separate actual host receipt above now records **99 EditMode
+passes and genuine WebGL BuildPlayer output**. Source tools remain optional
+diagnostics, not extra host prerequisites for Docker packaging.
 
 ### Real Chromium-container shell checks
 
@@ -329,16 +446,16 @@ The default is `browser-unavailable.mjs` (two cases); `browser-social.mjs`
 contains the four social/routing cases. Persistent results and source hashes
 are at
 `artifacts/test-results/migration-browser-actual/browser-unavailable-receipt.json`
-and `browser-social-receipt.json`, with matching probe logs. The revised
-runner's focused evidence rereview is pending; these successful executions
-are not a claim of final release approval.
+and `browser-social-receipt.json`, with matching probe logs. These successful
+shell/social executions are not a claim of Unity player or final release
+approval.
 
 Local host Chrome's `SIGTRAP` launch failure remains an environment limitation;
 Chromium in the pinned official container worked. Phone-sized/emulated viewports
 are **not real iOS/Android device evidence**, Unity board/touch input tests, or
 mobile-performance qualification. These probes leave the table visibly
-unavailable and do not close the owner's actual Unity activation/build gate or
-the separate license/dependency redistribution gates.
+unavailable and do not qualify the separately built Unity player, runtime-Docker
+gameplay, or the separate license/dependency redistribution gates.
 
 ### Portable source CI
 
@@ -384,27 +501,45 @@ strict primary TypeScript and Vite builds, and Unity metadata/frozen-contract,
 contract tests also reject conditional source skips, widened evidence uploads,
 missing prerequisites and skipped actual immutable-object assertions.
 
-These are source checks, not Unity assembly/API/shader compilation, EditMode,
-WebGL, native browser or device qualification. The real Editor/build job stays
-an explicit `workflow_dispatch` opt-in behind the `licensed-unity-build`
+The final scoped CI review additionally approved mandatory **6 renderer-shape/
+relay-authority regressions + 1 genuine-player packaging source case** and
+their named failure logs. Evidence:
+`artifacts/test-results/player-regression-ci-wiring/receipt.json` and the final
+review's `ciWiringReview`. All four source CI jobs are now green on the final
+committed inputs. This is not a licensed CI Editor-build claim; the real
+Editor/build qualification used the accepted host activation.
+
+These mandatory jobs are source checks, not Unity assembly/API/shader
+compilation, EditMode, WebGL, native browser or device qualification. The
+separate local host result above is not a licensed CI-build receipt.
+The real Editor/build job stays an explicit `workflow_dispatch` opt-in behind
+the `licensed-unity-build`
 environment, dependent on all four source jobs. The optional native published
 API/browser checks remain separate; no skipped browser check is counted as a
-browser pass. This wiring is not evidence that the focused follow-up has
-already executed remotely.
+browser pass. Workflow wiring and passing source jobs are not evidence of a
+licensed CI Editor/build execution.
 
 ## Troubleshooting and validation limits
 
-- **No valid licensing / activation failure:** remain blocked. Use the
-  supported Unity/operator process, not manual Personal bypasses.
+- **Host cannot see its accepted activation:** use the exact Editor and
+  per-process portable Hub HOME/XDG environment above; do not persistently
+  change normal HOME or export license contents. If licensing is still
+  rejected, use the supported Unity/operator process, not manual bypasses.
 - **Missing manifest, hashes, or files:** generate real outputs; do not add
   placeholders, rename compressed files, or disable the artifact gate.
+- **Dirty-source rejection:** expected for earlier disclosed local artifacts,
+  not the verified final clean manifest. Retain strict validation and consume
+  the real rebuilt outputs; do not change flags to disguise dirty source.
 - **Permission error:** match access narrowly for the private input and mounted
   cache/output paths; never use `chmod 777` or a whole-home mount.
 - **Lobby visible, table unavailable:** expected without a real compatible
   build. Health, DOM readiness, static/mocked checks, and a valid manifest are
   not proof of a rendered playable table.
-- **Before claiming completion:** execute the real Editor tests/build, then
-  Unity-rendered browser/input, real mobile, multiplayer, and runtime-container
-  gameplay checks. The six shell/social Chromium cases above do not satisfy
-  those unqualified checks. Root/additions license selection and dependency
-  notices remain separate redistribution gates.
+- **Local gameplay is approved, not an unrestricted release:** the final
+  review supplies actual native/player/server/Docker scope. Clean post-commit
+  build, strict validation and all four source CI jobs passed. Canonical
+  clean-image packaging, minimal health/readiness checks and preview upgrade
+  remain before final PR delivery. Physical iOS/Android, touchscreen double-tap
+  discard, exhaustive gesture/target coverage and performance limit this
+  first working iteration; they are not new completion blockers. Root/additions
+  licensing/dependency notices remain separate redistribution gates.
