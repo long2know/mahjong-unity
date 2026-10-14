@@ -2,14 +2,14 @@
 
 **Working Unity browser game—scoped local gameplay and Docker qualification
 approved.** The pinned host Editor accepted existing portable Hub activation,
-passed **99/99 EditMode tests**, and produced genuine non-development WebGL.
+passed **120/120 EditMode tests**, and produced genuine non-development WebGL.
 Tester approved native actions across all five existing modes and a healthy
 Docker-hosted player, retaining the previously approved Changsha and mobile
 layout evidence. This is no longer an unbuilt/source-only renderer.
 
 The earlier approved runtime iteration used a disclosed dirty-source artifact.
 Final source revisions are committed, all four source CI jobs are green, and
-the **clean 99-test WebGL rebuild, strict validation, canonical image packaging,
+the **clean 120-test WebGL rebuild, strict validation, canonical image packaging,
 native runtime checks and live preview upgrade passed**. The first working
 local iteration is delivered. Physical iOS/Android and touchscreen double-tap discard
 are limits of this first working iteration, not current completion blockers;
@@ -34,13 +34,39 @@ The imported source and regression fixtures are authoritative. Linked rule
 guides and inspect-only Unity/Japanese-rule examples do not authorize changes
 to that baseline.
 
+## Refined tiles and table
+
+The placeholder faces are replaced with all **37 traditional tile faces** from
+the pinned CC0 FluffyStuff artwork, including winds, dragons and red fives.
+Original ivory/two-tone beveled bodies, quiet jade/amber backs, softly textured
+felt, rounded walnut/brass rails and clearer public labels complete the table.
+The fabric reuses the existing CC0 texture; the faces use the creator's verified
+standalone CC0 release rather than the legacy noncommercial artwork.
+
+![Same seeded game before and after the visual update](docs/screenshots/unity-visual-polish-before-after.png)
+
+The polish preserves privacy, native picking and the rectangular/separate-hand
+mobile layouts. Shared material paths, vertex lighting, bounded geometry and
+mip-filtered artwork avoid the first draft's expensive rendering path.
+The software-browser comparison still has a documented visual cost: about
+29.4 versus 37.7 presentation Hz on desktop and 23.5 versus 27.9 in portrait,
+with native selection latency about 11% higher. These are isolated container
+observations, not physical-device FPS guarantees.
+
+The clean polished image **`mahjong-unity:polished-95d06eb`** is running on port
+5086 without a dirty-build override. Its actual clean Editor, runtime and
+post-upgrade native-input receipts are under
+`artifacts/test-results/visual-polish-clean-build/` and
+`artifacts/test-results/visual-polish-clean-runtime/`. Existing protected
+configuration and persistent database state were preserved.
+
 ## Source delivered
 
 | Surface | Location and boundary |
 | --- | --- |
 | Existing server and rule tests | `src/backend/`; preserved .NET implementation |
 | Browser shell/adapter | `src/frontend/autotable-src/`; retained Client/World/Setup/Movement with a data-only renderer seam |
-| Unity renderer source | `unity/MahjongRenderer`; contract pin **6000.3.24f1**, procedural artwork, flat/perspective and rectangular/separate-hand presentation source |
+| Unity renderer source | `unity/MahjongRenderer`; contract pin **6000.3.24f1**, verified CC0 artwork and original meshes, flat/perspective and rectangular/separate-hand presentation |
 | Frozen renderer protocol | `contracts/renderer-v1.schema.json`, **1.0.0**; complete frame/layout snapshots, opaque entity actions, rendered-frame readiness |
 | Build/hosting tooling | `build.sh` / `build.ps1`, Docker Unity builder, real-Editor producer, artifact validator, separate ASP.NET hosting image |
 | Provenance/notices | `contracts/source-provenance.json`, inherited frontend `COPYING`, `THIRD_PARTY_NOTICES.txt` |
@@ -119,10 +145,10 @@ activation or a paid/free headless licensing route.
 | Backend/hosting | **90 focused .NET + 33 tooling tests**, plus Tester's **57 room/relay/reconnect/continuation tests**, no failures/skips. Actual API Release publish and localhost Development/test-database smoke: health, SignalR negotiation, raw WS open/close, missing-Unity 404s without HTML fallback, and clean shutdown. Not a Docker runtime/gameplay test. |
 | Browser adapter | **38 preserved + 40 renderer-specific Node tests**, rerun after independent revision, plus **2 actual Game startup/auto-resize regressions**. Strict primary-graph TypeScript check and an actual asset-free Vite build passed. Real Client/World/wire/gesture and Vite/source tests with explicitly simulated browser/runtime services—not a Unity player. |
 | Real browser shell | **6 Chromium-container cases** passed: desktop/phone-sized lobby and missing-build routes, invitations/join, chat receive/reload, and responsive viewport routing. Real localhost API and served bundle; no Unity player, rendered board input, actual iOS/Android device, touch or mobile-performance qualification. |
-| Unity Editor/WebGL | Actual **6000.3.24f1 / 4e7b9b5b6244** host Editor accepted Hub licensing, compiled/imported the project and IL2CPP WebGL, passed **99/99 EditMode tests**, and passed the successful WebGL BuildReport gate. Final committed-source rebuild: **`sourceDirty: false`, `developmentBuild: false`**, strict artifact validation passed without the dirty override. |
+| Unity Editor/WebGL | Actual **6000.3.24f1 / 4e7b9b5b6244** host Editor accepted Hub licensing, compiled/imported the project and IL2CPP WebGL, passed **120/120 EditMode tests**, and passed the successful WebGL BuildReport gate. The polished committed-source rebuild has **`sourceDirty: false`, `developmentBuild: false`**; strict artifact validation passed without the dirty override. |
 | Native relay gameplay | All four relay modes: **8 tile/stick drag gestures**, each with one committed target write and actual server echo; **16 F / Shift+F / right-click / R routes** verified. Real C# callbacks and rendered pixels, not simulated readiness. |
 | Changsha and mobile layouts | Previously approved actual manual/automatic C# pickup/discard, count-only pickup wire, chat, privacy, spectator and reconnect scopes retained. **294/294 hand centers across 21 browser layouts**, portrait/landscape, DPR **1/2/3**, chat collapsed/open; formerly blocked lower-row native selection/discard passed. These preserved scopes were not all rerun in the final relay review. |
-| Docker-hosted player | Actual runtime health and Docker healthcheck passed, with genuine hosted Unity files/MIME, matching frontend assets and native/server-echo evidence. Final clean **`mahjong-unity:final-684f678`** image and live preview upgrade passed without dirty opt-in. Non-root, read-only rootfs, dropped capabilities and no-new-privileges retained. |
+| Docker-hosted player | Actual runtime health and Docker healthcheck passed, with genuine hosted Unity files/MIME, matching frontend assets and native/server-echo evidence. Both the initial **`mahjong-unity:final-684f678`** and updated **`mahjong-unity:polished-95d06eb`** runtimes passed without dirty opt-in. Non-root, read-only rootfs, dropped capabilities and no-new-privileges are retained. |
 | Docker context | Tester approved the independent `.dockerignore` revision after **9 source/context gates**. Actual scratch-export filename probes verify filtering, not a production Unity build. |
 
 Authoritative scoped approval:
@@ -181,7 +207,7 @@ npm run test:unity
 `test:unity` is the passing **Node source** suite, not Unity Editor tests.
 See the [exact source-check commands and receipts](docs/integration/docker-build-and-run.md#verified-source-checks).
 
-Final approved source/CI/test revisions are committed at
+The initial working-game source/CI/test revisions are committed at
 `684f67837eb9fbef0475162702f5d3542d87b949`. Its actual **99-test clean rebuild
 and strict validation passed**, and all four source CI jobs are green. Earlier
 all-mode/mobile proof remains the approved scope; final canonical clean-image
