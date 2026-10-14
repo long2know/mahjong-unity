@@ -513,7 +513,7 @@ try {
         const resized = await snapshot(page);
         assert.equal(resized.viewport.widthPx, Math.round(resized.viewport.widthCssPx * resized.viewport.renderPixelRatio));
         assert.equal(resized.viewport.heightPx, Math.round(resized.viewport.heightCssPx * resized.viewport.renderPixelRatio));
-        assert.equal(resized.viewport.handBandCssPx > 0, size.width < 768);
+        assert.equal(resized.viewport.handBandCssPx > 0, size.width < 768 || size.height < 520);
         receipt.cases.push({
           name: `actual-${variant}-${size.width}x${size.height}`,
           ...rendererSummary(resized), pixels: await capture(page, `${variant.toLowerCase()}-${size.width}x${size.height}`),

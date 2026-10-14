@@ -38,7 +38,7 @@ function keyboardGameFixture() {
       this.children = [];
       this.dataset = {};
       this.style = { setProperty() {} };
-      this.classList = { add() {} };
+      this.classList = { add() {}, toggle() {} };
       this.checked = false;
     }
     append(...children) { this.children.push(...children); }
@@ -77,10 +77,7 @@ function keyboardGameFixture() {
     console: { log() {}, warn() {}, error() {} },
   }, {
     'sound-player.ts': { SoundPlayer: class { play() {} } },
-    'settings-drawer.ts': {
-      getSettings: () => ({ boardLayout: 'auto', handLayout: 'auto', handSort: 'suit', soundEnabled: true }),
-      installPerspectiveSetting() {}, installRendererLayoutSettings() {}, onSettingsChange: () => () => {},
-    },
+    'theme.ts': {}, 'rule-presets.ts': {},
     'profile.ts': { loadProfile: async () => ({ displayName: 'Player' }), refreshProfile: async () => {},
       snapshotStatsForGame() {}, onProfile() {}, initProfileHubBindings() {} },
     'hub.ts': { getHubConnection: async () => ({}) }, 'reconnect.ts': { clearSession() {}, saveSession() {} },
@@ -122,8 +119,28 @@ function keyboardGameFixture() {
   };
   const writes = () => socket.sent.flatMap(packet => packet.entries ?? [])
     .filter(([kind, id]) => kind === 'things' && id === 0);
-  return { game, document, GameType, entityId, select, send, key, writes };
+  return { game, document, GameType, entityId, select, send, key, writes,
+    preferences: () => loader.load('settings-drawer.ts').getSettings() };
 }
+
+test('registered Game P handler persists the clicked value before applying automatic camera preferences', async t => {
+  const h = keyboardGameFixture();
+  t.after(() => h.game.dispose());
+  h.document.activeElement = h.game.renderer.canvas;
+  assert.equal(h.preferences().cameraMode, 'auto');
+  assert.equal(h.game.settings.perspective.checked, true);
+  h.key('keydown', 'p');
+  assert.equal(h.preferences().cameraMode, 'flat');
+  assert.equal(h.game.adapter.latest.presentation.viewMode, 'flat');
+  h.key('keydown', 'p');
+  assert.equal(h.preferences().cameraMode, 'flat', 'a held P must not repeat');
+  h.key('keyup', 'p');
+  h.key('keydown', 'p');
+  assert.equal(h.preferences().cameraMode, 'perspective');
+  assert.equal(h.game.adapter.latest.presentation.viewMode, 'perspective');
+  h.key('keyup', 'p');
+  assert.equal(h.writes().length, 0, 'camera changes must not rewrite any tile');
+});
 
 test('actual layout settings default/normalize to auto and persist synchronized legacy/Display choices without resetting language', () => {
   const f = settingsFixture({ boardLayout: 'stretched', handLayout: 'all-hands', lang: 'zh-Hans', perspective: false });
@@ -152,24 +169,35 @@ test('actual Game presentation and registered keyboard callers preserve layouts 
   const code = ts.transpileModule(`class Fixture { ${body} }\nFixture;`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const Fixture = runInNewContext(code);
+  const { cameraPerspective } = settingsFixture().settings;
+  const h = keyboardGameFixture();
+  t.after(() => h.game.dispose());
+  const Fixture = runInNewContext(code, { cameraPerspective, GameType: h.GameType });
   const fixture = new Fixture();
+  fixture.world = { conditions: { gameType: h.GameType.FOUR_PLAYER } };
+  fixture.height = 844;
   fixture.settings = { perspective: { checked: false }, tileLabels: { checked: true } };
   fixture.lookDown = { pos: 0.5 };
   fixture.zoom = { pos: -0.2 };
   for (const [width, boardLayout, handLayout] of [[390, 'rectangular', 'separate'], [767, 'rectangular', 'separate'], [768, 'classic', 'in-table'], [1024, 'classic', 'in-table']]) {
     fixture.width = width;
-    const presentation = fixture.presentation({ boardLayout: 'auto', handLayout: 'auto' });
-    assert.deepEqual(plain(presentation), { viewMode: 'flat', boardLayout, handLayout, tileLabels: true, lookDown: 0.5, zoom: -0.2 });
+    const presentation = fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' });
+    assert.deepEqual(plain(presentation), { viewMode: width < 768 ? 'flat' : 'perspective',
+      boardLayout, handLayout, tileLabels: true, lookDown: 0.5, zoom: -0.2 });
   }
+  fixture.world.conditions.gameType = h.GameType.CHANGSHA;
+  assert.equal(fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).boardLayout,
+    'rectangular', 'desktop Changsha also uses compact public lanes');
+  fixture.width = 844;
+  fixture.height = 390;
+  assert.equal(fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).handLayout,
+    'separate', 'phone landscape must not shrink the hand back into the table');
   fixture.width = 390;
   fixture.settings.perspective.checked = true;
-  const explicit = fixture.presentation({ boardLayout: 'classic', handLayout: 'in-table' });
+  const explicit = fixture.presentation({ cameraMode: 'perspective', boardLayout: 'classic', handLayout: 'in-table' });
   assert.equal(explicit.boardLayout, 'classic');
   assert.equal(explicit.handLayout, 'in-table');
   assert.equal(explicit.viewMode, 'perspective');
-  const h = keyboardGameFixture();
-  t.after(() => h.game.dispose());
   assert.equal(h.game.world.things.get(0).rotationIndex, 2,
     'the actual authoritative relay hand snapshot must retain its authored pose');
   h.select();
@@ -236,7 +264,7 @@ test('viewport DTOs round real backing buffers, cap DPR at two and remove the se
     ]) {
       const clear = rendererViewport('instance', 3, { ...measurement, insets });
       assert.deepEqual(plain(clear.insetsCssPx), insets, 'the frozen viewport forwards actual chrome clearance unchanged');
-      assert.equal(clear.handBandCssPx, Math.min(180, (height - insets.top - insets.bottom) * 0.3, Math.max(96, width * 0.24)));
+      assert.equal(clear.handBandCssPx, Math.min(180, (height - insets.top - insets.bottom) * 0.3, Math.max(148, width * 0.24)));
       assert(clear.handBandCssPx + insets.top + insets.bottom < height, 'the complete hand band leaves a real board viewport');
       assert.equal(clear.widthPx, value.widthPx, 'reserving UI space does not change DPR or the input backing buffer');
       assert.equal(clear.heightPx, value.heightPx);

@@ -5,6 +5,8 @@ using Mahjong.Renderer.Art;
 using Mahjong.Renderer.Bridge;
 using Mahjong.Renderer.Contract;
 using Mahjong.Renderer.Input;
+using Mahjong.Renderer.Layout;
+using Mahjong.Renderer.Rendering;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -14,6 +16,104 @@ namespace Mahjong.Renderer.Tests
 {
     public sealed class ActionTests
     {
+        [Test]
+        public void OrdinaryTouchDiscardsOnceAndCannotReplayAsSyntheticMouseOrSecondRelease()
+        {
+            WithPointer((pointer, state, position, emitted) =>
+            {
+                PointerCall(pointer, "Begin", position, true, 0);
+                PointerCall(pointer, "End", position, false);
+                PointerCall(pointer, "End", position, false);
+                PointerCall(pointer, "Begin", position, false, -1);
+                PointerCall(pointer, "End", position, false);
+                Assert.That(emitted.Select(action => action.Intent["kind"].Value<string>()),
+                    Is.EqualTo(new[] { "discard" }));
+                Assert.That(emitted[0].Intent["entityId"].Value<string>(), Is.EqualTo("fixture-own-tile"));
+            });
+        }
+
+        [TestCase("moved")]
+        [TestCase("canceled")]
+        [TestCase("long-pressed")]
+        [TestCase("permission-lost")]
+        [TestCase("resized")]
+        public void NonTapOrStaleTouchCannotDiscard(string reason)
+        {
+            WithPointer((pointer, state, position, emitted) =>
+            {
+                PointerCall(pointer, "Begin", position, true, 0);
+                if (reason == "moved") PointerCall(pointer, "Move", position + new Vector2(Screen.width, 0));
+                else if (reason == "canceled") pointer.Reset();
+                else if (reason == "long-pressed")
+                {
+                    typeof(PointerInput).GetField("started", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .SetValue(pointer, Time.unscaledTime - 1);
+                    PointerCall(pointer, "Move", position);
+                }
+                else if (reason == "resized")
+                {
+                    Viewport next = SourceFixtures.Copy(state.Viewport, "Viewport");
+                    next.ResizeRevision++;
+                    state.SetViewport(next);
+                }
+                else
+                {
+                    RendererFrame next = SourceFixtures.Copy(state.Frame, "RendererFrame");
+                    next.FrameId++;
+                    next.Entities[0].Interaction.CanDiscard = false;
+                    state.ApplyFrame(next);
+                }
+                PointerCall(pointer, "End", position, false);
+                Assert.That(emitted.Any(action => action.Intent["kind"].Value<string>() == "discard"), Is.False, reason);
+            });
+        }
+
+        [Test]
+        public void MouseRetainsSelectThenDoubleClickDiscard()
+        {
+            WithPointer((pointer, state, position, emitted) =>
+            {
+                PointerCall(pointer, "Begin", position, false, -1);
+                PointerCall(pointer, "End", position, false);
+                Assert.That(emitted.Single().Intent["kind"].Value<string>(), Is.EqualTo("select"));
+                PointerCall(pointer, "Begin", position, false, -1);
+                PointerCall(pointer, "End", position, false);
+                Assert.That(emitted.Select(action => action.Intent["kind"].Value<string>()),
+                    Is.EqualTo(new[] { "select", "discard" }));
+            });
+        }
+
+        private static void PointerCall(PointerInput pointer, string method, params object[] arguments) =>
+            typeof(PointerInput).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(pointer, arguments);
+
+        private static void WithPointer(System.Action<PointerInput, RendererState, Vector2, List<RendererAction>> test)
+        {
+            RendererState state = SourceFixtures.State();
+            var emitted = new List<RendererAction>();
+            var parent = new GameObject("Native pointer contract");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            bool simulatedMouse = UnityEngine.Input.simulateMouseWithTouches;
+            try
+            {
+                var actions = new SemanticActions(state, emitted.Add);
+                scene.Commit(BoardLayout.Build(state.Layout, state.Frame, state.Viewport), state.Frame, actions,
+                    state.Viewport.ResizeRevision);
+                scene.TableCamera.pixelRect = new Rect(0, 150, 800, 600);
+                scene.HandCamera.pixelRect = new Rect(0, 0, 800, 140);
+                Physics.SyncTransforms();
+                var pointer = parent.AddComponent<PointerInput>();
+                pointer.Initialize(state, actions, new CameraPicker(scene, state));
+                Vector2 position = scene.HandCamera.WorldToScreenPoint(scene.ActiveEntities["fixture-own-tile"].Root.transform.position);
+                test(pointer, state, position, emitted);
+            }
+            finally
+            {
+                scene.Dispose();
+                EngineObjects.Release(parent);
+                UnityEngine.Input.simulateMouseWithTouches = simulatedMouse;
+            }
+        }
+
         [Test]
         public void SemanticDiscardHasOnlyRendererHandleAndCurrentContext()
         {

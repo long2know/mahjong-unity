@@ -179,8 +179,15 @@ Classic conversion retains the supplied right-handed Z-up coordinates at
 0.01 units, (x-87,z,y-87), quaternion (-qx,-qz,-qy,qw), and applies POV rotation
 once. Logical colliders retain original shape and uniform scale; the visual body is
 beveled within those same logical bounds.
-Rectangular layout rigidly packs each seat/group into measured, non-overlapping
-lanes without repacking wall tiers/rows, changing slots or stretching tiles.
+Rectangular relay layout rigidly packs each seat/group into measured,
+non-overlapping lanes without repacking wall tiers/rows or changing slots.
+Changsha's compact rectangular view fits occupied groups only: empty meld/
+discard reserves and the separately displayed local hand take no board space.
+Public meld/discard tiles have a uniform2x visual/collider scale, melds form
+adjacent strips, portrait side discards use longer rows, and remaining wall
+stacks retain their source tier heights. Melds sit directly outside discards,
+followed by concealed hands and walls, with0.018-unit gutters. Source slot
+addresses, faces, entitlement, ordering and rule geometry are unchanged.
 Every schema group/kind is represented, including sticks, marker, Kita and
 Minefield wall.open. Four/three/two-seat active players remain source-defined;
 extra physical wall/payment slots may exist on otherwise inactive sides.
@@ -192,12 +199,17 @@ Flat/perspective, zoom/lookDown, viewSeat, CSS/DPR/insets and orientation refit
 are frame/viewport inputs. Changed picking transforms cancel gestures and
 block picks until the corresponding camera plan is committed.
 
-Native input: mouse/touch raycasts, tap selection/manual pickup/dice, double-tap
-discard or eligible relay flip, right-click/F flip, Shift/Ctrl or touch-long-press
+Native input: mouse/touch raycasts, single touch discard when authorized,
+tap selection/manual pickup/dice, mouse double-click discard or eligible relay
+double-tap flip, right-click/F flip, Shift/Ctrl or touch-long-press
 multi-selection, source-authorized relay slot drag/drop and cancel. Source
 canSelect/canDrag/canFlip/canDiscard/canPickup flags are checked at action time.
 Changsha commands never relocate a tile locally. Submitted is not a server ack.
 Multi-touch cancels active dragging; no zoom/seat/sticky action is invented.
+Moved/canceled/long-pressed touches do not discard. Touch-generated mouse input
+is suppressed, and a released gesture cannot emit twice. Portrait automatic
+camera mode is flat; desktop/landscape remains perspective. Explicit camera
+and classic/rectangular/hand choices persist through orientation changes.
 Browser preferences and rule/result/claim controls remain browser-owned.
 
 Unqualified frozen-v1 gaps

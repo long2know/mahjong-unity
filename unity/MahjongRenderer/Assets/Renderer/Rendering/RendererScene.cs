@@ -80,7 +80,7 @@ namespace Mahjong.Renderer.Rendering
             interpolationStarted = Time.unscaledTime;
             CameraPose fitted = CameraFit.Fit(plan.BoardBounds,
                 plan.Viewport.BoardCss.width / plan.Viewport.BoardCss.height,
-                frame.Presentation.ViewMode == "flat", frame.Presentation.LookDown, frame.Presentation.Zoom);
+                frame.Presentation.ViewMode == "flat", frame.Presentation.LookDown, frame.Presentation.Zoom, plan.Compact);
             TableCamera.rect = plan.Viewport.BoardNormalized;
             TableCamera.orthographic = frame.Presentation.ViewMode == "flat";
             TableCamera.orthographicSize = fitted.OrthographicSize;
@@ -208,7 +208,7 @@ namespace Mahjong.Renderer.Rendering
                 bool flat = frame.Presentation.ViewMode == "flat";
                 CameraPose fitted = CameraFit.Fit(plan.BoardBounds,
                     plan.Viewport.BoardCss.width / plan.Viewport.BoardCss.height, flat,
-                    frame.Presentation.LookDown, frame.Presentation.Zoom);
+                    frame.Presentation.LookDown, frame.Presentation.Zoom, plan.Compact);
                 float depth = (Quaternion.Inverse(fitted.Rotation) * -fitted.Position).z;
                 float pixelWorld = flat ? fitted.OrthographicSize * 2 / plan.Viewport.BoardCss.height :
                     depth * 2 * Mathf.Tan(CameraFit.FieldOfView * Mathf.Deg2Rad / 2) / plan.Viewport.BoardCss.height;

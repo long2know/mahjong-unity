@@ -102,17 +102,52 @@ game ID with a public room alias.
 
 ## Presentation capability and evidence
 
-The source Display controls expose **Board layout** (`Automatic (mobile fit)`,
+The source Display controls expose **Board layout** (`Automatic (compact table)`,
 `Classic square`, `Rectangular`) and **Local hand layout**
-(`Automatic (mobile fit)`, `In table`, `Separate local hand`). Automatic is a
-browser preference, not a new renderer enum. The existing perspective settings
-and P shortcut remain separate from game authority.
+(`Automatic (compact table)`, `In table`, `Separate local hand`) and **Camera
+view** (`Automatic (portrait fit)`, `Perspective`, `Flat`). Automatic is a
+browser preference, not a new renderer enum. Legacy perspective controls and
+the P shortcut still persist an explicit view, separate from game authority.
 
 Both layout preferences default to `auto` in `mahjong.settings.v1`. The
-implemented resolver uses the **canvas CSS width**: below 768 px it selects
-rectangular/separate; at 768 px or above, classic/in-table. Explicit choices
+implemented resolver uses the **canvas CSS dimensions**: Changsha uses compact
+rectangular lanes on desktop and phones; relay modes use rectangular below
+768 px and classic otherwise. Below 768 px or 520 px high, the automatic local
+hand is separate. Automatic camera is flat in narrow portrait and perspective
+otherwise. Older saved perspective choices migrate without being overridden.
+Explicit choices
 persist and override that automatic fit. Resize republishes presentation; it
 does not change the variant, actor seat, or concealed-hand entitlement.
+
+**October 14, 2026 mobile correction:** Changsha rectangular layout fits occupied
+groups rather than unused public-slot reserves. Melds are single adjacent
+strips, public meld/discard bodies and colliders are uniformly 2x, side portrait
+discards use longer rows, and separately drawn local hands consume no table
+lane. Semantic slots, source tier heights, face privacy and rule commands are
+unchanged. Header, claim, chat, move-log and install chrome reserve their actual
+visible footprint. Explicit classic layout retains the original source poses.
+
+Ordinary unmoved touch release discards an authorized tile once; mouse retains
+selection/double-click. Movement, cancellation, long press, multi-touch, resize
+and authority loss cannot accidentally discard. The actual pinned Editor
+passed **134/134** cases, including minimum portrait hand widths, public-face
+CSS sizes, non-overlap, camera bounds and native pointer guards. The actual
+compiled browser mobile probe passed **20** cases: 360/390/500-width single taps
+at DPR1/2/3, progressed public piles, chat/orientation/explicit preferences,
+canceled gestures, desktop input and count-only manual pickup. Separate real
+native retakes preserved four relay variants, spectator privacy, chat and
+reconnect. These are Chromium emulation results, not physical-device claims.
+
+Repeat the mobile probe against a genuine clean runtime image and the matching
+actual Editor receipt, rather than overwriting an older build's evidence:
+
+```sh
+python3 tests/migration/run_runtime_player_integration.py \
+  --image <qualified-clean-runtime-image> \
+  --editor-receipt artifacts/test-results/<current-clean-editor>/receipt.json \
+  --mobile-playability --port 5099 \
+  --output-name migration-player-mobile
+```
 
 | v1 capability | Source boundary | Verified local scope and limits |
 | --- | --- | --- |

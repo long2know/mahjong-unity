@@ -111,8 +111,8 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
   }
   const { UnityHost, validateBuildManifest, artifactUrl } = sourceLoader({
     document, window, fetch, ResizeObserver: Observer, MutationObserver: Mutation,
-    getComputedStyle: element => element === chat ? chat.computed
-      : { paddingTop: '20px', paddingRight: '0px', paddingBottom: '10px', paddingLeft: '0px' },
+    getComputedStyle: element => element.computed
+      ?? { paddingTop: '20px', paddingRight: '0px', paddingBottom: '10px', paddingLeft: '0px' },
   }).load('renderer/unity-host.ts');
   const hooks = {
     action: value => actions.push(value), resized: value => resizes.push(value), resumed() {},
@@ -262,10 +262,10 @@ test('resizes/orientation/DPR/chat insets/hand band update the real host buffer 
   g.host.setPresentation({ ...g.frame(1).presentation, handLayout: 'separate' });
   assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 20, right: 0, bottom: 52, left: 0 },
     'the entire hand starts above the actual collapsed chat rectangle, not only the CSS safe area');
-  assert.equal(g.host.viewport.handBandCssPx, 96, 'chat clearance must not shrink the portrait hand tiles');
+  assert.equal(g.host.viewport.handBandCssPx, 148, 'chat clearance must not shrink the portrait hand tiles');
   assert(g.observers[0].observed.some(entry => entry.target === g.main));
   assert(g.observers[0].observed.some(entry => entry.target === g.chat), 'chat size changes must trigger measurement');
-  assert(g.mutations[0].observed.some(entry => entry.target === g.chat
+  assert(g.mutations[0].observed.some(entry => entry.target === g.document.body && entry.options.subtree
     && entry.options.attributeFilter.includes('class') && entry.options.attributeFilter.includes('style')));
   assert(g.mutations[0].observed.some(entry => entry.target === g.document.body
     && entry.options.attributeFilter.includes('class')), 'lobby/compact layout changes can move unchanged chat boxes');
@@ -283,7 +283,7 @@ test('resizes/orientation/DPR/chat insets/hand band update the real host buffer 
   g.mutations[0].callback();
   assert.deepEqual(plain(g.host.viewport.insetsCssPx), { top: 348.5, right: 0, bottom: 10, left: 0 },
     'portrait expanded chat reserves its existing top band rather than hiding or intercepting hand input');
-  assert.equal(g.host.viewport.handBandCssPx, 96);
+  assert.equal(g.host.viewport.handBandCssPx, (844 - 348.5 - 10) * 0.3);
   assert(g.host.viewport.resizeRevision > revision);
   for (const computed of [{ display: 'none', visibility: 'visible' }, { display: 'flex', visibility: 'hidden' }]) {
     g.chat.computed = computed;
@@ -350,6 +350,38 @@ test('resizes/orientation/DPR/chat insets/hand band update the real host buffer 
   g.mutations[0].callback();
   assert.equal(g.calls.length, count);
   assert.equal(g.mutations[0].disconnected, true);
+});
+
+test('visible header and claim controls reserve real board space without shrinking or obscuring the touch hand', async t => {
+  const f = fixture();
+  t.after(() => f.host.dispose());
+  f.host.setPresentation({ ...f.frame(1).presentation, handLayout: 'separate' });
+  const banner = new Element('div');
+  banner.id = 'turn-banner';
+  banner.rect = { left: 8, top: 62, width: 280, height: 48 };
+  banner.computed = { display: 'block', visibility: 'visible' };
+  f.document.body.append(banner);
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.top, 118);
+  assert.equal(f.host.viewport.handBandCssPx, 148);
+  const claim = new Element('section');
+  claim.id = 'claim-window-actions';
+  claim.rect = { left: 8, top: 118, width: 374, height: 58 };
+  claim.computed = { display: 'grid', visibility: 'visible' };
+  f.document.body.append(claim);
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.top, 184, 'dynamic claim controls are below the header, above the board');
+  assert.equal(f.host.viewport.handBandCssPx, 148);
+  claim.hidden = true;
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.top, 118);
+  banner.computed.visibility = 'hidden';
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.top, 20, 'hidden controls do not reserve fictitious gutters');
+  banner.computed.visibility = 'visible';
+  banner.rect.left = 900;
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.top, 20, 'off-canvas panels do not shrink the table');
 });
 
 test('visibility suspends visual playback only; disposal detaches observers/bridge and awaits runtime Quit', async () => {

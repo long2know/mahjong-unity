@@ -25,7 +25,7 @@ function settingsHarness(saved = {}, withCameraInput = true) {
   const native = new Input(), display = new Input(), legacy = new Input();
   const order = new Input(), legacyOrder = new Input();
   const nodes = new Map([
-    ['settings-perspective-toggle', display], ['settings-game-perspective', legacy],
+    ['settings-camera-view', display], ['settings-game-perspective', legacy],
     ['settings-hand-sort', order], ['settings-game-hand-sort', legacyOrder],
     ['settings-table-display', {}],
   ]);
@@ -59,7 +59,7 @@ test('saved flat view reaches the canonical camera input before the lazy drawer 
   const h = settingsHarness({ perspective: false, handSort: 'groups', lang: 'zh-Hans' });
   h.settings.installPerspectiveSetting();
   assert.equal(h.native.checked, false);
-  assert.equal(h.display.checked, false);
+  assert.equal(h.display.value, 'flat');
   assert.equal(h.cameraUpdates(), 1);
   h.settings.installPerspectiveSetting();
   assert.equal(h.cameraUpdates(), 1, 'binding is idempotent');
@@ -75,13 +75,13 @@ test('drawer changes and legacy changes persist and synchronize without an event
   h.settings.onSettingsChange(() => { changes++; });
   h.settings.setSettings({ perspective: false });
   assert.equal(h.native.checked, false);
-  assert.equal(h.display.checked, false);
+  assert.equal(h.display.value, 'flat');
   assert.equal(h.saved().perspective, false);
   assert.equal(h.cameraUpdates(), 1);
   assert.equal(changes, 1);
   h.native.checked = true;
   h.native.dispatchEvent(new Event('change', { bubbles: true }));
-  assert.equal(h.display.checked, true);
+  assert.equal(h.display.value, 'perspective');
   assert.equal(h.settings.getSettings().perspective, true);
   assert.equal(h.saved().perspective, true);
   assert.equal(h.cameraUpdates(), 2);
@@ -98,11 +98,11 @@ test('sorting does not reset a keyboard/legacy-selected view; resetting settings
   h.settings.setSettings({ handSort: 'groups', mobileTableStatus: true });
   assert.equal(h.cameraUpdates(), 1);
   assert.equal(h.native.checked, false);
-  assert.equal(h.display.checked, false);
+  assert.equal(h.display.value, 'flat');
   assert.equal(h.saved().perspective, false);
   h.settings.resetSettings();
   assert.equal(h.native.checked, true);
-  assert.equal(h.display.checked, true);
+  assert.equal(h.display.value, 'auto');
   assert.equal(h.saved().perspective, true);
   assert.equal(h.cameraUpdates(), 2);
 });
@@ -135,13 +135,13 @@ test('the original gear drawer restores and writes the same sorting/perspective 
   h.legacy.checked = true;
   h.legacy.dispatchEvent(new Event('change'));
   assert.equal(h.native.checked, true);
-  assert.equal(h.display.checked, true);
+  assert.equal(h.display.value, 'perspective');
   assert.equal(h.saved().perspective, true);
   assert.equal(changes, 2);
   h.settings.setSettings({ handSort: 'groups', perspective: false });
   assert.equal(h.legacyOrder.value, 'groups');
   assert.equal(h.legacy.checked, false);
-  assert.equal(h.display.checked, false);
+  assert.equal(h.display.value, 'flat');
   assert.equal(changes, 3);
   assert.equal(h.saved().lang, 'zh-Hans');
 });
@@ -159,14 +159,14 @@ test('the actual P shortcut takes the canonical change route and respects held k
   fixture.settings = { perspective: h.native };
   fixture.onKeyDown({ key: 'p' });
   assert.equal(h.settings.getSettings().perspective, false);
-  assert.equal(h.display.checked, false);
+  assert.equal(h.display.value, 'flat');
   assert.equal(h.saved().perspective, false);
   fixture.onKeyDown({ key: 'p' });
   assert.equal(h.cameraUpdates(), 1);
   fixture.onKeyUp({ key: 'p' });
   fixture.onKeyDown({ key: 'p' });
   assert.equal(h.saved().perspective, true);
-  assert.equal(h.display.checked, true);
+  assert.equal(h.display.value, 'perspective');
   assert.equal(h.cameraUpdates(), 2);
   fixture.onKeyUp({ key: 'p' });
   for (const tagName of ['INPUT', 'TEXTAREA', 'SELECT']) {
@@ -182,9 +182,38 @@ test('the actual P shortcut takes the canonical change route and respects held k
 test('all shipped languages label the checkbox, its explanation and the existing settings gear', () => {
   for (const locale of ['en', 'zh-Hans', 'zh-Hant']) {
     const catalog = JSON.parse(fs.readFileSync(path.join(root, `src/i18n/${locale}.json`), 'utf8'));
-    for (const key of ['settings.open_display', 'settings.perspective', 'settings.perspective_hint', 'chat.open', 'chat.collapse']) {
+    for (const key of ['settings.open_display', 'settings.perspective', 'settings.perspective_hint',
+      'settings.camera_view', 'settings.camera_auto', 'settings.camera_flat', 'settings.camera_perspective',
+      'turn.discard_touch', 'turn.discard_mouse', 'chat.open', 'chat.collapse']) {
       assert.equal(typeof catalog[key], 'string', `${locale}: ${key}`);
       assert(catalog[key].length > 0);
     }
+  }
+});
+
+test('automatic camera follows portrait without persisting a derived choice, including reentrant camera listeners', () => {
+  const h = settingsHarness();
+  h.settings.installPerspectiveSetting();
+  h.native.addEventListener('change', () => h.settings.syncCameraInputs(390, 844));
+  h.settings.syncCameraInputs(390, 844);
+  assert.equal(h.native.checked, false);
+  assert.equal(h.settings.getSettings().cameraMode, 'auto');
+  assert.equal(h.saved().cameraMode, undefined, 'orientation alone does not rewrite stored preferences');
+  assert.equal(h.settings.cameraPerspective(h.settings.getSettings(), 1280, 800), true);
+  h.native.checked = true;
+  h.native.dispatchEvent(new Event('change'));
+  assert.equal(h.saved().cameraMode, 'perspective');
+  h.settings.syncCameraInputs(360, 800);
+  assert.equal(h.native.checked, true, 'explicit perspective survives portrait resize');
+  h.settings.setSettings({ cameraMode: 'auto' });
+  assert.equal(h.settings.cameraPerspective(h.settings.getSettings(), 360, 800), false);
+  assert.equal(h.settings.cameraPerspective(h.settings.getSettings(), 844, 390), true);
+});
+
+test('legacy saved perspective choices migrate to explicit camera modes rather than being overridden', () => {
+  for (const perspective of [false, true]) {
+    const h = settingsHarness({ perspective });
+    assert.equal(h.settings.getSettings().cameraMode, perspective ? 'perspective' : 'flat');
+    assert.equal(h.settings.cameraPerspective(h.settings.getSettings(), 360, 800), perspective);
   }
 });

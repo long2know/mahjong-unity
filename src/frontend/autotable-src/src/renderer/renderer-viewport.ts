@@ -17,7 +17,7 @@ export function rendererViewport(instanceId: string, revision: number, input: Vi
     widthPx: Math.max(1, Math.round(input.width * renderPixelRatio)),
     heightPx: Math.max(1, Math.round(input.height * renderPixelRatio)),
     insetsCssPx: { ...input.insets },
-    handBandCssPx: input.separateHand ? Math.min(180, usableHeight * 0.3, Math.max(96, input.width * 0.24)) : 0,
+    handBandCssPx: input.separateHand ? Math.min(180, usableHeight * 0.3, Math.max(148, input.width * 0.24)) : 0,
   };
   assertDto<Viewport>('Viewport', value);
   return value;

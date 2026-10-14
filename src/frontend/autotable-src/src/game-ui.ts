@@ -2015,7 +2015,8 @@ export class GameUi {
     switch (cue.kind) {
       case 'discard':
         this.applyTurnBannerState(
-          'discard', 'Your turn — click a tile to discard', 'discard', null);
+          'discard', t(window.matchMedia('(pointer: coarse)').matches ? 'turn.discard_touch' : 'turn.discard_mouse'),
+          'discard', null);
         return;
       case 'waiting':
         this.applyTurnBannerState(

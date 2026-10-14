@@ -65,9 +65,9 @@ for (const viewport of [
       await page.getByTestId('settings-button').click();
       await page.getByTestId('settings-tab-display').click();
       await expect(page.getByTestId('settings-hand-sort')).toHaveValue('groups');
-      await expect(page.getByTestId('settings-perspective-toggle')).not.toBeChecked();
+      await expect(page.getByTestId('settings-camera-view')).toHaveValue('flat');
       await selectOrder(page, '#settings-panel-display', 'suit');
-      await page.getByTestId('settings-perspective-toggle').check();
+      await page.getByTestId('settings-camera-view').selectOption('perspective');
       await page.getByTestId('settings-close').click();
       await expect.poll(async () => (await mobileGeometry(page)).tiles.map(tile => tile.id)).toEqual(suit);
       await page.locator('#settings-toggle').click();
@@ -78,7 +78,7 @@ for (const viewport of [
       await page.keyboard.press('p');
       await expect.poll(async () => (await mobileGeometry(page)).camera).toBe('OrthographicCamera');
       await expect(page.getByTestId('settings-game-perspective')).not.toBeChecked();
-      await expect(page.getByTestId('settings-perspective-toggle')).not.toBeChecked();
+      await expect(page.getByTestId('settings-camera-view')).toHaveValue('flat');
       expect(await authority(page)).toEqual(before);
       expect(actor.sent.slice(mark).flatMap(frame => frame.entries ?? [])
         .filter(([kind]) => ['things', 'slots', 'discard', 'claim', 'match', 'seats'].includes(kind))).toEqual([]);

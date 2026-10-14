@@ -74,7 +74,7 @@ async function frames(page: Page, count = 3): Promise<void> {
 async function viewMode(page: Page, perspective: boolean): Promise<void> {
   await page.getByTestId('settings-button').click();
   await page.getByTestId('settings-tab-display').click();
-  await page.getByTestId('settings-perspective-toggle').setChecked(perspective);
+  await page.getByTestId('settings-camera-view').selectOption(perspective ? 'perspective' : 'flat');
   await page.getByTestId('settings-close').click();
   await expect.poll(async () => (await cameraFrame(page)).camera).toBe(perspective ? 'PerspectiveCamera' : 'OrthographicCamera');
   await frames(page);

@@ -20,7 +20,7 @@ namespace Mahjong.Renderer.Layout
     {
         public const float FieldOfView = 40;
 
-        public static CameraPose Fit(Bounds bounds, float aspect, bool flat, double lookDown, double zoom)
+        public static CameraPose Fit(Bounds bounds, float aspect, bool flat, double lookDown, double zoom, bool compact = false)
         {
             float elevation = flat ? 90 : Mathf.Lerp(38, 78, (float)lookDown);
             Quaternion rotation = Quaternion.Euler(elevation, 0, 0);
@@ -29,7 +29,10 @@ namespace Mahjong.Renderer.Layout
             Vector3 up = rotation * Vector3.up;
             float maxRight = 0;
             float maxUp = 0;
-            float nearOffset = 0;
+            float distance = 0;
+            float tangent = Mathf.Tan(FieldOfView * Mathf.Deg2Rad / 2);
+            float margin = compact ? Mathf.Lerp(1.10f, 1.02f, ((float)zoom + 1) / 2) :
+                Mathf.Lerp(1.28f, 1.04f, ((float)zoom + 1) / 2);
             for (int x = -1; x <= 1; x += 2)
                 for (int y = -1; y <= 1; y += 2)
                     for (int z = -1; z <= 1; z += 2)
@@ -37,13 +40,13 @@ namespace Mahjong.Renderer.Layout
                         Vector3 point = Vector3.Scale(bounds.extents, new Vector3(x, y, z));
                         maxRight = Mathf.Max(maxRight, Mathf.Abs(Vector3.Dot(point, right)));
                         maxUp = Mathf.Max(maxUp, Mathf.Abs(Vector3.Dot(point, up)));
-                        nearOffset = Mathf.Max(nearOffset, -Vector3.Dot(point, forward));
+                        float fit = Mathf.Max(Mathf.Abs(Vector3.Dot(point, up)),
+                            Mathf.Abs(Vector3.Dot(point, right)) / Mathf.Max(0.01f, aspect));
+                        distance = Mathf.Max(distance, fit * margin / tangent - Vector3.Dot(point, forward));
                     }
             // Zoom changes margins, never crops canonical groups out of the safe viewport.
-            float margin = Mathf.Lerp(1.28f, 1.04f, ((float)zoom + 1) / 2);
             float size = Mathf.Max(maxUp, maxRight / Mathf.Max(0.01f, aspect)) * margin;
-            float distance = flat ? bounds.size.magnitude + 1 :
-                size / Mathf.Tan(FieldOfView * Mathf.Deg2Rad / 2) + nearOffset + 0.1f;
+            distance = flat ? bounds.size.magnitude + 1 : distance + 0.1f;
             return new CameraPose(bounds.center - forward * distance, rotation, size);
         }
     }

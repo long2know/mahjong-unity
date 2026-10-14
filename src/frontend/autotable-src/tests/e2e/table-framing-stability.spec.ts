@@ -106,7 +106,7 @@ for (const viewport of [
       await setHandOrder(page, 'groups');
       await page.getByTestId('settings-button').click();
       await page.getByTestId('settings-tab-display').click();
-      await page.getByTestId('settings-perspective-toggle').setChecked(true);
+      await page.getByTestId('settings-camera-view').selectOption('perspective');
       await page.getByTestId('settings-close').click();
       await page.mouse.move(0, 0);
       const before = await mobileGeometry(page);
