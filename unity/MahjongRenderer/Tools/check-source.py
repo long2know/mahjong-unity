@@ -97,6 +97,7 @@ def main():
     require(len(layers) == 32 and layers[8:12] == ["MahjongTable", "MahjongHand", "MahjongTableSlots", "MahjongHandSlots"],
             "Renderer camera/raycast layer indices drift.")
     subprocess.run([sys.executable, str(project / "Tools/asset_metadata.py")], check=True)
+    subprocess.run([sys.executable, str(project / "Tools/build_art_atlas.py")], check=True)
     digest = hashlib.sha256(json.dumps(schema, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     print("Source contract/project gates passed; canonical schema SHA256=" + digest)
     print("NOT Unity compilation, package restore, EditMode execution, WebGL output, browser or device qualification.")

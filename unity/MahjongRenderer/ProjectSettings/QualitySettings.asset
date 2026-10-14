@@ -22,7 +22,7 @@ QualitySettings:
     vSyncCount: 0
     antiAliasing: 0
     globalTextureMipmapLimit: 0
-    anisotropicTextures: 0
+    anisotropicTextures: 1
     customRenderPipeline: {fileID: 0}
     resolutionScalingFixedDPIFactor: 1
     excludedTargetPlatforms: []

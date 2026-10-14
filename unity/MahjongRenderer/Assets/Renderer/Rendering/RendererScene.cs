@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Mahjong.Renderer.Art;
 using Mahjong.Renderer.Contract;
 using Mahjong.Renderer.Input;
@@ -43,11 +44,11 @@ namespace Mahjong.Renderer.Rendering
             obj.transform.SetParent(parent, false);
             var camera = obj.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.035f, 0.055f, 0.07f);
+            camera.backgroundColor = new Color(0.035f, 0.055f, 0.06f);
             camera.cullingMask = 1 << layer;
             camera.fieldOfView = CameraFit.FieldOfView;
             camera.depth = depth;
-            camera.nearClipPlane = 0.005f;
+            camera.nearClipPlane = 0.025f;
             camera.allowHDR = false;
             camera.allowMSAA = false;
             camera.enabled = false;
@@ -166,6 +167,9 @@ namespace Mahjong.Renderer.Rendering
             private readonly LabelView[] labels;
             private readonly SurfaceView board;
             private readonly SurfaceView rail;
+            private readonly SurfaceView trim;
+            private readonly SurfaceView centerPlate;
+            private readonly SurfaceView centerRim;
             private readonly SurfaceView handBackground;
             private readonly SurfaceView[] diceBody = new SurfaceView[2];
             private readonly SurfaceView[] diceFace = new SurfaceView[2];
@@ -177,13 +181,16 @@ namespace Mahjong.Renderer.Rendering
                 Root = new GameObject("Atomic frame buffer " + index);
                 Root.transform.SetParent(parent, false);
                 Root.SetActive(false);
-                board = new SurfaceView(Root.transform, "Original table", art.Box, art);
-                rail = new SurfaceView(Root.transform, "Original rail", art.Box, art);
+                board = new SurfaceView(Root.transform, "Woven felt", art.TableBox, art);
+                rail = new SurfaceView(Root.transform, "Satin walnut rail", art.TableRail, art);
+                trim = new SurfaceView(Root.transform, "Fine brass rail inlay", art.TableRail, art);
+                centerPlate = new SurfaceView(Root.transform, "Center information inset", art.RoundedBox, art);
+                centerRim = new SurfaceView(Root.transform, "Center fine rim", art.RoundedBox, art);
                 handBackground = new SurfaceView(Root.transform, "Hand band", art.Quad, art);
                 labels = Enumerable.Range(0, 8).Select(_ => new LabelView(Root.transform, art)).ToArray();
                 for (int i = 0; i < 2; i++)
                 {
-                    diceBody[i] = new SurfaceView(Root.transform, "Public die", art.Box, art);
+                    diceBody[i] = new SurfaceView(Root.transform, "Public die", art.RoundedBox, art);
                     diceFace[i] = new SurfaceView(Root.transform, "Public die pips", art.Quad, art);
                     var target = diceBody[i].Object.AddComponent<PickTarget>();
                     target.Bind(PickKind.Dice, null);
@@ -198,16 +205,41 @@ namespace Mahjong.Renderer.Rendering
                 slotLookup.Clear();
                 Bounds surface = frame.Presentation.BoardLayout == "classic" ?
                     new Bounds(Vector3.zero, new Vector3(1.74f, 0.06f, 1.74f)) : plan.BoardBounds;
+                bool flat = frame.Presentation.ViewMode == "flat";
+                CameraPose fitted = CameraFit.Fit(plan.BoardBounds,
+                    plan.Viewport.BoardCss.width / plan.Viewport.BoardCss.height, flat,
+                    frame.Presentation.LookDown, frame.Presentation.Zoom);
+                float depth = (Quaternion.Inverse(fitted.Rotation) * -fitted.Position).z;
+                float pixelWorld = flat ? fitted.OrthographicSize * 2 / plan.Viewport.BoardCss.height :
+                    depth * 2 * Mathf.Tan(CameraFit.FieldOfView * Mathf.Deg2Rad / 2) / plan.Viewport.BoardCss.height;
+                float planeProjection = Mathf.Max(0.5f, Mathf.Abs((fitted.Rotation * Vector3.up).z));
+                float uiScale = Mathf.Clamp(pixelWorld * 7.5f / (0.027f * planeProjection), 1, 3);
+                float panelWidth = Mathf.Max(0.338f, 0.30f * uiScale);
+                Vector3 forward = fitted.Rotation * Vector3.forward;
+                float phaseZ = flat ? 0.075f : Mathf.Max(0.075f,
+                    0.045f + 0.07f * Mathf.Abs(forward.z / forward.y));
+                float panelDepth = Mathf.Max(0.338f, 2 * (phaseZ + 0.027f * uiScale + 0.012f));
                 Vector3 center = new Vector3(surface.center.x, -0.035f, surface.center.z);
                 board.Pose(center, Quaternion.identity, new Vector3(surface.size.x, 0.06f, surface.size.z), RendererLayers.Table);
-                board.Paint(new Color(0.06f, 0.27f, 0.21f));
+                board.Paint(new Color(0.095f, 0.39f, 0.32f), art.TableFabric,
+                    new Rect(0, 0, surface.size.x * 2.5f, surface.size.z * 2.5f), gloss: 0, effect: 3);
                 rail.Pose(center - Vector3.up * 0.013f, Quaternion.identity,
                     new Vector3(surface.size.x + 0.065f, 0.07f, surface.size.z + 0.065f), RendererLayers.Table);
-                rail.Paint(new Color(0.25f, 0.16f, 0.10f));
+                rail.Paint(new Color(0.19f, 0.12f, 0.085f), gloss: 0.22f, effect: 4);
+                trim.Pose(center - Vector3.up * 0.003f, Quaternion.identity,
+                    new Vector3(surface.size.x + 0.012f, 0.06f, surface.size.z + 0.012f), RendererLayers.Table);
+                trim.Paint(new Color(0.49f, 0.37f, 0.21f), gloss: 0.25f);
+                centerRim.Pose(new Vector3(0, -0.003f, 0), Quaternion.identity,
+                    new Vector3(panelWidth + 0.018f, 0.009f, panelDepth + 0.018f), RendererLayers.Table);
+                centerRim.Paint(new Color(0.44f, 0.34f, 0.21f), gloss: 0.12f);
+                centerPlate.Pose(new Vector3(0, -0.002f, 0), Quaternion.identity,
+                    new Vector3(panelWidth, 0.008f, panelDepth), RendererLayers.Table);
+                centerPlate.Paint(new Color(0.065f, 0.205f, 0.19f), gloss: 0.08f);
                 handBackground.Pose(new Vector3(0, -0.001f, 0), Quaternion.identity,
                     new Vector3(plan.Viewport.HandCss.width * SourceCoordinates.Unit, 1,
                         plan.Viewport.HandCss.height * SourceCoordinates.Unit), RendererLayers.Hand);
-                handBackground.Paint(new Color(0.075f, 0.10f, 0.14f));
+                handBackground.Paint(new Color(0.075f, 0.205f, 0.20f), art.TableFabric,
+                    new Rect(0, 0, Mathf.Max(1, plan.Viewport.HandCss.width / 240), 1), gloss: 0, effect: 3);
                 handBackground.Object.SetActive(plan.Viewport.HandCss.height > 0);
                 int n = 0;
                 foreach (EntityPlacement item in plan.Entities.Values)
@@ -236,24 +268,29 @@ namespace Mahjong.Renderer.Rendering
                         new Vector3(surface.min.x + 0.04f, 0.01f, 0);
                     string score = seat.Score.HasValue ? seat.Score.Value.ToString("0", CultureInfo.InvariantCulture) : "-";
                     string nick = string.IsNullOrEmpty(seat.Nick) ? "" : " " + seat.Nick.Substring(0, Mathf.Min(16, seat.Nick.Length));
-                    labels[n++].Apply("SEAT " + seat.Seat + nick + " " + score, 0.027f, point,
+                    labels[n++].Apply(seat.Seat + nick + "  " + score, 0.027f * uiScale, point,
                         Quaternion.AngleAxis(-90 * side, Vector3.up), RendererLayers.Table,
-                        frame.Turn?.ActiveSeat == seat.Seat ? new Color(1, 0.8f, 0.35f) : new Color(0.9f, 0.93f, 0.91f));
+                        frame.Turn?.ActiveSeat == seat.Seat ? new Color(0.98f, 0.84f, 0.53f) : new Color(0.82f, 0.89f, 0.87f));
                 }
                 string phase = frame.Turn?.Phase ?? "WAITING";
-                labels[4].Apply(phase, 0.025f, new Vector3(0, 0.003f, 0.14f), Quaternion.identity,
-                    RendererLayers.Table, new Color(0.85f, 0.9f, 0.85f));
+                phase = Regex.Replace(phase, "([a-z])([A-Z])", "$1 $2").Replace('-', ' ').Replace('_', ' ').ToUpperInvariant();
+                if (phase.StartsWith("AWAITING ", StringComparison.Ordinal)) phase = phase.Substring(9);
+                float phaseHeight = Mathf.Min(0.027f * uiScale, (panelWidth - 0.035f) / Mathf.Max(1, phase.Length * 0.76f));
+                labels[4].Apply(phase, phaseHeight, new Vector3(0, 0.003f, phaseZ), Quaternion.identity,
+                    RendererLayers.Table, new Color(0.88f, 0.92f, 0.89f));
                 if (frame.Match != null)
-                    labels[5].Apply("DEALER " + frame.Match.Dealer + " HONBA " + frame.Match.Honba, 0.022f,
-                        new Vector3(0, 0.003f, -0.15f), Quaternion.identity, RendererLayers.Table, Color.white);
+                {
+                    labels[5].Apply("DEALER " + frame.Match.Dealer, 0.019f * uiScale,
+                        new Vector3(-panelWidth * 0.245f, 0.003f, -0.147f), Quaternion.identity, RendererLayers.Table,
+                        new Color(0.82f, 0.87f, 0.83f));
+                    labels[7].Apply("HONBA " + frame.Match.Honba, 0.019f * uiScale,
+                        new Vector3(panelWidth * 0.245f, 0.003f, -0.147f), Quaternion.identity, RendererLayers.Table,
+                        new Color(0.82f, 0.87f, 0.83f));
+                }
                 if (frame.Pickup != null)
-                    labels[6].Apply("PICKUP " + frame.Pickup.Count + " " + frame.Pickup.DealMode, 0.022f,
-                        new Vector3(0, 0.003f, -0.10f), Quaternion.identity, RendererLayers.Table,
-                        frame.Pickup.CanTake ? new Color(0.5f, 0.95f, 1) : Color.gray);
-                if (plan.Viewport.HandCss.height > 0)
-                    labels[7].Apply("HAND", 0.04f,
-                        new Vector3(0, 0.001f, plan.Viewport.HandCss.height * SourceCoordinates.Unit / 2 - 0.06f),
-                        Quaternion.identity, RendererLayers.Hand, new Color(0.65f, 0.75f, 0.85f));
+                    labels[6].Apply("PICKUP " + frame.Pickup.Count, 0.018f * uiScale,
+                        new Vector3(0, 0.003f, -0.07f - 0.018f * uiScale * 0.35f), Quaternion.identity, RendererLayers.Table,
+                        frame.Pickup.CanTake ? new Color(0.52f, 0.88f, 0.87f) : new Color(0.57f, 0.68f, 0.65f));
                 for (int i = 0; i < 2; i++)
                 {
                     diceBody[i].Object.SetActive(frame.Dice != null);
@@ -261,9 +298,9 @@ namespace Mahjong.Renderer.Rendering
                     if (frame.Dice == null) continue;
                     Vector3 position = new Vector3((i * 2 - 1) * 0.05f, 0.036f, 0);
                     diceBody[i].Pose(position, Quaternion.identity, new Vector3(0.065f, 0.065f, 0.065f), RendererLayers.Table);
-                    diceBody[i].Paint(frame.Dice.CanRoll ? new Color(1, 0.9f, 0.65f) : Color.white);
-                    diceFace[i].Pose(position + new Vector3(0, 0.0326f, 0), Quaternion.identity,
-                        new Vector3(0.058f, 1, 0.058f), RendererLayers.Table);
+                    diceBody[i].Paint(ProceduralArt.Ivory, gloss: frame.Dice.CanRoll ? 0.17f : 0.10f);
+                    diceFace[i].Pose(position + new Vector3(0, 0.0333f, 0), Quaternion.identity,
+                        new Vector3(0.054f, 1, 0.054f), RendererLayers.Table);
                     diceFace[i].Paint(Color.white, frame.Dice.State == "rolled" ? art.Dice[frame.Dice.Values[i] - 1] : null);
                 }
             }

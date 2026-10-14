@@ -20,10 +20,12 @@ namespace Mahjong.Renderer.Rendering
         public readonly GameObject Object;
         public readonly MeshRenderer Renderer;
         public readonly MeshFilter Filter;
+        private readonly ProceduralArt art;
         private readonly MaterialPropertyBlock properties = new MaterialPropertyBlock();
 
         public SurfaceView(Transform parent, string name, Mesh mesh, ProceduralArt art)
         {
+            this.art = art;
             Object = new GameObject(name);
             Object.transform.SetParent(parent, false);
             Filter = Object.AddComponent<MeshFilter>();
@@ -34,13 +36,24 @@ namespace Mahjong.Renderer.Rendering
             Renderer.receiveShadows = false;
         }
 
-        public void Paint(Color color, Texture texture = null, Rect? uv = null)
+        public void Paint(Color color, Texture texture = null, Rect? uv = null,
+            Color? paper = null, Color? baseColor = null, float gloss = 0.06f, bool unlit = false, int effect = 0)
         {
             properties.Clear();
             properties.SetColor("_Color", color);
             properties.SetTexture("_MainTex", texture != null ? texture : Texture2D.whiteTexture);
             Rect rect = uv ?? new Rect(0, 0, 1, 1);
             properties.SetVector("_MainTex_ST", new Vector4(rect.width, rect.height, rect.x, rect.y));
+            properties.SetColor("_Paper", paper ?? Color.clear);
+            properties.SetColor("_BaseColor", baseColor ?? Color.white);
+            properties.SetFloat("_Band", baseColor.HasValue ? 1 : 0);
+            properties.SetFloat("_Gloss", unlit ? 0 : gloss);
+            properties.SetFloat("_Unlit", unlit ? 1 : 0);
+            properties.SetFloat("_Effect", effect);
+            Material material = effect == 1 || effect == 2 || color.a < 0.99f ||
+                paper.HasValue && paper.Value.a < 0.99f ? art.Decal :
+                effect == 3 ? art.Felt : effect == 4 ? art.Wood : art.Surface;
+            if (Renderer.sharedMaterial != material) Renderer.sharedMaterial = material;
             Renderer.SetPropertyBlock(properties);
         }
 
@@ -61,6 +74,7 @@ namespace Mahjong.Renderer.Rendering
         private readonly SurfaceView face;
         private readonly SurfaceView back;
         private readonly SurfaceView cue;
+        private readonly SurfaceView shadow;
         private readonly BoxCollider collider;
         private readonly ProceduralArt art;
         private EntityPlacement placement;
@@ -80,6 +94,7 @@ namespace Mahjong.Renderer.Rendering
             face = new SurfaceView(Root.transform, "Concealed surface", art.Quad, art);
             back = new SurfaceView(Root.transform, "Common back", art.Quad, art);
             cue = new SurfaceView(parent, "Selection cue", art.Quad, art);
+            shadow = new SurfaceView(parent, "Soft tile contact", art.Quad, art);
         }
 
         public void Apply(EntityPlacement item, bool labels)
@@ -93,13 +108,17 @@ namespace Mahjong.Renderer.Rendering
             Target.Bind(PickKind.Entity, entity.EntityId);
             collider.size = size;
             collider.enabled = true;
+            body.Filter.sharedMesh = entity.Kind == "TILE" ? art.RoundedBox : art.Box;
             body.Pose(Vector3.zero, Quaternion.identity, size, layer);
-            body.Paint(entity.Display.Temporary ? new Color(0.85f, 0.83f, 0.74f, 0.75f) :
-                entity.Display.Bottom ? new Color(0.82f, 0.81f, 0.72f) : new Color(0.96f, 0.94f, 0.87f));
-            face.Pose(new Vector3(0, size.y / 2 + 0.0001f, 0), Quaternion.identity,
-                new Vector3(size.x * 0.9f, 1, size.z * 0.9f), layer);
-            back.Pose(new Vector3(0, -size.y / 2 - 0.0001f, 0), Quaternion.Euler(180, 0, 0),
-                new Vector3(size.x * 0.92f, 1, size.z * 0.92f), layer);
+            Color ivory = ProceduralArt.Ivory;
+            if (entity.Display.Temporary) ivory.a = 0.75f;
+            if (entity.Display.Bottom) ivory *= new Color(0.94f, 0.94f, 0.94f, 1);
+            body.Paint(ivory, baseColor: entity.Kind == "TILE" ?
+                (Color?)ProceduralArt.BackColor(entity.Appearance.BackIndex) : null, gloss: 0.10f);
+            face.Pose(new Vector3(0, size.y / 2 + 0.0008f, 0), Quaternion.identity,
+                new Vector3(size.x * 0.84f, 1, size.z * 0.84f), layer);
+            back.Pose(new Vector3(0, -size.y / 2 - 0.0008f, 0), Quaternion.Euler(180, 0, 0),
+                new Vector3(size.x * 0.84f, 1, size.z * 0.84f), layer);
             VisibleFaceIndex = null;
             VisibleFaceLabel = null;
             if (entity.Kind == "TILE")
@@ -112,10 +131,10 @@ namespace Mahjong.Renderer.Rendering
                     VisibleFaceIndex = entity.Appearance.FaceIndex.Value;
                     VisibleFaceLabel = ProceduralArt.FaceLabel(VisibleFaceIndex.Value);
                     face.Paint(Color.white, labels ? art.Faces : art.FacesWithoutLabels,
-                        ProceduralArt.FaceUv(VisibleFaceIndex.Value));
+                        ProceduralArt.FaceUv(VisibleFaceIndex.Value), paper: ivory, gloss: 0.10f);
                 }
-                else face.Paint(Color.white, art.Backs[entity.Appearance.BackIndex]);
-                back.Paint(Color.white, art.Backs[entity.Appearance.BackIndex]);
+                else face.Paint(Color.white, art.Backs[entity.Appearance.BackIndex], paper: ivory, gloss: 0.10f);
+                back.Paint(Color.white, art.Backs[entity.Appearance.BackIndex], paper: ivory, gloss: 0.10f);
             }
             else
             {
@@ -126,6 +145,7 @@ namespace Mahjong.Renderer.Rendering
             }
             SetVisualPose(pose);
             Root.SetActive(true);
+            shadow.Object.SetActive(true);
             UpdateCue(false, false);
         }
 
@@ -137,8 +157,12 @@ namespace Mahjong.Renderer.Rendering
             Root.transform.localScale = Vector3.one * pose.Scale;
             if (placement == null) return;
             Bounds bounds = SourceCoordinates.OrientedBounds(pose, placement.Entity.Kind);
-            cue.Pose(new Vector3(bounds.center.x, bounds.min.y - 0.0002f, bounds.center.z),
-                Quaternion.identity, new Vector3(bounds.size.x + 0.008f, 1, bounds.size.z + 0.008f), Root.layer);
+            float ground = placement.Separate ? 0.0001f : -0.0045f;
+            shadow.Pose(new Vector3(bounds.center.x + 0.002f, ground, bounds.center.z + 0.003f),
+                Quaternion.identity, new Vector3(bounds.size.x + 0.016f, 1, bounds.size.z + 0.016f), Root.layer);
+            shadow.Paint(new Color(0.01f, 0.025f, 0.027f, 0.30f), unlit: true, effect: 1);
+            cue.Pose(new Vector3(bounds.center.x, ground + 0.0002f, bounds.center.z),
+                Quaternion.identity, new Vector3(bounds.size.x + 0.015f, 1, bounds.size.z + 0.015f), Root.layer);
         }
 
         public void UpdateCue(bool selected, bool hovered)
@@ -147,9 +171,9 @@ namespace Mahjong.Renderer.Rendering
             Contract.Display source = placement.Entity.Display;
             bool enabled = selected || hovered || source.Selected || source.Hovered || source.Held || source.Highlight > 0;
             cue.Object.SetActive(enabled);
-            cue.Paint(source.Held ? new Color(0.18f, 0.84f, 0.95f, 0.7f) :
-                selected || source.Selected ? new Color(0.37f, 0.98f, 0.48f, 0.8f) :
-                new Color(1, 0.8f, 0.25f, 0.65f));
+            cue.Paint(source.Held ? new Color(0.40f, 0.85f, 0.90f, 0.9f) :
+                selected || source.Selected ? new Color(0.97f, 0.78f, 0.39f, 0.95f) :
+                new Color(0.97f, 0.87f, 0.63f, 0.85f), unlit: true, effect: 2);
         }
 
         public void Clear()
@@ -164,6 +188,7 @@ namespace Mahjong.Renderer.Rendering
             back.Paint(Color.white, art.Backs[0]);
             Root.SetActive(false);
             cue.Object.SetActive(false);
+            shadow.Object.SetActive(false);
         }
     }
 
@@ -181,7 +206,7 @@ namespace Mahjong.Renderer.Rendering
             Root.transform.SetParent(parent, false);
             target = Root.AddComponent<PickTarget>();
             collider = Root.AddComponent<BoxCollider>();
-            shadow = new SurfaceView(parent, "Source slot shadow", art.Quad, art);
+            shadow = new SurfaceView(parent, "Interactive slot outline", art.Quad, art);
         }
 
         public void Apply(SlotPlacement item)
@@ -200,8 +225,8 @@ namespace Mahjong.Renderer.Rendering
             int layer = item.Separate ? RendererLayers.Hand : RendererLayers.Table;
             int shadowIndex = Mathf.Min(item.Slot.ShadowRotationIndex, item.Poses.Length - 1);
             Bounds shadowBounds = SourceCoordinates.OrientedBounds(item.Poses[shadowIndex], item.Slot.Kind);
-            shadow.Pose(new Vector3(shadowBounds.center.x, 0.0001f, shadowBounds.center.z),
-                Quaternion.identity, new Vector3(shadowBounds.size.x, 1, shadowBounds.size.z), layer);
+            shadow.Pose(new Vector3(shadowBounds.center.x, item.Separate ? 0.0003f : 0.0038f, shadowBounds.center.z),
+                Quaternion.identity, new Vector3(shadowBounds.size.x + 0.008f, 1, shadowBounds.size.z + 0.008f), layer);
             Root.SetActive(true);
             UpdateCue(false, false);
         }
@@ -209,9 +234,10 @@ namespace Mahjong.Renderer.Rendering
         public void UpdateCue(bool drop, bool preview)
         {
             if (placement == null) return;
-            shadow.Object.SetActive(placement.Slot.DrawShadow || drop || preview);
-            shadow.Paint(drop ? new Color(0.3f, 1, 0.4f, 0.55f) :
-                preview ? new Color(0.2f, 0.68f, 1, 0.4f) : new Color(0.01f, 0.03f, 0.04f, 0.18f));
+            // Canonical slot colliders remain live; empty addresses are not giant table pads.
+            shadow.Object.SetActive(drop || preview);
+            shadow.Paint(drop ? new Color(0.4f, 0.85f, 0.9f, 0.9f) :
+                new Color(0.95f, 0.77f, 0.4f, 0.7f), unlit: true, effect: 2);
         }
 
         public void Clear()
@@ -230,7 +256,7 @@ namespace Mahjong.Renderer.Rendering
         private string currentText;
         private float currentHeight;
         private Mesh ownedMesh;
-        public LabelView(Transform parent, ProceduralArt art) { surface = new SurfaceView(parent, "Public bitmap label", art.Quad, art); }
+        public LabelView(Transform parent, ProceduralArt art) { surface = new SurfaceView(parent, "Public vector label", art.Quad, art); }
 
         public void Apply(string text, float height, Vector3 position, Quaternion rotation, int layer, Color color)
         {
@@ -243,11 +269,11 @@ namespace Mahjong.Renderer.Rendering
                 currentHeight = height;
             }
             surface.Pose(position, rotation, Vector3.one, layer);
-            surface.Paint(color);
+            surface.Paint(color, unlit: true);
             surface.Object.SetActive(true);
         }
 
-        public void Clear() { currentText = null; surface.Object.SetActive(false); }
+        public void Clear() { surface.Object.SetActive(false); }
         public void Dispose() { EngineObjects.Release(ownedMesh); }
     }
 }

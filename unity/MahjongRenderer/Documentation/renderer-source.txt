@@ -5,8 +5,10 @@ This is a Unity renderer, not a rule engine, browser shell or network client.
 The entry scene Assets/Scenes/MahjongRenderer.unity is already connected to
 MahjongBridge and the original surface shader. It creates real meshes, separate
 table/hand cameras, source slot colliders, public labels, dice and input handlers.
-Nothing imports sample projects, third-party artwork, fonts or networking SDKs.
-Original art provenance is recorded in art-provenance.json.
+No sample projects, third-party fonts or networking SDKs are imported.
+Pinned creator CC0 face/back artwork and the existing CC0 fabric texture are
+documented, with exact original and derivative hashes, in art-provenance.json.
+The byte-identical creator notice is Assets/Art/FluffyStuff/LICENSE.md.
 
 Pinned toolchain
 ---------------
@@ -103,9 +105,80 @@ or initial fake frame. Frontend's production host/shell remains Frontend-owned.
 
 Presentation/input source capabilities
 --------------------------------------
+Visual artwork and materials
+----------------------------
+Traditional faces use FluffyStuff/riichi-mahjong-tiles Regular at
+26e127ba2117f45cdce5ea0225748cc0cfad3169 (CC0). All37 PNGs and SVG masters,
+Back.png/Back.svg, README and the exact LICENSE.md are retained outside
+Resources for traceability. The player loads only two1536x1536 precomputed
+atlases, two192x288 recolored backs and one512x512 Fabric030-derived fork JPEG;
+it never constructs37 full-resolution CPU face arrays. Imported textures are
+not CPU-readable, use intentional normal-quality compression, trilinear mips
+and clamped atlas edges (repeating fabric). Worst-case imported RGBA/mip
+fallback is below28MB; original generated sticks/dice/marker add below2MB.
+
+Atlas cells are192x288 (native2:3); source600x800 artwork is Lanczos-resized to
+168x224 (3:4) inside transparent padding, never stretched to tile proportions.
+Cells run from the PNG bottom-left, while glyph top maps to face +Z. The
+material composites artwork on matching ivory; index31 Haku is intentionally
+blank white dragon,32 Hatsu is green,33 Chun is red. Faces34..36 are red fives.
+Optional labels occupy only the lower letterbox, with original antialiased
+rounded-stroke labels and corrected WD/GD/RD mapping. Unknown surfaces bind
+only the separate common back0/1 textures, never a face UV or label.
+
+Original beveled/rounded body meshes retain the exact canonical BoxCollider,
+SourceCoordinates bounds and bevel width; tiles/dice use96 vertices and44
+triangles with smooth edge normals and small chamfered corner facets rather
+than a dense shoulder grid. The table/rail retain their rounded96-vertex,
+108-triangle mesh.
+The rounded rail/inlay use a shared104-vertex shell: their hidden full-screen
+top/bottom interiors are omitted, with an opening conservatively covered by
+even the minimum rectangular felt. Felt writes depth before the remaining rail.
+Colored lower bases, satin highlights, textured
+tinted felt, original rail grain/inlay, a small center inset and vector public
+labels are presentation only. Contact shadows/cue outlines have no colliders
+and use a late transparent material with depth writes OFF; idle empty-slot
+pads are hidden, while canonical slot targets and pickup/drop outlines remain.
+Normalized body height is stored in a second UV channel so two-tone bases
+remain correct under Unity dynamic batching. Face/back/die paint planes have a
+small visual depth separation and the cameras use a0.025 near plane (inside
+the existing fitted clearance), avoiding visible panel/body depth fighting.
+Public phase/seat/center typography scales with projected CSS size, not DPR;
+long phase labels are human-spaced and "AWAITING" is omitted from the visual
+caption. Dealer/honba values remain source-defined. The console and interactive
+outlines have no pick colliders, and do not change plan bounds, dice centers,
+logical mesh sizes, camera fit, public DTOs or rule/action availability.
+Both cameras use single-sample targets without MSAA render/resolve buffers;
+imported glyphs retain trilinear mips and soft cues retain analytic edge coverage.
+Satin diffuse/highlight lighting is interpolated from mesh
+vertices; unlit labels/cues skip lighting and zero-gloss felt skips highlights.
+Anisotropic filtering is1x for atlas/back textures and capped at2x for fabric
+(whose unchanged importer records4x). It is enabled, not forced on, avoiding
+the9x promotion of all imported samplers. The fabric-only sampling tradeoff
+does not change glyph resolution, filtering, atlas pixels, table tint or DPR.
+Opaque artwork/body surfaces replace pixels and write depth without alpha
+clipping. Only soft cues and temporary translucent surfaces use alpha blending,
+with depth writes OFF; temporary artwork retains the body's opacity.
+Four shared material paths compile only the relevant plain, felt, wood or
+decal effect; opaque tiles and labels do not evaluate shadow derivatives,
+felt vignette or rail grain. These are fixed render paths, not device switches.
+Atomic frame deactivation hides public labels without invalidating their vector
+mesh cache. Only changed text or projected height rebuilds the bounded16 label
+meshes across both buffers; cleared/unused labels remain invisible.
+No HDR, realtime shadow maps, URP, postprocessing stack or new package is required.
+
+The deterministic offline atlas builder uses Pillow only for regeneration:
+  python3 unity/MahjongRenderer/Tools/build_art_atlas.py --source-root <audited-originals> --receipt <pinned-file-receipt> --table <verified-table.jpg>
+Its no-argument integrity/real-pixel check uses only Python's standard library
+and runs in the normal source gate. Rebuilding changes documented derivative
+hashes, not the creator originals. Actual GPU antialiasing/rendering and
+device-specific compression/fallback remain native-player qualification facts,
+not claims established by the source checker.
+
 Classic conversion retains the supplied right-handed Z-up coordinates at
 0.01 units, (x-87,z,y-87), quaternion (-qx,-qz,-qy,qw), and applies POV rotation
-once. Render meshes/colliders retain original shape and uniform scale.
+once. Logical colliders retain original shape and uniform scale; the visual body is
+beveled within those same logical bounds.
 Rectangular layout rigidly packs each seat/group into measured, non-overlapping
 lanes without repacking wall tiers/rows, changing slots or stretching tiles.
 Every schema group/kind is represented, including sticks, marker, Kita and

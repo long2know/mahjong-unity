@@ -1,24 +1,1371 @@
 {
-  "assetProvenanceVersion": "1.0.0",
-  "creator": "Unity specialist (GitHub Copilot), original source implementation for Stephen Long",
-  "createdAtUtcDate": "2026-10-10",
-  "licenseDisposition": "Original project work; owner root/additions license decision and distribution notices remain Lead-owned. No blanket MIT grant is implied.",
+  "assetProvenanceVersion": "1.1.0",
+  "creator": "Unity specialist (GitHub Copilot), original renderer geometry and presentation for Stephen Long",
+  "createdAtUtcDate": "2026-10-12",
+  "licenseDisposition": "Original project contributions retain the pending owner-license disposition. Imported artwork below is separately CC0-1.0; no blanket MIT grant is implied.",
   "originalProceduralAssets": [
-    "Unit box and horizontal quad meshes constructed in Assets/Renderer/Art/ProceduralArt.cs",
-    "37 suit/rank/honor/red-five faces and shared back patterns generated from geometric pips/bars and original bitmap labels",
-    "Point-stick value patterns, EAST marker, six die pip patterns",
-    "Original 5x7 ASCII glyph source arrays and procedural public label meshes",
-    "Board, rail, slot shadows, selection/highlight cues and original built-in surface shader"
+    "Original rounded/beveled tile, die and table meshes, unit box and horizontal quad",
+    "Original point-stick values, EAST marker and anti-aliased die pip textures",
+    "Original rounded-stroke vector ASCII public labels and assist-label rasterization; no imported font",
+    "Original directional/specular surface shading, fabric tint/vignette, rail grain, soft contact shadows and outline cues"
   ],
-  "referenceUse": {
-    "baseline": "d10d351e543aa3e341960de9800828b6c0662a82",
-    "use": "Inspect-only numeric coordinate/slot/appearance semantics from allowlisted pinned source; no imported code, scenes, artwork, atlas, font, mesh, audio or SDK files."
+  "importedArtwork": {
+    "creator": "FluffyStuff",
+    "repository": "FluffyStuff/riichi-mahjong-tiles",
+    "commitSha": "26e127ba2117f45cdce5ea0225748cc0cfad3169",
+    "treeSha": "d20a8572cdfe93340a2ecccf21fb3cf49ce9f05b",
+    "license": "CC0-1.0",
+    "creatorLicensePath": "Assets/Art/FluffyStuff/LICENSE.md",
+    "licenseRetainedByteIdentically": true,
+    "originalFiles": [
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/LICENSE.md",
+        "gitBlobSha": "93ede9986519cd0a7e2c755a5d77056bec67eb1d",
+        "bytes": 114,
+        "sha256": "17996c5e7de4cbbc71d0e2db73cb63b0590632cc75be9ab2d885edfae5b9f737",
+        "path": "Assets/Art/FluffyStuff/LICENSE.md",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/README.md",
+        "gitBlobSha": "c5c5ba6ed8d6047d15d2667e697b4a0efe4a0c96",
+        "bytes": 564,
+        "sha256": "0d3be776e1cde7f64e4df73dcfae63c3773bf1aaae8b76d159941f21f10f14b8",
+        "path": "Assets/Art/FluffyStuff/README.md",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man1.svg",
+        "gitBlobSha": "1673e3630dcc664943883ebe5b0735bee5abede9",
+        "bytes": 13877,
+        "sha256": "9b8c52bef39c94b3fac5b1f2a4b6193cd7d8736f79d2c2ae764dd7342f7190b3",
+        "path": "Assets/Art/FluffyStuff/Regular/Man1.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man1.png",
+        "gitBlobSha": "3b4c32370f48e49f2eb419dd97e8f6339f4f6893",
+        "bytes": 30331,
+        "sha256": "282cf23e82795804e2b7d37432b8735f8b5c2abb8e80e8d43b3142fda4da7840",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man1.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man2.svg",
+        "gitBlobSha": "bb9e3cda2039db1f4f56d5227ec9f4f41e0fcb8e",
+        "bytes": 14414,
+        "sha256": "db430b747ebe8e3ad8bc152c6381a0a71c40f94da27be702a2a2aa8e8924cd10",
+        "path": "Assets/Art/FluffyStuff/Regular/Man2.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man2.png",
+        "gitBlobSha": "b589670dff25da3e9a9ad0e09cad69a524b25b4e",
+        "bytes": 32403,
+        "sha256": "d0623b0c305d310e3ce008dfb127ac73fab9af7805c39adc488373140d477dff",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man2.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man3.svg",
+        "gitBlobSha": "544ae471994b9c4ff216ec477b1a7fed2d50abbd",
+        "bytes": 15014,
+        "sha256": "6c8b4af104169189305f2c0eb465a0ac98a7d7c70dc7d40a70f840d780bbd92e",
+        "path": "Assets/Art/FluffyStuff/Regular/Man3.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man3.png",
+        "gitBlobSha": "777d4bf5466c06fe4510ec12b9e99c70775062f4",
+        "bytes": 34577,
+        "sha256": "77fea9a0df875f660e7a51b6500a0583fa9358e18154e119ce54832390264f63",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man3.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man4.svg",
+        "gitBlobSha": "1facb4736da8863a4314fd49b0b2d6f7d40f7fdf",
+        "bytes": 15436,
+        "sha256": "a65cde442a6b15e5f33a8dbe753f5d8a30ec1d07f917edc784186e0bdf3abb2e",
+        "path": "Assets/Art/FluffyStuff/Regular/Man4.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man4.png",
+        "gitBlobSha": "ba194d7c3ba81f4d62cbcaf78354b5bcbbbb554c",
+        "bytes": 36365,
+        "sha256": "783a3e814d4475fb922c0092fa58fb39f2aebee99a333b3e39c9a0c07ee1f29f",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man4.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man5.svg",
+        "gitBlobSha": "ac99fee9ba6a92b607d3b69181101cf68975025a",
+        "bytes": 16943,
+        "sha256": "88687841beb6eda143d2a973aaa9e2af9a8896472a9b0260d5c4d198a160bba5",
+        "path": "Assets/Art/FluffyStuff/Regular/Man5.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man5.png",
+        "gitBlobSha": "db0e1e8f3c980ade4822c8d49ae3a4a59a3ab5e1",
+        "bytes": 37537,
+        "sha256": "13f663365b140e4d7ef0fdb4a08b76c925f66c21040b7cfea4867072c2b46fbe",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man5.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man6.svg",
+        "gitBlobSha": "4b611e312bcb0446c161335d758bb2c25baac028",
+        "bytes": 15694,
+        "sha256": "279df4110edaee428a00df4115df4de7f99829cc9e4f4b259e61036cae8fe0d3",
+        "path": "Assets/Art/FluffyStuff/Regular/Man6.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man6.png",
+        "gitBlobSha": "8209f7d19779cba77df36f7813386b288c0355df",
+        "bytes": 35517,
+        "sha256": "0a23bc1ba15862e9d01834d71b832c0dc4344b8abe73ebea70a8eef4c1a618f9",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man6.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man7.svg",
+        "gitBlobSha": "714afea73e9151a79d5229c6de376df82382528c",
+        "bytes": 14365,
+        "sha256": "a5a1a19ef1156d4bc33d5ae0551806f683cf959b90b244f9fa90ae1bf6402485",
+        "path": "Assets/Art/FluffyStuff/Regular/Man7.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man7.png",
+        "gitBlobSha": "740b352d878e6be5afd2f3d8ec667bad1c2c13b7",
+        "bytes": 33880,
+        "sha256": "98030c78beff76cbecd7a4644fc61ac24efc8bf57aa57452ed18ad878ec40f2a",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man7.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man8.svg",
+        "gitBlobSha": "6dcdf8946bf248838f5505420033bcd907935057",
+        "bytes": 14459,
+        "sha256": "28babd56acfb1f710c78a50e962edc48af5f739035fbf1f5f5ce62da9c196ec5",
+        "path": "Assets/Art/FluffyStuff/Regular/Man8.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man8.png",
+        "gitBlobSha": "52747e8593b3f0086da994d5b3f5dd5f4e42920e",
+        "bytes": 32923,
+        "sha256": "e7ea5779a56f7ecb7dd02227d43732ed47d99d89a5a06bd09009720cea548a42",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man8.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man9.svg",
+        "gitBlobSha": "9ad115d6d2f68cd3b1b466d1b0739e7763324802",
+        "bytes": 15159,
+        "sha256": "0b31a26657af8ecfd330332068c22c69516e43ac31a8f3bdfeff19a994088c23",
+        "path": "Assets/Art/FluffyStuff/Regular/Man9.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man9.png",
+        "gitBlobSha": "76f3260c352efd934a830470a5565213bd4a1428",
+        "bytes": 35609,
+        "sha256": "f35db283b97815793e3601d81deb907ccf2ad4df972bbcb99e31d1dd934c6e5d",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man9.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin1.svg",
+        "gitBlobSha": "2dfebb470ad50688f5824405d0beeef8b15151c4",
+        "bytes": 20624,
+        "sha256": "477c6311f8c3e8456a8ca510a6b6ee4d146ecc4ef2d51cb801575e5b55122175",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin1.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin1.png",
+        "gitBlobSha": "788b122f09e8155da908696c27459da998887ffd",
+        "bytes": 112528,
+        "sha256": "d1b0cbb3344e07b2fb8d0acda3c91e8d5d3fa3b081dbf77c58ee384f560ff225",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin1.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin2.svg",
+        "gitBlobSha": "8edba73642e68a63b68e2ac0960ae362a2d2174d",
+        "bytes": 14939,
+        "sha256": "518a4f1831a7743a12898a81c14b91edad909f264dcd410ff7a074975ee0188a",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin2.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin2.png",
+        "gitBlobSha": "24db919fc82629a7af05c90155231257bfe681e6",
+        "bytes": 68558,
+        "sha256": "406355c874e97f184549886acc110c514d00a22d8fd9ab8d9e42b4204472b640",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin2.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin3.svg",
+        "gitBlobSha": "dc48dfbcb6048aa62356106a4e46726d76fe6a87",
+        "bytes": 15486,
+        "sha256": "0d57651db6c2d96a99d65a44bdd21e5f550336580310edec029428494326759f",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin3.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin3.png",
+        "gitBlobSha": "c9cb1db10aa8ee0865e323221589b82f89f22181",
+        "bytes": 51648,
+        "sha256": "744c86b36fee47eb29c9532957cd3155b52d4ee47a42fb943d95fb012561d723",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin3.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin4.svg",
+        "gitBlobSha": "8f5551f1a46074694d3a5f88afec6ddaf15345eb",
+        "bytes": 18108,
+        "sha256": "c9231df1f9a83b90ca3e7c333ca56a11bc323a9e765702714a273a58797aaef0",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin4.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin4.png",
+        "gitBlobSha": "8a6211940d0b1fda4f86d71bacb3a87c5b97a9c3",
+        "bytes": 63795,
+        "sha256": "8e5d0c2c4726ab0fbe3052ff4122e3eb8738c168da91e8262418832b7ed1e1fc",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin4.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin5.svg",
+        "gitBlobSha": "3255fd6c696104c044425caf764e1f50adce2750",
+        "bytes": 20828,
+        "sha256": "5574c14b911befee26b821147d54f6d92cafd66f272e1da5c12a63a0143bc213",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin5.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin5.png",
+        "gitBlobSha": "e1262f8c179ef3471395269dd171fbbbc3f15141",
+        "bytes": 79485,
+        "sha256": "f8de648dbec4504c7f5da239fcdb1e9a0e3234e37471aa1dddaf7253b295c36f",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin5.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin6.svg",
+        "gitBlobSha": "f0df00d6b7c9fe77744b238a512f02b12d1016c9",
+        "bytes": 22365,
+        "sha256": "38605c2f30a762fada49d4d4ba1b2beb8a707469478ec173b800be06b95562ad",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin6.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin6.png",
+        "gitBlobSha": "6bdd1a55805701abebff9f8367afaec995f01a03",
+        "bytes": 84368,
+        "sha256": "18a765bfd8ed0df17ae330fc6e83d21701be31336a8b972351b3591c2eeb836e",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin6.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin7.svg",
+        "gitBlobSha": "92f8a393aa946393ee1127a6da107378533f742f",
+        "bytes": 27573,
+        "sha256": "97efa9eec79944518511a4f461f1468490a95ca13b3d952eff1ca02bb05b4589",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin7.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin7.png",
+        "gitBlobSha": "8d2521231442ab6cdeefac1188f80759f29be853",
+        "bytes": 99164,
+        "sha256": "c97d16e6f3c823a393696947f4a85e18a23740b82a0537367d03ec92f6854bba",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin7.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin8.svg",
+        "gitBlobSha": "f435bf298f072ee4356bb3f721037cff3b60a99a",
+        "bytes": 27566,
+        "sha256": "523b82c7c4a7cd8999780a7b3b5a7b6670eaf86eb1a8e9ad1317b43c6d8f81d8",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin8.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin8.png",
+        "gitBlobSha": "2f7e91290e9c81e57e28e7d8f87336d3031baee9",
+        "bytes": 109001,
+        "sha256": "784091a45f498e0cdc3e54ab34ca1484bcf8328eb5f569a2439f4aedeb513ac7",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin8.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin9.svg",
+        "gitBlobSha": "91ec6bf79934928f908aff86eeb05f9b2ca94c17",
+        "bytes": 31026,
+        "sha256": "ffd648051b26c2afd770120c9405d7eec550fdb7f7b42406feadb0969f277087",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin9.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin9.png",
+        "gitBlobSha": "c615133987c80e8473667675491a0a73d4d79859",
+        "bytes": 117843,
+        "sha256": "421f0550817c09c5188772ed82cea1a82b956c14458bfba74bcd29720d04048f",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin9.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou1.svg",
+        "gitBlobSha": "9986c1a032f930f1a2d0150cb96bbe492a6c3545",
+        "bytes": 60121,
+        "sha256": "2c50459c118560dbbe90f38006d636c1cf83c7e31128fed32e4df30f3c543d6c",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou1.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou1.png",
+        "gitBlobSha": "76c0cfeb9541d242b46b066fed7ead4892904b8b",
+        "bytes": 91506,
+        "sha256": "d0d30dbc1e337c915bb4206540950e606ce572fa40f1af5326afb0aa83dc41e3",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou1.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou2.svg",
+        "gitBlobSha": "d8e9d2042b907f9a4cf24968c187b702f8f39976",
+        "bytes": 16093,
+        "sha256": "fdc5a6860051ae60f815c4acfaa3ade2b2a067a3b7518b6096f8e9356a650e04",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou2.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou2.png",
+        "gitBlobSha": "ecdf96d2aa91fedce05ecfeb3c870276c1f0ae92",
+        "bytes": 21414,
+        "sha256": "ee00b13b8d73c09aad2f57171cccf159dcfa0a66df19be99c3897c880356e68d",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou2.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou3.svg",
+        "gitBlobSha": "a620c3a6c661033488bbbad73a92b7ca05fdc403",
+        "bytes": 20338,
+        "sha256": "d0f26555368992a285f0ae3f3588d6229518a25fa212466627134f54cc6a3bac",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou3.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou3.png",
+        "gitBlobSha": "b6ab4de8117c28cefd3032715a471427eea7c8e8",
+        "bytes": 28924,
+        "sha256": "87998c5b6433d94adbd8e218538b0d76893dbf4f696149662ef176f7f1492aec",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou3.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou4.svg",
+        "gitBlobSha": "64488aea3f2744c3f0ff4795d40c1fe497e80d7c",
+        "bytes": 25945,
+        "sha256": "c0861613ee9a6eda77f29a7e685068dd0619bc7aefcc6fcd8d7356782043a518",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou4.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou4.png",
+        "gitBlobSha": "0cb592eb6ff7c2509d580384966c1702c006d844",
+        "bytes": 37025,
+        "sha256": "889c69b2679d1af0a47a18dff039caf093e8bbb83b7ac58d6b71d2f0af48b003",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou4.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou5.svg",
+        "gitBlobSha": "ae87331f9c9940876e94778f4e3c584e1d777567",
+        "bytes": 28759,
+        "sha256": "cbd9b02c63976954d44b373966c886c457a5903262a2fb9ea958450d86746144",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou5.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou5.png",
+        "gitBlobSha": "e0f4c3128f960e984919defa61f9193809d78cc8",
+        "bytes": 45175,
+        "sha256": "8bd24f24b4ca39dc2532792b7207dc3d80ee294b19cae2b390ec9ee8f03162a2",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou5.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou6.svg",
+        "gitBlobSha": "f6d32e73fa193f6c0b5a70354700396d734645ff",
+        "bytes": 33117,
+        "sha256": "cf6489ecb0ff073efd94d76b4281e91711e74e3b5eb14c641f8c5e71c2d335b5",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou6.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou6.png",
+        "gitBlobSha": "7230b841f17b51251c22c8f338c8e1623a49a1c3",
+        "bytes": 50221,
+        "sha256": "bb2b619739d54eaa41d1e86e2e6657050a9a37e31c1b1a5701d763320f1e50a7",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou6.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou7.svg",
+        "gitBlobSha": "4e6ce61b761d31812c66c72eb3c9c644068ca8e1",
+        "bytes": 30548,
+        "sha256": "9afdfc3cef41b3012895d90c1fc34c7c33111171d2a3ea248fbb8ec441009426",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou7.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou7.png",
+        "gitBlobSha": "529065f1d326e7f823a2ac1228d8733b7caaaa6c",
+        "bytes": 41811,
+        "sha256": "48a74a5cb5fa480904ddd4d02911dcf84bef903b2b72ecee7b95c03d473d4b9b",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou7.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou8.svg",
+        "gitBlobSha": "cc76f3655424499a3f85010c6364d82f3f45e07b",
+        "bytes": 34696,
+        "sha256": "dccec0736c9855c6ccc628238b49afb343f68797302f4129861cb3fc451f8d61",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou8.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou8.png",
+        "gitBlobSha": "b8f09ebe8cf7db544eef919ca45fb064e91ec02d",
+        "bytes": 57997,
+        "sha256": "68d4fc49ab176377fe123eea7dad95ee2814f6d07692d90cc561489abc86a974",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou8.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou9.svg",
+        "gitBlobSha": "6632ebe1aa74c56b256f943212a71bd0300c587a",
+        "bytes": 37279,
+        "sha256": "5a3369477214b72ddc727130abd0a97126cbaf703eb5ad3226a5b1083dc6635b",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou9.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou9.png",
+        "gitBlobSha": "45a542d2f90108b096fb47567958f30ccb39dacd",
+        "bytes": 53557,
+        "sha256": "9514cb7c94b3393345459452959b8f572334d5a9ccce4eaa8d2fa1925db81c79",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou9.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Ton.svg",
+        "gitBlobSha": "13a0cf4610d0d63b0a0a53a9e0e85011f003d6d9",
+        "bytes": 11281,
+        "sha256": "955eba50b3de787ffad2eaa09a1f7ecaae487bc0afef253fd29e4a93e7dd76df",
+        "path": "Assets/Art/FluffyStuff/Regular/Ton.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Ton.png",
+        "gitBlobSha": "1f8fc63146c3bdcb12e239b11cb3388928196f1e",
+        "bytes": 36046,
+        "sha256": "7934f821ea7eec85e2c83544d3cc7cc2fb34a3761d184c9dab1bb558149957c9",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Ton.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Nan.svg",
+        "gitBlobSha": "c8e247a979f020d6602d2cdd742f4986885e3249",
+        "bytes": 12658,
+        "sha256": "28a3fe9e6226016c09539150bd40c22af6e006ed1ae23ef8f7e8dccd7d891f9b",
+        "path": "Assets/Art/FluffyStuff/Regular/Nan.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Nan.png",
+        "gitBlobSha": "c95a0a4b2e8e883fa48a2442cce2a02c3bdecfed",
+        "bytes": 39642,
+        "sha256": "8da2560b87588518e65b95d0ad23a56455c9975ef36b50877895a30c5508efc0",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Nan.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Shaa.svg",
+        "gitBlobSha": "393b3eeb92b5195176a57f170e28d2ffa42c7bb5",
+        "bytes": 10805,
+        "sha256": "10d4b6e7e8cbe8410f376c28b8892ecab5b03c1f8d89db93acf0da2302523577",
+        "path": "Assets/Art/FluffyStuff/Regular/Shaa.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Shaa.png",
+        "gitBlobSha": "424bac946a7b9d732aa72848efa9f96116fa0011",
+        "bytes": 31678,
+        "sha256": "62dd07778649471c3ca05317d9e7fee22c517f50bb17d2ff19254235ea917369",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Shaa.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pei.svg",
+        "gitBlobSha": "65176e16f80c027c3c6296742808e9d5ece4477b",
+        "bytes": 10212,
+        "sha256": "a8efd3f32aa46c70a04233d499097ab75ec221635bdf68e8ee2817cb0c45d824",
+        "path": "Assets/Art/FluffyStuff/Regular/Pei.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pei.png",
+        "gitBlobSha": "0423a1a97dcea354d14345548afe830e9ac23243",
+        "bytes": 29573,
+        "sha256": "48dbf73214ecf1530af796caa56d886b45c4ab8408b5d0ec05996f50357df775",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pei.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Haku.svg",
+        "gitBlobSha": "12d1d75a188818b7c298574fb612d974f8d9c865",
+        "bytes": 7122,
+        "sha256": "d6023d8cf3b810b74b2f7c14a4254dd7a65c57b9389e63f90aed8f6cd3607032",
+        "path": "Assets/Art/FluffyStuff/Regular/Haku.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Haku.png",
+        "gitBlobSha": "14fc45b5b57cf32e07b3b210a4eee137b53ef27c",
+        "bytes": 2014,
+        "sha256": "6d55f43f0e15feaff558d7eaa3d88f6f66624c44d1fc8bcc2153748ef47b6ac4",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Haku.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Hatsu.svg",
+        "gitBlobSha": "4d7f37d6d95b1b1dc61889c466bf97501862ae94",
+        "bytes": 16047,
+        "sha256": "9197066680636f5d6b43e49b687103e7b347334f5ea838220edb41ec803e3ad9",
+        "path": "Assets/Art/FluffyStuff/Regular/Hatsu.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Hatsu.png",
+        "gitBlobSha": "e9e20324544eb2dadd06004ee63412d89d5d225a",
+        "bytes": 38169,
+        "sha256": "a88fa19fa99f94133e314c62b618c249b14fcdacab82e6e41ef67a66e6bac8e1",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Hatsu.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Chun.svg",
+        "gitBlobSha": "831b9c0a089553b3a0b88ce3f1e7e0abd3825227",
+        "bytes": 9497,
+        "sha256": "7aecefcb257e5278cf3d4d0d9d03b16c3c6e3ba4080d54f60d424c3f35ffd5bb",
+        "path": "Assets/Art/FluffyStuff/Regular/Chun.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Chun.png",
+        "gitBlobSha": "b79b4c3d6a0bef887b84cc39eded0f251541fccc",
+        "bytes": 22386,
+        "sha256": "6cefd7645b98c76bf916cdeef80e2e8295b66b7614d62dc9b11d7c177ba2f667",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Chun.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Man5-Dora.svg",
+        "gitBlobSha": "af337270cdd6733bf8dba58e646e76fbe86449ab",
+        "bytes": 17291,
+        "sha256": "8fbe07ba977dbaf7644b13514d89084a41fab9ad828a9b9d7be73066fb84a5be",
+        "path": "Assets/Art/FluffyStuff/Regular/Man5-Dora.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Man5-Dora.png",
+        "gitBlobSha": "ae1f2968a5b3f3483745f59b171e4ef4963139c5",
+        "bytes": 44184,
+        "sha256": "d7b987cdfe65c0cfffa3decbfb0b0f0bb0e40927502281b2e90c141cf4c2c60b",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Man5-Dora.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Pin5-Dora.svg",
+        "gitBlobSha": "8a7b30fa39bc13e06b2c6c64242c220d9d0e3457",
+        "bytes": 21179,
+        "sha256": "39808d4a76fd303b55bf77bdffca8b57049dc4dbea67ca374a1399397544da21",
+        "path": "Assets/Art/FluffyStuff/Regular/Pin5-Dora.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Pin5-Dora.png",
+        "gitBlobSha": "af8a48ee0efbc8435b26256ede74c0e6961dbe36",
+        "bytes": 85112,
+        "sha256": "910cbd010cf95d450da48aa036735380f88f9a6678c19a03d8dd8e7f63d043fd",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Pin5-Dora.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Sou5-Dora.svg",
+        "gitBlobSha": "3c98457c320c8fa0d8b73ae2621e296e9cfba2df",
+        "bytes": 29124,
+        "sha256": "b39b163d23b4bbf14ecad232bee7fd09947913a136989b004e44203dfd39b023",
+        "path": "Assets/Art/FluffyStuff/Regular/Sou5-Dora.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Sou5-Dora.png",
+        "gitBlobSha": "84951f43b0cd924cd8e818b903b987033d3315a1",
+        "bytes": 49210,
+        "sha256": "a97407ea6f5615d87d12e2d0c7296c40b7f172d939da9613d0234b273f17712d",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Sou5-Dora.png",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Regular/Back.svg",
+        "gitBlobSha": "4620342bd01540b7e575b7fed9186c844e9f7946",
+        "bytes": 10165,
+        "sha256": "73230b9874786e0514fdd469e6b8ad6adb6eaad549a3936e4942c67e2fa78879",
+        "path": "Assets/Art/FluffyStuff/Regular/Back.svg",
+        "transformation": "none; byte-identical creator file"
+      },
+      {
+        "sourceUrl": "https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/26e127ba2117f45cdce5ea0225748cc0cfad3169/Export/Regular/Back.png",
+        "gitBlobSha": "b7a1e2e619f7a7880982be37f49539bfb5f22163",
+        "bytes": 16878,
+        "sha256": "d0395ed9ee837f3e080ccc5ca00fa5767b53a3d0f193995947fd755f07ee85b8",
+        "path": "Assets/Art/FluffyStuff/Export/Regular/Back.png",
+        "transformation": "none; byte-identical creator file"
+      }
+    ],
+    "faceMapping": [
+      {
+        "faceIndex": 0,
+        "basename": "Man1",
+        "assistLabel": "1M",
+        "atlasRectPixelsBottomLeft": [
+          0,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 1,
+        "basename": "Man2",
+        "assistLabel": "2M",
+        "atlasRectPixelsBottomLeft": [
+          192,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 2,
+        "basename": "Man3",
+        "assistLabel": "3M",
+        "atlasRectPixelsBottomLeft": [
+          384,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 3,
+        "basename": "Man4",
+        "assistLabel": "4M",
+        "atlasRectPixelsBottomLeft": [
+          576,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 4,
+        "basename": "Man5",
+        "assistLabel": "5M",
+        "atlasRectPixelsBottomLeft": [
+          768,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 5,
+        "basename": "Man6",
+        "assistLabel": "6M",
+        "atlasRectPixelsBottomLeft": [
+          960,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 6,
+        "basename": "Man7",
+        "assistLabel": "7M",
+        "atlasRectPixelsBottomLeft": [
+          1152,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 7,
+        "basename": "Man8",
+        "assistLabel": "8M",
+        "atlasRectPixelsBottomLeft": [
+          1344,
+          0,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 8,
+        "basename": "Man9",
+        "assistLabel": "9M",
+        "atlasRectPixelsBottomLeft": [
+          0,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 9,
+        "basename": "Pin1",
+        "assistLabel": "1P",
+        "atlasRectPixelsBottomLeft": [
+          192,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 10,
+        "basename": "Pin2",
+        "assistLabel": "2P",
+        "atlasRectPixelsBottomLeft": [
+          384,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 11,
+        "basename": "Pin3",
+        "assistLabel": "3P",
+        "atlasRectPixelsBottomLeft": [
+          576,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 12,
+        "basename": "Pin4",
+        "assistLabel": "4P",
+        "atlasRectPixelsBottomLeft": [
+          768,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 13,
+        "basename": "Pin5",
+        "assistLabel": "5P",
+        "atlasRectPixelsBottomLeft": [
+          960,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 14,
+        "basename": "Pin6",
+        "assistLabel": "6P",
+        "atlasRectPixelsBottomLeft": [
+          1152,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 15,
+        "basename": "Pin7",
+        "assistLabel": "7P",
+        "atlasRectPixelsBottomLeft": [
+          1344,
+          288,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 16,
+        "basename": "Pin8",
+        "assistLabel": "8P",
+        "atlasRectPixelsBottomLeft": [
+          0,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 17,
+        "basename": "Pin9",
+        "assistLabel": "9P",
+        "atlasRectPixelsBottomLeft": [
+          192,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 18,
+        "basename": "Sou1",
+        "assistLabel": "1S",
+        "atlasRectPixelsBottomLeft": [
+          384,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 19,
+        "basename": "Sou2",
+        "assistLabel": "2S",
+        "atlasRectPixelsBottomLeft": [
+          576,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 20,
+        "basename": "Sou3",
+        "assistLabel": "3S",
+        "atlasRectPixelsBottomLeft": [
+          768,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 21,
+        "basename": "Sou4",
+        "assistLabel": "4S",
+        "atlasRectPixelsBottomLeft": [
+          960,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 22,
+        "basename": "Sou5",
+        "assistLabel": "5S",
+        "atlasRectPixelsBottomLeft": [
+          1152,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 23,
+        "basename": "Sou6",
+        "assistLabel": "6S",
+        "atlasRectPixelsBottomLeft": [
+          1344,
+          576,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 24,
+        "basename": "Sou7",
+        "assistLabel": "7S",
+        "atlasRectPixelsBottomLeft": [
+          0,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 25,
+        "basename": "Sou8",
+        "assistLabel": "8S",
+        "atlasRectPixelsBottomLeft": [
+          192,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 26,
+        "basename": "Sou9",
+        "assistLabel": "9S",
+        "atlasRectPixelsBottomLeft": [
+          384,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 27,
+        "basename": "Ton",
+        "assistLabel": "E",
+        "atlasRectPixelsBottomLeft": [
+          576,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 28,
+        "basename": "Nan",
+        "assistLabel": "S",
+        "atlasRectPixelsBottomLeft": [
+          768,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 29,
+        "basename": "Shaa",
+        "assistLabel": "W",
+        "atlasRectPixelsBottomLeft": [
+          960,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 30,
+        "basename": "Pei",
+        "assistLabel": "N",
+        "atlasRectPixelsBottomLeft": [
+          1152,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 31,
+        "basename": "Haku",
+        "assistLabel": "WD",
+        "atlasRectPixelsBottomLeft": [
+          1344,
+          864,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 32,
+        "basename": "Hatsu",
+        "assistLabel": "GD",
+        "atlasRectPixelsBottomLeft": [
+          0,
+          1152,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 33,
+        "basename": "Chun",
+        "assistLabel": "RD",
+        "atlasRectPixelsBottomLeft": [
+          192,
+          1152,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 34,
+        "basename": "Man5-Dora",
+        "assistLabel": "5MR",
+        "atlasRectPixelsBottomLeft": [
+          384,
+          1152,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 35,
+        "basename": "Pin5-Dora",
+        "assistLabel": "5PR",
+        "atlasRectPixelsBottomLeft": [
+          576,
+          1152,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      },
+      {
+        "faceIndex": 36,
+        "basename": "Sou5-Dora",
+        "assistLabel": "5SR",
+        "atlasRectPixelsBottomLeft": [
+          768,
+          1152,
+          192,
+          288
+        ],
+        "artRectPixelsCellTopLeft": [
+          12,
+          20,
+          168,
+          224
+        ]
+      }
+    ],
+    "whiteDragon": "Index 31 / Haku is deliberately entirely transparent: an ordinary visible ivory body, never an unknown-face sentinel.",
+    "transformations": {
+      "tool": "Tools/build_art_atlas.py",
+      "generationDependency": "Pillow (offline only; runtime and validation need no image/font package)",
+      "atlases": {
+        "width": 1536,
+        "height": 1536,
+        "columns": 8,
+        "rows": 5,
+        "cellWidth": 192,
+        "cellHeight": 288,
+        "pixelFormat": "RGBA8",
+        "packing": "Source full 600x800 resampled to 168x224 with Lanczos, preserving 3:4 artwork inside native 2:3 cells. Cell 0 is at the PNG bottom left; glyph top points to +Z on the face quad. Transparent gutters remain; the material composites on matching ivory.",
+        "uv": "Half-texel inset of each full cell. Padding, trilinear mipmaps and clamped edges avoid adjacent glyph bleed at playable scale.",
+        "assistLabels": "Second atlas adds small original antialiased rounded-stroke labels in the lower letterbox, not a replacement glyph or an OS font."
+      },
+      "backs": {
+        "source": "Export/Regular/Back.png",
+        "backIndexes": [
+          0,
+          1
+        ],
+        "recolorFormula": "RGB channel = palette channel * (0.62 + 0.38 * source red / 255); preserve source alpha, rounded panel and shading; then Lanczos to168x224 inside192x288.",
+        "palettesSrgb": [
+          [
+            35,
+            105,
+            116
+          ],
+          [
+            165,
+            113,
+            55
+          ]
+        ],
+        "identityBoundary": "Back styles stay separate from all 37 face indices; no per-face rear patterns."
+      }
+    }
+  },
+  "importedTable": {
+    "path": "Assets/Resources/Art/TableFabric.jpg",
+    "creator": "ambientCG (formerly CC0 Textures)",
+    "asset": "Fabric030",
+    "license": "CC0-1.0",
+    "primaryAssetUrl": "https://ambientcg.com/view?id=Fabric030",
+    "primaryLicenseUrl": "https://docs.ambientcg.com/license/",
+    "forkRepository": "long2know/mahjong-autotable",
+    "forkCommitSha": "d10d351e543aa3e341960de9800828b6c0662a82",
+    "gitBlobSha": "f801a7ebe1431cd954a9963b180869eba3557bc3",
+    "sha256": "3028ff6dd0c1c5f16e99e22fb96790f0148c4465368c77c776529973f8874e0f",
+    "bytes": 108953,
+    "transformation": "Byte-identical existing fork JPEG; material-only neutral-luminance teal tint and tiled UVs. Earlier ambientCG-to-fork processing is unspecified; this is not a fresh PBR bundle."
+  },
+  "runtimeTextures": [
+    {
+      "path": "Assets/Resources/Art/Back0.png",
+      "bytes": 2977,
+      "sha256": "b70f43766c2fc3cb97ca5277b2584734462c3a4563a3d2bb75f16ce33876b012"
+    },
+    {
+      "path": "Assets/Resources/Art/Back1.png",
+      "bytes": 3073,
+      "sha256": "3d8088151fe5a1251b3490ff2fdd6f583aa16558c0f88347faed4742a412af9d"
+    },
+    {
+      "path": "Assets/Resources/Art/Faces.png",
+      "bytes": 714274,
+      "sha256": "f598c17a5c7b95e3f8feeae635ae98d582c05ac9aeb2b91f61b8f27aab841f96"
+    },
+    {
+      "path": "Assets/Resources/Art/FacesLabelled.png",
+      "bytes": 762263,
+      "sha256": "d7d15ec8aae962f1ba6d664742135d687b9a702982984004cdf44f2d98023664"
+    },
+    {
+      "path": "Assets/Resources/Art/TableFabric.jpg",
+      "bytes": 108953,
+      "sha256": "3028ff6dd0c1c5f16e99e22fb96790f0148c4465368c77c776529973f8874e0f"
+    }
+  ],
+  "runtimeBudget": {
+    "importedTextureCount": 5,
+    "maximumUncompressedRgbaMipBytes": 28000000,
+    "cpuReadability": false,
+    "compression": "Unity normal-quality automatic compression, with a bounded RGBA fallback on unsupported hardware.",
+    "sourceOriginals": "The 38 PNGs and SVG masters are provenance inputs outside Resources; never loaded individually in the player.",
+    "rendering": "Built-in pipeline, single-sample camera targets without MSAA render/resolve buffers, no HDR/postprocessing/URP or realtime shadow maps. Shared meshes and four plain/felt/wood/decal material paths, vertex-interpolated satin lighting, original analytic contact shadows and unchanged mip-filtered artwork. Per-texture anisotropy is enabled rather than forced9x: atlas/backs retain1x and fabric is capped at2x in the player; original files and importer metadata are unchanged."
   },
   "excluded": [
-    "Kanojo/noncommercial autotable tile artwork and derivatives",
-    "Majsoul resources",
-    "Unity example code/scenes/assets",
-    "Photon, DOTween, third-party fonts, static audio, networking, ads and analytics"
+    "Kanojo/NC tile art or derivatives",
+    "legacy GLB/Blender geometry of unverified rights",
+    "Majsoul, sample FBX/scenes, Photon, DOTween, third-party fonts, sounds and SDKs"
   ],
-  "engineComponents": "Unity runtime/compiler, UnityCG shader include, Newtonsoft package and Unity Test Framework retain their own applicable terms; OnGUI failure messages use engine-provided runtime components, not an imported font."
+  "engineComponents": "Unity runtime/compiler, UnityCG include, Newtonsoft and Test Framework retain their own terms."
 }
