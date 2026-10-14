@@ -5,7 +5,7 @@ import { Animation } from './utils';
 import { ClientUi } from './client-ui';
 import { SoundPlayer } from './sound-player';
 import type { GameUi } from './game-ui';
-import { getSettings, installPerspectiveSetting, installRendererLayoutSettings, onSettingsChange, type AppSettings } from './settings-drawer';
+import { cameraPerspective, getSettings, installPerspectiveSetting, installRendererLayoutSettings, onSettingsChange, syncCameraInputs, type AppSettings } from './settings-drawer';
 import { BufferedRendererSink } from './renderer/renderer-sink';
 import { RendererFrameAdapter } from './renderer/renderer-frame';
 import { RendererActionRouter } from './renderer/renderer-actions';
@@ -30,6 +30,7 @@ export class Game {
   private started = false;
   private disposed = false;
   private width = window.innerWidth;
+  private height = window.innerHeight;
 
   benchmark = false;
   settings: {
@@ -62,6 +63,7 @@ export class Game {
       resized: viewport => {
         this.actions?.cancelGesture();
         this.width = viewport.widthCssPx;
+        this.height = viewport.heightCssPx;
         if (this.adapter) this.updateSettings();
       },
       resumed: () => this.adapter?.refresh(),
@@ -90,8 +92,8 @@ export class Game {
     window.addEventListener('keydown', event => this.onKeyDown(event), { signal: this.events.signal });
     window.addEventListener('keyup', event => this.onKeyUp(event), { signal: this.events.signal });
     window.addEventListener('pagehide', () => { void this.dispose(); }, { signal: this.events.signal });
-    for (const input of Object.values(this.settings)) input?.addEventListener('change', () => this.updateSettings(), { signal: this.events.signal });
     installPerspectiveSetting();
+    for (const input of Object.values(this.settings)) input?.addEventListener('change', () => this.updateSettings(), { signal: this.events.signal });
     installRendererLayoutSettings();
     this.unsubscribeSettings = onSettingsChange(() => this.updateSettings());
     window.addEventListener('mahjong:highlight-tile', event => {
@@ -104,15 +106,17 @@ export class Game {
   private presentation(settings: AppSettings): Presentation {
     const compact = this.width < 768;
     return {
-      viewMode: this.settings.perspective.checked ? 'perspective' : 'flat',
-      boardLayout: settings.boardLayout === 'auto' ? compact ? 'rectangular' : 'classic' : settings.boardLayout,
-      handLayout: settings.handLayout === 'auto' ? compact ? 'separate' : 'in-table' : settings.handLayout,
+      viewMode: cameraPerspective(settings, this.width, this.height) ? 'perspective' : 'flat',
+      boardLayout: settings.boardLayout === 'auto' ?
+        compact || this.world.conditions.gameType === GameType.CHANGSHA ? 'rectangular' : 'classic' : settings.boardLayout,
+      handLayout: settings.handLayout === 'auto' ? compact || this.height < 520 ? 'separate' : 'in-table' : settings.handLayout,
       tileLabels: this.settings.tileLabels.checked, lookDown: this.lookDown.pos, zoom: this.zoom.pos,
     };
   }
 
   private updateSettings(): void {
     const settings = getSettings();
+    syncCameraInputs(this.width, this.height);
     this.soundPlayer.muted = this.settings.muted.checked || !settings.soundEnabled;
     const presentation = this.presentation(settings);
     this.world.setHandSortMode(settings.handSort);

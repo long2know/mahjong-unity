@@ -156,6 +156,15 @@
 }
 
 @media (max-width: 900px) and (orientation: portrait) {
+    body:not(.variant-riichi) #pickup-hud,
+    body:not(.variant-riichi) .ferro-claim-overlay {
+        top: calc(118px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));
+        bottom: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        width: auto;
+        transform: none;
+    }
     body:not(.variant-riichi):not(.lobby-active) #move-log,
     body:not(.variant-riichi):not(.lobby-active) .chat-panel:not(.chat-panel-collapsed) {
         top: calc(146px + env(safe-area-inset-top) + var(--game-viewport-top, 0px));

@@ -1,6 +1,7 @@
 """Unit-only mocked process evidence; no browser or Unity/player proof."""
 
 import contextlib
+import copy
 import importlib.util
 import io
 import json
@@ -21,6 +22,11 @@ spec = importlib.util.spec_from_file_location(
 )
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
+spec = importlib.util.spec_from_file_location(
+    "player_runner_under_test", ROOT / "tests/migration/run_player_integration.py",
+)
+player_runner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(player_runner)
 
 
 def unit_evidence(probe):
@@ -273,6 +279,160 @@ class BrowserEvidenceTests(unittest.TestCase):
     def test_source_metadata_failure_cannot_leave_a_success_or_omit_the_receipt(self):
         receipt = self.assert_rejected(json.dumps(unit_evidence("browser-unavailable.mjs")), metadata_error=True)
         self.assertIn("source metadata read failure", receipt["failure"]["message"])
+
+
+class PlayerEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.manifest = {"buildId": "unit-player", "unityVersion": "unit-version", "contractVersion": "1.0.0"}
+        names = [
+            *[f"actual-mobile-{width}-dpr{dpr}-single-touch" for width in (360, 390, 500) for dpr in (1, 2, 3)],
+            "actual-mobile-canceled-gestures", "actual-mobile-chat-open-single-touch",
+            "actual-mobile-landscape-single-touch", "actual-desktop-native-double-click",
+            "actual-mobile-manual-pickup",
+            "progressed-360x800", "progressed-390x844", "progressed-500x900",
+            "progressed-portrait-chat-open", "progressed-portrait-explicit-perspective",
+            "progressed-desktop-with-move-log",
+        ]
+        cases = []
+        for name in names:
+            case = {
+                "name": name, "state": "ready", "instanceId": "unit-instance", "sessionId": "unit-session",
+                "realReady": {**self.manifest, "type": "ready", "instanceId": "unit-instance"},
+                "markers": ["true", "true"], "frameId": 1, "realFrameRenderedCount": 1, "entities": 100,
+                "viewport": {"widthCssPx": 500, "heightCssPx": 900, "devicePixelRatio": 1,
+                             "renderPixelRatio": 1, "widthPx": 500, "heightPx": 900},
+                "pixels": {"screenshot": "unit-only.png", "quantizedColors": 20, "largestColorFraction": 0.5,
+                           "boardGreenFraction": 0.3, "tileLightFraction": 0.2},
+                "session": {"actorSeat": 0}, "publicTiles": 36,
+                "handCentersReached": 14,
+                "handTargets": [{"entityId": f"unit-tile-{i}", "slotName": f"hand.{i}@0",
+                                 "x": 30 + i % 7 * 50, "y": 700 + i // 7 * 70} for i in range(14)],
+            }
+            if name.endswith("-single-touch") or name in ("actual-desktop-native-double-click", "actual-mobile-manual-pickup"):
+                pickup = name == "actual-mobile-manual-pickup"
+                case.update(
+                    input="desktop-double-click" if "desktop" in name else "ordinary-single-touch",
+                    nativeActions=[{"type": "action", "actionId": "unit-action", "instanceId": "unit-instance",
+                                    "sessionId": "unit-session",
+                                    "intent": {"kind": "takePickup" if pickup else "discard", "entityId": "unit-tile-0"}}],
+                    target={"entityId": "unit-tile-0"},
+                    command=["pickup", "take", {"seatIndex": 0, "count": 4}] if pickup else ["discard", 0, {"tileId": 0}],
+                    serverOutcomeVerified=True, nativeWireVerified=True,
+                )
+            if name == "actual-mobile-canceled-gestures":
+                case.update(noUnintendedCommands=True, gestures=[
+                    {"kind": kind, "nativeActions": [], "noDiscardVerified": True}
+                    for kind in ("moved", "canceled", "long-pressed", "multi-touch", "resized")
+                ])
+            cases.append(case)
+        self.evidence = {
+            "status": "passed", "scope": "mobile-playability", "browserVersion": "unit-test-only",
+            "caseFailures": [], "pageErrors": [], "cspViolations": [], "cases": cases,
+        }
+
+    def validate(self, evidence):
+        return player_runner.validate_player_evidence(evidence, self.manifest, "mobile-playability")
+
+    def test_complete_mobile_unit_inventory_is_accepted(self):
+        self.assertIs(self.evidence, self.validate(self.evidence))
+
+    def test_missing_duplicate_or_unknown_actual_case_is_rejected(self):
+        for mutation in ("missing", "duplicate", "unknown"):
+            evidence = copy.deepcopy(self.evidence)
+            if mutation == "missing":
+                evidence["cases"].pop()
+            elif mutation == "duplicate":
+                evidence["cases"].append(copy.deepcopy(evidence["cases"][0]))
+            else:
+                evidence["cases"][0]["name"] = "unexecuted"
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                self.validate(evidence)
+
+    def test_single_touch_requires_one_native_target_and_exact_server_command(self):
+        for mutation in ("duplicate", "wrong-kind", "wrong-input", "wrong-instance", "wrong-target",
+                         "missing-command", "raw-pickup-tile", "unproven-server"):
+            evidence = copy.deepcopy(self.evidence)
+            case = evidence["cases"][0]
+            if mutation == "duplicate":
+                case["nativeActions"].append(copy.deepcopy(case["nativeActions"][0]))
+            elif mutation == "wrong-kind":
+                case["nativeActions"][0]["intent"]["kind"] = "select"
+            elif mutation == "wrong-input":
+                case["input"] = "double-touch"
+            elif mutation == "wrong-instance":
+                case["nativeActions"][0]["instanceId"] = "another-instance"
+            elif mutation == "wrong-target":
+                case["target"]["entityId"] = "another-tile"
+            elif mutation == "missing-command":
+                del case["command"]
+            elif mutation == "raw-pickup-tile":
+                case["command"][2] = {"tileIds": [0]}
+            else:
+                case["serverOutcomeVerified"] = False
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                self.validate(evidence)
+
+    def test_reachable_hand_inventory_and_native_cancellation_cannot_be_labels_only(self):
+        for mutation in ("missing-target", "duplicate-target", "offscreen", "missing-gesture",
+                         "duplicate-gesture", "unproven-cancel", "native-discard"):
+            evidence = copy.deepcopy(self.evidence)
+            case = evidence["cases"][0]
+            canceled = next(case for case in evidence["cases"] if case["name"] == "actual-mobile-canceled-gestures")
+            if mutation == "missing-target":
+                case["handTargets"].pop()
+            elif mutation == "duplicate-target":
+                case["handTargets"][1] = copy.deepcopy(case["handTargets"][0])
+            elif mutation == "offscreen":
+                case["handTargets"][0]["x"] = 1000
+            elif mutation == "missing-gesture":
+                canceled["gestures"].pop()
+            elif mutation == "duplicate-gesture":
+                canceled["gestures"].append(copy.deepcopy(canceled["gestures"][0]))
+            elif mutation == "unproven-cancel":
+                canceled["gestures"][0]["noDiscardVerified"] = False
+            else:
+                canceled["gestures"][0]["nativeActions"] = case["nativeActions"]
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                self.validate(evidence)
+
+    def test_progressed_public_tiles_and_actual_render_proof_are_mandatory(self):
+        for mutation in ("unprogressed", "wrong-build", "wrong-buffer", "flat-pixels"):
+            evidence = copy.deepcopy(self.evidence)
+            case = evidence["cases"][0]
+            if mutation == "unprogressed":
+                next(case for case in evidence["cases"] if case["name"].startswith("progressed-"))["publicTiles"] = 0
+            elif mutation == "wrong-build":
+                case["realReady"]["buildId"] = "unqualified"
+            elif mutation == "wrong-buffer":
+                case["viewport"]["widthPx"] = 1
+            else:
+                case["pixels"]["quantizedColors"] = 1
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                self.validate(evidence)
+
+    def test_editor_receipt_supports_observed_modern_and_legacy_inventory_not_success_labels(self):
+        editor = {
+            "producerExitCode": 0, "manifest": {"sha256": "unit-sha"},
+            "editMode": {"result": "Passed", "passed": 134, "failed": 0, "skipped": 0},
+            "qualificationChecks": {"actualAllEditModePassed": True, "actualWebGlBuildReportSucceeded": True,
+                                    "authorizedCommittedSourceRemainedClean": True},
+        }
+        player_runner.validate_editor_evidence(editor, "unit-sha")
+        legacy = copy.deepcopy(editor)
+        legacy["editMode"].update(passed=82, count=82, failed=[])
+        del legacy["editMode"]["skipped"]
+        legacy["qualificationChecks"]["actualAll82EditModePassed"] = legacy["qualificationChecks"].pop("actualAllEditModePassed")
+        player_runner.validate_editor_evidence(legacy, "unit-sha")
+        for section, field, value in (
+            ("editMode", "passed", 0), ("editMode", "failed", 1), ("editMode", "skipped", 1),
+            ("qualificationChecks", "actualAllEditModePassed", False),
+            ("qualificationChecks", "authorizedCommittedSourceRemainedClean", False),
+            ("manifest", "sha256", "unqualified"),
+        ):
+            bad = copy.deepcopy(editor)
+            bad[section][field] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                player_runner.validate_editor_evidence(bad, "unit-sha")
 
 
 if __name__ == "__main__":

@@ -60,7 +60,10 @@ function actualGame({ advanceAnimations = false } = {}) {
   }, {
     'sound-player.ts': { SoundPlayer: class { play() {} } },
     'settings-drawer.ts': {
-      getSettings: () => ({ boardLayout: 'auto', handLayout: 'auto', handSort: 'suit', soundEnabled: true }),
+      getSettings: () => ({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto', handSort: 'suit', soundEnabled: true }),
+      cameraPerspective: (settings, width, height) => settings.cameraMode === 'auto' ? !(width < 768 && height > width)
+        : settings.cameraMode === 'perspective',
+      syncCameraInputs() {},
       installPerspectiveSetting() {}, installRendererLayoutSettings() {},
       onSettingsChange: () => () => {},
     },
@@ -145,12 +148,12 @@ test('actual Game auto-layout resize leaves the matching separate-hand viewport,
   assert.equal(transmitted[0].resizeRevision, h.game.renderer.viewport.resizeRevision);
   const portrait = h.game.renderer.viewport.resizeRevision;
   h.resize(844, 390);
-  assert.equal(h.game.adapter.latest.presentation.handLayout, 'in-table');
-  assert.equal(h.game.renderer.viewport.handBandCssPx, 0);
+  assert.equal(h.game.adapter.latest.presentation.handLayout, 'separate');
+  assert(h.game.renderer.viewport.handBandCssPx > 0, 'short landscape keeps a finger-sized independent hand');
   assert(h.game.renderer.viewport.resizeRevision > portrait);
   assert.equal(transmitted.length, 2);
   assert(transmitted[1].resizeRevision > transmitted[0].resizeRevision);
-  assert.equal(transmitted[1].handBandCssPx, 0);
+  assert.equal(transmitted[1].handBandCssPx, h.game.renderer.viewport.handBandCssPx);
   assert.equal(transmitted[1].widthPx, Math.round(844 * transmitted[1].renderPixelRatio));
   assert.equal(transmitted[1].heightPx, Math.round(390 * transmitted[1].renderPixelRatio));
   h.resize(844, 390);

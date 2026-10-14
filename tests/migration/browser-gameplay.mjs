@@ -49,21 +49,6 @@ async function observeAction(page, start, kind, entityId) {
   return action;
 }
 
-async function touchDoubleTap(page, x, y) {
-  const session = await page.context().newCDPSession(page);
-  try {
-    const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-    for (let tap = 0; tap < 2; tap++) {
-      await session.send('Input.dispatchTouchEvent', {
-        type: 'touchStart', touchPoints: [{ x, y, id: 0 }],
-      });
-      await delay(55);
-      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      if (tap === 0) await delay(40);
-    }
-  } finally { await session.detach(); }
-}
-
 async function pointAt(page, entity, { hover = true } = {}) {
   const state = await snapshot(page);
   const point = aimPoint(state, entity);
@@ -114,11 +99,11 @@ async function actualDiscard(page, room, { touch = false, entityId = null } = {}
   const start = (await snapshot(page)).actions.length;
   const previousCommands = commands(room, 'discard').length;
   if (touch) {
-    await touchDoubleTap(page, point.x, point.y);
+    await page.touchscreen.tap(point.x, point.y);
   } else {
     await page.mouse.dblclick(point.x, point.y, { delay: 75 });
   }
-  const select = await observeAction(page, start, 'select', tile.entityId);
+  const select = touch ? null : await observeAction(page, start, 'select', tile.entityId);
   const discard = await observeAction(page, start, 'discard', tile.entityId);
   await page.waitForFunction(entityId => window.game.renderer.state === 'failed'
     || window.game.adapter.latest?.entities.some(entity => entity.entityId === entityId && entity.group === 'discard')
@@ -127,7 +112,7 @@ async function actualDiscard(page, room, { touch = false, entityId = null } = {}
   const after = await snapshot(page);
   assert.equal(after.state, 'ready', after.statusText);
   assert.equal(commands(room, 'discard').length, previousCommands + 1,
-    'Exactly one retained server discard command must result from the C# double tap');
+    'Exactly one retained server discard command must result from the native gesture');
   const command = commands(room, 'discard').at(-1);
   assert.equal(Number(command[1]), before.frame.session.actorSeat);
   assert.deepEqual(Object.keys(command[2]), ['tileId']);
@@ -135,9 +120,9 @@ async function actualDiscard(page, room, { touch = false, entityId = null } = {}
   assert(!after.frame.entities.some(entity => entity.entityId === tile.entityId && entity.group === 'hand'));
   assert.equal(after.duplicateReceipts.length, 0);
   receipt.transcript.push({ room, operation: touch ? 'touch-select-discard' : 'mouse-select-discard',
-    nativeActions: [select, discard], command, sourceSlot: tile.slotName,
+    nativeActions: select ? [select, discard] : [discard], command, sourceSlot: tile.slotName,
     outcome: { entityNoLongerInOwnedHand: true, turn: after.frame.turn, localHandCount: after.frame.localHand.entityIds.length } });
-  return { state: after, nativeActions: [select, discard], command, sourceSlot: tile.slotName };
+  return { state: after, nativeActions: select ? [select, discard] : [discard], command, sourceSlot: tile.slotName };
 }
 
 async function actualPickup(page, room) {
@@ -298,7 +283,7 @@ try {
     await table.page.context().close();
   });
   await caseRun('actual-mobile-combined-reachability', async () => {
-      const measurements = [], nativeActions = [], lowerRows = [], touchSelections = [];
+      const measurements = [], nativeActions = [], lowerRows = [], touchDiscards = [];
       async function reflow(page, before) {
         await page.waitForFunction(previous => window.game.renderer.state === 'ready'
           && window.game.renderer.lastRendered > previous.lastRendered
@@ -323,7 +308,7 @@ try {
         await page.locator('#settings-tab-display').click();
         await page.locator('#settings-board-layout').selectOption(board);
         await page.locator('#settings-hand-layout').selectOption(hand);
-        await page.locator('#settings-perspective-toggle').setChecked(perspective);
+        await page.locator('#settings-camera-view').selectOption(perspective ? 'perspective' : 'flat');
         await page.locator('#settings-close-v2').click();
         await page.waitForFunction(({ board, hand, perspective, previous }) =>
           window.game.renderer.state === 'ready' && window.game.renderer.lastRendered > previous
@@ -353,7 +338,7 @@ try {
         measurements.push({ name, viewport: state.viewport, presentation: state.frame.presentation,
           frameId: state.lastRendered, controls, chrome, pixels: await capture(page, name) });
         fs.writeFileSync(`${probeRoot}/mobile-geometry-progress.json`,
-          JSON.stringify({ measurements, lowerRows, touchSelections }, null, 2) + '\n');
+          JSON.stringify({ measurements, lowerRows, touchDiscards }, null, 2) + '\n');
         return controls;
       }
       for (const dpr of [1, 2, 3]) {
@@ -385,19 +370,9 @@ try {
         const target = controls.find(control => Math.abs(control.y - lowerY) < 0.1
           && previouslyCovered.has(control.slotName));
         assert(target, 'The actual fourteen-tile layout must include a formerly covered lower-row tile');
-        const actionStart = (await snapshot(page)).actions.length;
-        const touch = await page.context().newCDPSession(page);
-        await touch.send('Input.dispatchTouchEvent', {
-          type: 'touchStart', touchPoints: [{ x: target.x, y: target.y, id: 0 }],
-        });
-        await new Promise(resolve => setTimeout(resolve, 70));
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        await touch.detach();
-        const selected = await observeAction(page, actionStart, 'select', target.entityId);
-        touchSelections.push({ dpr, action: selected, formerlyBlockedSourceSlot: target.slotName });
-        await page.waitForTimeout(400);
-        const outcome = await actualDiscard(page, table.room, { entityId: target.entityId });
-        nativeActions.push(selected, ...outcome.nativeActions);
+        const outcome = await actualDiscard(page, table.room, { touch: true, entityId: target.entityId });
+        touchDiscards.push({ dpr, action: outcome.nativeActions[0], formerlyBlockedSourceSlot: target.slotName });
+        nativeActions.push(...outcome.nativeActions);
         lowerRows.push({ dpr, point: target, formerlyBlockedSourceSlot: target.slotName,
           nativeActions: outcome.nativeActions, command: outcome.command,
           serverOutcomeVerified: true, nativeWireVerified: true });
@@ -407,9 +382,8 @@ try {
             actualDeviceLevel: 'Chromium viewport/DPR/touch emulation, not physical iOS/Android',
             measurements, measuredLayouts: 21, measuredHandCenters: 294,
             allHandCentersHitUnityCanvas: true, chatPreservedVisible: true,
-            nativeActions, lowerRows, touchSelections,
-            touchscreenSingleSelectionQualified: true,
-            touchscreenDoubleTapDiscardQualified: false,
+            nativeActions, lowerRows, touchDiscards,
+            touchscreenSingleTapDiscardQualified: true,
             serverOutcomeVerified: true, nativeWireVerified: true,
           });
         }
@@ -437,7 +411,7 @@ try {
       await record(`actual-mobile-dpr${dpr}-touch`, table.page, {
         nativeActions: outcome.nativeActions, actualDeviceLevel: 'Chromium mobile emulation with real touchscreen events',
         handInputReachabilityBeforeDiscard: handReachability,
-        touchGestureInputMethod: 'One CDP session dispatching a real 55ms/40ms/55ms double-touch sequence',
+        touchGestureInputMethod: 'One ordinary Playwright touchscreen tap; no timed double-touch sequence',
         serverOutcomeVerified: true, nativeWireVerified: true,
       });
       await table.page.context().close();

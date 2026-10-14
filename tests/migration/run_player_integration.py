@@ -32,6 +32,22 @@ def load(name, path):
     return module
 
 
+def validate_editor_evidence(editor, manifest_sha):
+    checks = editor["qualificationChecks"]
+    tests = editor["editMode"]
+    failed = tests.get("failed")
+    if (type(editor["producerExitCode"]) is not int or editor["producerExitCode"] != 0
+            or checks.get("actualAllEditModePassed", checks.get("actualAll82EditModePassed")) is not True
+            or checks.get("actualWebGlBuildReportSucceeded") is not True
+            or checks.get("authorizedCommittedSourceRemainedClean") is not True
+            or editor["manifest"]["sha256"] != manifest_sha
+            or tests.get("result") != "Passed"
+            or type(tests.get("passed")) is not int or tests["passed"] <= 0
+            or not (type(failed) is int and failed == 0 or failed == [])
+            or tests.get("skipped", 0) != 0):
+        raise AssertionError("Actual clean pinned licensed Editor/test/build receipt does not qualify this player")
+
+
 def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
     if not isinstance(evidence, dict) or evidence.get("status") != "passed":
         raise AssertionError("Actual player qualification failed: " + json.dumps(
@@ -58,6 +74,16 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
             "actual-mobile-emulated-dpr2", "actual-mobile-emulated-dpr3",
             "actual-spectator-follow-initial-wall-privacy-only",
         })
+    elif scope == "mobile-playability":
+        required = {
+            *{f"actual-mobile-{width}-dpr{dpr}-single-touch" for width in (360, 390, 500) for dpr in (1, 2, 3)},
+            "actual-mobile-canceled-gestures", "actual-mobile-chat-open-single-touch",
+            "actual-mobile-landscape-single-touch", "actual-desktop-native-double-click",
+            "actual-mobile-manual-pickup",
+            "progressed-360x800", "progressed-390x844", "progressed-500x900",
+            "progressed-portrait-chat-open", "progressed-portrait-explicit-perspective",
+            "progressed-desktop-with-move-log",
+        }
     else:
         required = {
             "actual-auto-csharp-select-discard", "actual-manual-csharp-count-only-pickup-discard",
@@ -80,15 +106,69 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
             if case.get("buttonClicked") is not True or case.get("pickup", {}).get("canTake") is not True:
                 raise AssertionError("The manual dice case omitted its real server pickup outcome")
             continue
-        if scope == "gameplay" and ("csharp" in case["name"] or "touch" in case["name"]
+        if scope in ("gameplay", "mobile-playability") and ("csharp" in case["name"] or "touch" in case["name"]
                                    or case["name"] == "actual-mobile-combined-reachability"
-                                   or "relay-native-input" in case["name"]):
+                                   or "relay-native-input" in case["name"]
+                                   or case["name"] in ("actual-desktop-native-double-click", "actual-mobile-manual-pickup")):
             native_actions = case.get("nativeActions", [])
             if (not isinstance(native_actions, list) or not native_actions
-                    or not case.get("serverOutcomeVerified") or not case.get("nativeWireVerified")
+                    or case.get("serverOutcomeVerified") is not True or case.get("nativeWireVerified") is not True
                     or any(action.get("type") != "action" or not action.get("actionId")
                            or not action.get("intent", {}).get("kind") for action in native_actions)):
                 raise AssertionError("Gameplay case omitted actual C# actions and server/wire outcome")
+        if scope == "mobile-playability":
+            is_touch = case["name"].endswith("-single-touch")
+            is_desktop = case["name"] == "actual-desktop-native-double-click"
+            is_pickup = case["name"] == "actual-mobile-manual-pickup"
+            if is_touch or is_desktop or is_pickup:
+                actions = case.get("nativeActions", [])
+                kind = "takePickup" if is_pickup else "discard"
+                if (len(actions) != 1 or actions[0]["intent"]["kind"] != kind
+                        or actions[0].get("instanceId") != case.get("instanceId")
+                        or actions[0].get("sessionId") != case.get("sessionId")):
+                    raise AssertionError("One native gesture must emit exactly one matching C# action")
+                command = case.get("command")
+                seat = case.get("session", {}).get("actorSeat")
+                if not isinstance(command, list) or len(command) != 3 or not isinstance(command[2], dict):
+                    raise AssertionError("The native mobile case omitted its actual server command")
+                if is_pickup:
+                    if (command[:2] != ["pickup", "take"] or set(command[2]) != {"seatIndex", "count"}
+                            or command[2]["seatIndex"] != seat
+                            or type(command[2]["count"]) is not int or command[2]["count"] <= 0):
+                        raise AssertionError("Manual pickup must retain its native count-only server command")
+                elif (case.get("input") != ("ordinary-single-touch" if is_touch else "desktop-double-click")
+                      or case.get("target", {}).get("entityId") != actions[0]["intent"].get("entityId")
+                      or command[:2] != ["discard", seat] or set(command[2]) != {"tileId"}
+                      or type(command[2]["tileId"]) is not int or command[2]["tileId"] < 0):
+                    raise AssertionError("The discard case omitted its ordinary input, native target or server command")
+            if ("handTargets" in case
+                    or case["name"].startswith(tuple(f"actual-mobile-{width}-" for width in (360, 390, 500)))
+                    or case["name"] in ("progressed-360x800", "progressed-390x844", "progressed-500x900",
+                                        "progressed-portrait-chat-open")):
+                targets = case.get("handTargets", [])
+                if (case.get("handCentersReached") != 14 or not isinstance(targets, list) or len(targets) != 14
+                        or len({target.get("entityId") for target in targets}) != 14
+                        or len({target.get("slotName") for target in targets}) != 14
+                        or any(not target.get("entityId") or not target.get("slotName")
+                               or any(type(target.get(axis)) not in (float, int)
+                                      or not math.isfinite(target[axis]) or target[axis] < 0
+                                      or target[axis] > case["viewport"][dimension]
+                                      for axis, dimension in (("x", "widthCssPx"), ("y", "heightCssPx")))
+                               for target in targets)):
+                    raise AssertionError("The mobile case omitted all fourteen reachable CSS hand centers")
+            if case["name"].startswith("progressed-") and case.get("publicTiles", 0) < 36:
+                raise AssertionError("Public-tile readability must be captured from an actually progressed game")
+            if case["name"] == "actual-mobile-canceled-gestures" and (
+                    len(case.get("gestures", [])) != 5
+                    or {gesture.get("kind") for gesture in case.get("gestures", [])}
+                    != {"moved", "canceled", "long-pressed", "multi-touch", "resized"}
+                    or not all(gesture.get("noDiscardVerified") is True
+                               and isinstance(gesture.get("nativeActions"), list)
+                               and not any(action.get("intent", {}).get("kind") == "discard"
+                                           for action in gesture["nativeActions"])
+                               for gesture in case["gestures"])
+                    or case.get("noUnintendedCommands") is not True):
+                raise AssertionError("The native mobile case omitted cancellation/resize guard outcomes")
         if case["name"] == "actual-mobile-combined-reachability":
             measurements = case.get("measurements", [])
             if (len(measurements) != 21 or case.get("measuredLayouts") != 21
@@ -96,7 +176,8 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                     or case.get("allHandCentersHitUnityCanvas") is not True
                     or case.get("chatPreservedVisible") is not True
                     or len(case.get("lowerRows", [])) != 3
-                    or len(case.get("touchSelections", [])) != 3):
+                    or len(case.get("touchDiscards", [])) != 3
+                    or case.get("touchscreenSingleTapDiscardQualified") is not True):
                 raise AssertionError("The mobile case omitted exact all-fourteen-target/DPR/orientation/native proof")
             for measurement in measurements:
                 controls = measurement.get("controls", [])
@@ -109,7 +190,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                 if (lower.get("serverOutcomeVerified") is not True
                         or lower.get("nativeWireVerified") is not True
                         or [action.get("intent", {}).get("kind") for action in lower.get("nativeActions", [])]
-                        != ["select", "discard"]):
+                        != ["discard"]):
                     raise AssertionError("A formerly blocked lower-row tile omitted its real C# server roundtrip")
         ready = case.get("realReady", {})
         if (ready.get("type") != "ready" or ready.get("buildId") != manifest["buildId"]
@@ -150,9 +231,12 @@ def main():
     parser.add_argument("--origin", help="An already running isolated localhost Docker runtime")
     parser.add_argument("--reuse-created-container", help="Resume a specifically owned delayed VFS-created probe")
     parser.add_argument("--port", type=int, default=0, help="A specific unused localhost API port for owned-container resume")
+    parser.add_argument("--editor-receipt", type=Path,
+                        default=ROOT / "artifacts/test-results/unity-clean-source-build/receipt.json",
+                        help="Actual clean pinned Editor/test/build receipt for this exact player")
     parser.add_argument("--output-name", default="migration-player-actual")
-    parser.add_argument("--scope", choices=("all-variant-startup", "manual-layout", "gameplay"), default="all-variant-startup")
-    parser.add_argument("--probe", choices=("browser-player.mjs", "browser-gameplay.mjs"), default="browser-player.mjs")
+    parser.add_argument("--scope", choices=("all-variant-startup", "manual-layout", "gameplay", "mobile-playability"), default="all-variant-startup")
+    parser.add_argument("--probe", choices=("browser-player.mjs", "browser-gameplay.mjs", "browser-mobile-playability.mjs"), default="browser-player.mjs")
     parser.add_argument("--cases", default="", help="Exact comma-separated real gameplay cases for a focused retake")
     args = parser.parse_args()
     global OUTPUT
@@ -202,14 +286,11 @@ def main():
         manifest_path = ROOT / "artifacts/unity-webgl/renderer-build.json"
         receipt["integrity"] = verifier.verify(manifest_path)
         receipt["manifestSha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-        clean_editor = ROOT / "artifacts/test-results/unity-clean-source-build/receipt.json"
+        clean_editor = args.editor_receipt.resolve()
+        if not clean_editor.is_relative_to(ROOT / "artifacts/test-results") or clean_editor.suffix != ".json":
+            raise AssertionError("Editor receipt must be owned project-local test evidence")
         editor = json.loads(clean_editor.read_text())
-        if (editor["producerExitCode"] != 0 or not editor["qualificationChecks"]["actualAll82EditModePassed"]
-                or editor["manifest"]["sha256"] != receipt["manifestSha256"]
-                or not editor["qualificationChecks"]["actualWebGlBuildReportSucceeded"]
-                or not editor["qualificationChecks"]["authorizedCommittedSourceRemainedClean"]
-                or editor["editMode"]["result"] != "Passed"):
-            raise AssertionError("Actual clean pinned licensed Editor/test/build receipt does not qualify this player")
+        validate_editor_evidence(editor, receipt["manifestSha256"])
         receipt["licenseEvidence"] = str(clean_editor.relative_to(ROOT))
         receipt["licensingAccepted"] = True
         receipt["cleanEditorEvidence"] = {
@@ -303,7 +384,7 @@ def main():
         for source, target, readonly in (
             *[(ROOT / "tests/migration" / name, "/workspace/tests/migration/" + name, True)
               for name in (["browser-player.mjs"] if args.probe == "browser-player.mjs"
-                           else ["browser-player.mjs", "browser-gameplay.mjs", "player-aim.mjs"])],
+                           else ["browser-player.mjs", args.probe, "player-aim.mjs"])],
             (ROOT / "src/frontend/autotable-src/package.json", "/workspace/src/frontend/autotable-src/package.json", True),
             *[
                 (ROOT / "src/frontend/autotable-src/node_modules" / package,
@@ -320,7 +401,7 @@ def main():
         receipt["browserCommand"] = command
         attempted = True
         result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True,
-                                timeout=1200 if args.scope == "gameplay" else 660)
+                                timeout=1600 if args.scope == "mobile-playability" else 1200 if args.scope == "gameplay" else 660)
         (OUTPUT / "browser-player.stdout.json").write_text(result.stdout)
         (OUTPUT / "browser-player.stderr.log").write_text(result.stderr)
         receipt["browserReturnCode"] = result.returncode

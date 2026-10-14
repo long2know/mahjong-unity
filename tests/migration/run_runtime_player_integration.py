@@ -37,6 +37,9 @@ def main():
     parser.add_argument("--cases", default="")
     parser.add_argument("--output-name", default="migration-player-cycle1-runtime")
     parser.add_argument("--image", required=True, help="The freshly built exact combined runtime image/tag")
+    parser.add_argument("--editor-receipt", type=Path,
+                        default=ROOT / "artifacts/test-results/unity-clean-source-build/receipt.json")
+    parser.add_argument("--mobile-playability", action="store_true")
     parser.add_argument("--port", type=int, default=5095)
     args = parser.parse_args()
     assert args.port != 5086, "The live user preview port is excluded from every test operation"
@@ -50,7 +53,9 @@ def main():
     fixture.mkdir()
     (fixture / "bootstrap-cache").mkdir()
     container = "migration-player-runtime-" + uuid.uuid4().hex
-    clean_editor = json.loads((ROOT / "artifacts/test-results/unity-clean-source-build/receipt.json").read_text())
+    editor_path = args.editor_receipt.resolve()
+    assert editor_path.is_relative_to(ROOT / "artifacts/test-results") and editor_path.suffix == ".json"
+    clean_editor = json.loads(editor_path.read_text())
     image = subprocess.check_output(["docker", "image", "inspect", args.image, "--format", "{{.Id}}"],
                                     text=True, timeout=30).strip()
     receipt = {
@@ -59,7 +64,7 @@ def main():
         "imageId": image, "status": "failed", "licensingAcceptedByActualEditor": True,
         "licenseAccountOrOperatorFilesRead": False, "ephemeralSigningValuesLogged": False,
         "sourceDirty": False, "developmentBuild": False, "cleanup": {},
-        "cleanEditorReceipt": "artifacts/test-results/unity-clean-source-build/receipt.json",
+        "cleanEditorReceipt": str(editor_path.relative_to(ROOT)),
         "protectedUserPreviewExcluded": {"name": "mahjong-unity-preview", "port": 5086},
     }
     stage = "exact-runtime-image"
@@ -188,10 +193,12 @@ def main():
         stage = "actual-runtime-generated-player"
         player = subprocess.run([
             "python3", "tests/migration/run_player_integration.py", "--origin", base,
-            "--scope", "gameplay", "--probe", "browser-gameplay.mjs",
+            "--scope", "mobile-playability" if args.mobile_playability else "gameplay",
+            "--probe", "browser-mobile-playability.mjs" if args.mobile_playability else "browser-gameplay.mjs",
+            "--editor-receipt", str(editor_path),
             "--output-name", browser_output,
             "--cases", args.cases,
-        ], cwd=ROOT, capture_output=True, text=True, timeout=1320)
+        ], cwd=ROOT, capture_output=True, text=True, timeout=1720 if args.mobile_playability else 1320)
         (OUTPUT / "player-run.stdout.log").write_text(player.stdout)
         (OUTPUT / "player-run.stderr.log").write_text(player.stderr)
         receipt["playerReceipt"] = "artifacts/test-results/" + browser_output + "/player-receipt.json"

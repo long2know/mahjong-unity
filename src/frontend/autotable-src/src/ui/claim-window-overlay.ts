@@ -139,6 +139,7 @@ export class ClaimWindowOverlay {
 
   private buildDom(): HTMLDivElement {
     const root = document.createElement('div');
+    root.id = 'claim-window-actions';
     root.className = 'ferro-claim-overlay';
     root.setAttribute('role', 'region');
     root.setAttribute('aria-label', 'Claim window');

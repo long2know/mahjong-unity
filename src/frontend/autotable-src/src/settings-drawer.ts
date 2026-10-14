@@ -66,6 +66,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   /** Perspective vs orthographic table view (Phase F #perspective). */
   perspective: boolean;
+  cameraMode: 'auto' | 'perspective' | 'flat';
   boardLayout: 'auto' | 'classic' | 'rectangular';
   handLayout: 'auto' | 'in-table' | 'separate';
   handSort: HandSortMode;
@@ -86,6 +87,7 @@ export const SETTINGS_DEFAULT: AppSettings = {
   masterVolume: 0.8,
   soundEnabled: true,
   perspective: true,
+  cameraMode: 'auto',
   boardLayout: 'auto',
   handLayout: 'auto',
   handSort: 'suit',
@@ -112,6 +114,7 @@ let perspectiveInstalled = false;
 let legacyDisplayInstalled = false;
 let rendererLayoutInstalled = false;
 let drawerOpened = false;
+let applyingCamera = false;
 let activeTab: SettingsTab = 'general';
 const listeners = new Set<(s: AppSettings) => void>();
 
@@ -128,6 +131,8 @@ function loadFromStorage(): AppSettings {
     }
     if (typeof j.soundEnabled === 'boolean') out.soundEnabled = j.soundEnabled;
     if (typeof j.perspective === 'boolean') out.perspective = j.perspective;
+    if (j.cameraMode === 'auto' || j.cameraMode === 'perspective' || j.cameraMode === 'flat') out.cameraMode = j.cameraMode;
+    else if (typeof j.perspective === 'boolean') out.cameraMode = j.perspective ? 'perspective' : 'flat';
     if (j.boardLayout === 'classic' || j.boardLayout === 'rectangular') out.boardLayout = j.boardLayout;
     if (j.handLayout === 'in-table' || j.handLayout === 'separate') out.handLayout = j.handLayout;
     out.handSort = handSortMode(j.handSort);
@@ -171,6 +176,29 @@ export function getSettings(): AppSettings {
   return { ...current };
 }
 
+export function cameraPerspective(settings: AppSettings, width: number, height: number): boolean {
+  return settings.cameraMode === 'auto' ? !(width < 768 && height > width)
+    : settings.cameraMode === 'perspective';
+}
+
+export function syncCameraInputs(width: number, height: number): void {
+  const settings = getSettings();
+  const checked = cameraPerspective(settings, width, height);
+  const previous = applyingCamera;
+  applyingCamera = true;
+  try {
+    const mode = document.getElementById('settings-camera-view') as HTMLSelectElement | null;
+    if (mode) mode.value = settings.cameraMode;
+    for (const id of ['perspective', 'settings-game-perspective']) {
+      const input = document.getElementById(id) as HTMLInputElement | null;
+      if (input && input.checked !== checked) {
+        input.checked = checked;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  } finally { applyingCamera = previous; }
+}
+
 /** Bind the existing camera input before the optional drawer is opened. */
 export function installPerspectiveSetting(): void {
   if (perspectiveInstalled) return;
@@ -178,7 +206,7 @@ export function installPerspectiveSetting(): void {
   if (input === null) return;
   perspectiveInstalled = true;
   input.addEventListener('change', () => {
-    if (getSettings().perspective !== input.checked) setSettings({ perspective: input.checked });
+    if (!applyingCamera) setSettings({ perspective: input.checked });
   });
   const settings = getSettings();
   applyDerivedSettings(settings, { perspective: settings.perspective });
@@ -193,7 +221,7 @@ export function installLegacyDisplaySettings(): void {
   legacyDisplayInstalled = true;
   installPerspectiveSetting();
   perspective.addEventListener('change', () => {
-    if (getSettings().perspective !== perspective.checked) setSettings({ perspective: perspective.checked });
+    if (!applyingCamera) setSettings({ perspective: perspective.checked });
   });
   order.addEventListener('change', () => {
     const mode = handSortMode(order.value);
@@ -248,6 +276,11 @@ function emit(): void {
 /** Replace the current settings (full object).  Persists + emits. */
 export function setSettings(next: Partial<AppSettings>): void {
   ensureSettingsLoaded();
+  if ('perspective' in next && !('cameraMode' in next)) {
+    next = { ...next, cameraMode: next.perspective ? 'perspective' : 'flat' };
+  } else if (next.cameraMode === 'perspective' || next.cameraMode === 'flat') {
+    next = { ...next, perspective: next.cameraMode === 'perspective' };
+  }
   current = { ...current, ...next };
   writeToStorage(current);
   if ('soundEnabled' in next) mirrorSoundEnabled(current);
@@ -296,18 +329,8 @@ function applyDerivedSettings(s: AppSettings, changed: Partial<AppSettings> = s)
   // Table colour — expose as a CSS variable so style.css / main.css
   // can apply it without each surface importing this module.
   if ('tableColor' in changed) document.documentElement.style.setProperty('--app-table-color', s.tableColor);
-  if ('perspective' in changed) {
-    for (const id of ['settings-perspective-toggle', 'settings-game-perspective']) {
-      const display = document.getElementById(id) as HTMLInputElement | null;
-      if (display !== null) display.checked = s.perspective;
-    }
-    // The legacy input is the camera actuator for the drawer and P shortcut.
-    const perspective = document.getElementById('perspective') as HTMLInputElement | null;
-    if (perspective !== null && perspective.checked !== s.perspective) {
-      perspective.checked = s.perspective;
-      perspective.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  }
+  if ('perspective' in changed || 'cameraMode' in changed)
+    syncCameraInputs(window.innerWidth ?? 1024, window.innerHeight ?? 768);
 }
 
 /** Reset all settings to defaults. */
@@ -695,20 +718,28 @@ function buildDisplayPanel(): HTMLDivElement {
   const panel = buildPanelShell('display', t('settings.tab.display') || 'Display settings');
 
   const perspRow = document.createElement('label');
-  perspRow.className = 'settings-v2-field settings-v2-checkbox-row settings-perspective-row';
-  const perspInput = document.createElement('input');
-  perspInput.type = 'checkbox';
-  perspInput.id = 'settings-perspective-toggle';
-  perspInput.checked = current.perspective;
-  perspInput.setAttribute('data-testid', 'settings-perspective-toggle');
+  perspRow.className = 'settings-v2-field settings-perspective-row';
+  const perspInput = document.createElement('select');
+  perspInput.id = 'settings-camera-view';
+  perspInput.className = 'form-control';
+  for (const value of ['auto', 'perspective', 'flat'] as const) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = t(`settings.camera_${value}`);
+    perspInput.appendChild(option);
+  }
+  perspInput.value = current.cameraMode;
+  perspInput.setAttribute('data-testid', 'settings-camera-view');
   perspInput.setAttribute('aria-describedby', 'settings-perspective-hint');
   const perspText = document.createElement('span');
-  perspText.textContent = t('settings.perspective');
+  perspText.className = 'settings-v2-label';
+  perspText.textContent = t('settings.camera_view');
   perspInput.addEventListener('change', () => {
-    setSettings({ perspective: perspInput.checked });
+    const cameraMode = perspInput.value === 'perspective' || perspInput.value === 'flat' ? perspInput.value : 'auto';
+    setSettings({ cameraMode });
   });
-  perspRow.appendChild(perspInput);
   perspRow.appendChild(perspText);
+  perspRow.appendChild(perspInput);
   const perspHint = document.createElement('p');
   perspHint.id = 'settings-perspective-hint';
   perspHint.className = 'settings-v2-help';

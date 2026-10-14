@@ -141,7 +141,7 @@ try {
     assert.equal(measured.state, 'unavailable');
     assert.equal(measured.widthPx, Math.round(measured.widthCssPx * measured.renderPixelRatio));
     assert.equal(measured.heightPx, Math.round(measured.heightCssPx * measured.renderPixelRatio));
-    assert.equal(measured.handBandCssPx > 0, measured.widthCssPx < 768);
+    assert.equal(measured.handBandCssPx > 0, measured.widthCssPx < 768 || measured.heightCssPx < 520);
     if (viewports.length) assert(measured.resizeRevision > viewports.at(-1).resizeRevision);
     viewports.push(measured);
   }

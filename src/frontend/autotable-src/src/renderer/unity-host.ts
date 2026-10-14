@@ -144,10 +144,10 @@ export class UnityHost {
       this.observer.observe(main);
       if (this.chat) this.observer.observe(this.chat);
     }
-    if (this.chat && typeof MutationObserver !== 'undefined') {
+    if (typeof MutationObserver !== 'undefined') {
       this.chromeObserver = new MutationObserver(this.resize);
-      this.chromeObserver.observe(this.chat, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
-      this.chromeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      this.chromeObserver.observe(document.body, { attributes: true, childList: true, subtree: true,
+        attributeFilter: ['class', 'style', 'hidden'] });
     }
     this.watchDpr();
     this.resize();
@@ -436,9 +436,20 @@ export class UnityHost {
     const padding = getComputedStyle(this.insets);
     const number = (value: string): number => Math.max(0, parseFloat(value) || 0);
     let insets = { top: number(padding.paddingTop), right: number(padding.paddingRight), bottom: number(padding.paddingBottom), left: number(padding.paddingLeft) };
-    if (this.chat && !this.chat.hidden) {
-      const style = getComputedStyle(this.chat);
-      const bounds = this.chat.getBoundingClientRect();
+    for (const id of ['new-game', 'turn-banner', 'settings-toggle', 'settings-button', 'move-log-toggle',
+      'lobby-toggle', 'variant-badge', 'pickup-hud', 'own-turn-actions', 'claim-window-actions', 'pwa-install-button']) {
+      const chrome = document.getElementById(id);
+      if (!chrome || chrome.hidden) continue;
+      const style = getComputedStyle(chrome), bounds = chrome.getBoundingClientRect();
+      if (style.display !== 'none' && style.visibility !== 'hidden' && style.visibility !== 'collapse'
+        && bounds.width > 0 && bounds.height > 0 && bounds.right > rect.left && bounds.left < rect.right
+        && bounds.top < rect.top + rect.height * 0.45 && bounds.bottom > rect.top)
+        insets.top = Math.max(insets.top, bounds.bottom - rect.top + 8);
+    }
+    for (const overlay of [this.chat, document.getElementById('move-log'), document.getElementById('pwa-install-button')]) {
+      if (!overlay || overlay.hidden) continue;
+      const style = getComputedStyle(overlay);
+      const bounds = overlay.getBoundingClientRect();
       const left = Math.max(rect.left, bounds.left), right = Math.min(rect.right, bounds.right);
       const top = Math.max(rect.top, bounds.top), bottom = Math.min(rect.bottom, bounds.bottom);
       if (style.display !== 'none' && style.visibility !== 'hidden' && style.visibility !== 'collapse'

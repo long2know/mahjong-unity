@@ -21,6 +21,7 @@ namespace Mahjong.Renderer.Input
         private Pick pressed;
         private string lastTapId;
         private float lastTapTime;
+        private float ignoreMouseUntil;
 
         public void Initialize(RendererState state, SemanticActions actions, CameraPicker picker)
         {
@@ -30,6 +31,7 @@ namespace Mahjong.Renderer.Input
             this.state = state;
             this.actions = actions;
             this.picker = picker;
+            UnityEngine.Input.simulateMouseWithTouches = false;
             state.Invalidated += Invalidate;
         }
 
@@ -38,12 +40,14 @@ namespace Mahjong.Renderer.Input
             if (state == null || !state.Actionable || state.Viewport == null) { Reset(); return; }
             if (UnityEngine.Input.touchCount > 1)
             {
+                ignoreMouseUntil = Time.unscaledTime + 0.4f;
                 actions.EndDrag(false);
                 Reset();
                 return;
             }
             if (UnityEngine.Input.touchCount == 1)
             {
+                ignoreMouseUntil = Time.unscaledTime + 0.4f;
                 Touch touch = UnityEngine.Input.GetTouch(0);
                 if (touch.phase == TouchPhase.Began) Begin(touch.position, true, touch.fingerId);
                 else if (fingerId == touch.fingerId)
@@ -55,6 +59,7 @@ namespace Mahjong.Renderer.Input
                 return;
             }
             if (touchPointer && down) { actions.EndDrag(false); Reset(); }
+            if (Time.unscaledTime < ignoreMouseUntil) return;
             Vector2 mouse = UnityEngine.Input.mousePosition;
             if (UnityEngine.Input.GetMouseButtonDown(0)) Begin(mouse, false, -1);
             if (down) Move(mouse);
@@ -81,6 +86,7 @@ namespace Mahjong.Renderer.Input
 
         private void Begin(Vector2 position, bool touch, int finger)
         {
+            if (!touch && Time.unscaledTime < ignoreMouseUntil) return;
             if (picker.At(position) == null) return;
             down = true;
             moved = false;
@@ -117,6 +123,8 @@ namespace Mahjong.Renderer.Input
 
         private void End(Vector2 position, bool additive)
         {
+            if (!down) return;
+            if (touchPointer) ignoreMouseUntil = Time.unscaledTime + 0.4f;
             if (actions.Dragging)
             {
                 Pick target = picker.Slot(position);
@@ -133,7 +141,9 @@ namespace Mahjong.Renderer.Input
                         bool doubleTap = hit.Id == lastTapId && Time.unscaledTime - lastTapTime < 0.32f;
                         if (!actions.TakePickup(hit.Id))
                         {
-                            if (doubleTap)
+                            if (touchPointer && actions.Discard(hit.Id))
+                                doubleTap = true;
+                            else if (doubleTap)
                             {
                                 if (!actions.Discard(hit.Id)) actions.Flip(hit.Id, additive ? -1 : 1);
                             }

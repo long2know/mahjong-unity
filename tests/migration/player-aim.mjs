@@ -50,6 +50,53 @@ function plan(layout, frame, viewport) {
   }
   const viewSeat = frame.session.viewSeat ?? 0, view = yaw(90 * viewSeat);
   const rectangular = frame.presentation.boardLayout === 'rectangular';
+  const compact = rectangular && layout.gameType === 'CHANGSHA';
+  const localIds = new Set(frame.localHand.entityIds);
+  if (compact) {
+    const occupied = new Set(frame.entities.map(entity => entity.slotName));
+    for (const g of groups.values()) {
+      g.bounds = bounds();
+      g.scale = ['discard', 'meld'].includes(g.name) ? 2 : 1;
+      g.offsets = new Map();
+      if (!['discard', 'meld', 'wall'].includes(g.name)) continue;
+      const slots = layout.slots.filter(slot => (slot.seat ?? 0) === g.seat
+        && slot.group === g.name && occupied.has(slot.slotName))
+        .sort((a, b) => (a.indexes[0] ?? 0) - (b.indexes[0] ?? 0)
+          || (a.indexes[1] ?? 0) - (b.indexes[1] ?? 0));
+      const columns = board.width < board.height && (g.seat - viewSeat + 4) % 2 !== 0 ? 12 : 6;
+      let x = 0, previousMeld = -1, previousStack = -1, stack = -1;
+      slots.forEach((slot, i) => {
+        const source = rotate(convert(slot.poses[0]).p, yaw(90 * g.seat));
+        const target = [...source];
+        if (g.name === 'discard') {
+          target[0] = i % columns * 0.064;
+          target[2] = -Math.floor(i / columns) * 0.094;
+        } else if (g.name === 'meld') {
+          const meld = slot.indexes[0] ?? 0;
+          if (i && meld !== previousMeld) x += 0.018;
+          target[0] = x; target[2] = 0;
+          x += 0.064; previousMeld = meld;
+        } else {
+          const column = slot.indexes[0] ?? i;
+          if (column !== previousStack) stack++;
+          target[0] = stack * 0.062;
+          previousStack = column;
+        }
+        g.offsets.set(slot.slotName, sub(target, source));
+      });
+    }
+    for (const entity of frame.entities) {
+      if (band > 0 && localIds.has(entity.entityId)) continue;
+      const g = groups.get(`${entity.seat ?? 0}:${entity.group}`);
+      const pose = convert(entity.pose), undo = yaw(90 * g.seat);
+      const position = mul(add(rotate(pose.p, undo), g.offsets.get(entity.slotName) ?? [0, 0, 0]), g.scale);
+      const half = mul(mesh(entity.kind), (entity.scale ?? 1) * g.scale * 0.5);
+      const rotation = pose.q;
+      for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1])
+        extend(g.bounds, add(position, rotate(rotate([x * half[0], y * half[1], z * half[2]], rotation), undo)));
+    }
+    for (const [key, g] of groups) if (!Number.isFinite(g.bounds.min[0])) groups.delete(key);
+  }
   let boardBounds;
   if (!rectangular) {
     boardBounds = { min: [-0.87, -0.04, -0.87], max: [0.87, 0.04, 0.87] };
@@ -60,28 +107,33 @@ function plan(layout, frame, viewport) {
     boardBounds.min = sub(boardBounds.min, [0.04, 0, 0.04]);
     boardBounds.max = add(boardBounds.max, [0.04, 0, 0.04]);
   } else {
+    const padding = compact ? 0.018 : 0.04;
     const thickness = [0, 0, 0, 0];
-    let cw = 0.35, cd = 0.35;
+    let cw = compact ? 0.12 : 0.35, cd = cw;
     for (const g of groups.values()) {
       const side = (g.seat - viewSeat + 4) % 4, s = size(g.bounds);
-      thickness[side] += s[2] + 0.04;
-      if (side % 2 === 0) cw = Math.max(cw, s[0] + 0.08);
-      else cd = Math.max(cd, s[0] + 0.08);
+      thickness[side] += s[2] + padding;
+      if (side % 2 === 0) cw = Math.max(cw, s[0] + padding * 2);
+      else cd = Math.max(cd, s[0] + padding * 2);
     }
-    let width = cw + thickness[1] + thickness[3] + 0.08;
-    let depth = cd + thickness[0] + thickness[2] + 0.08;
-    const aspect = Math.max(0.35, Math.min(3, board.width / board.height));
+    let width = cw + thickness[1] + thickness[3] + padding * 2;
+    let depth = cd + thickness[0] + thickness[2] + padding * 2;
+    const projection = compact && frame.presentation.viewMode !== 'flat'
+      ? Math.sin((38 + 40 * frame.presentation.lookDown) * Math.PI / 180) : 1;
+    const aspect = Math.max(0.35, Math.min(3, board.width / board.height * projection));
     if (width / depth < aspect) cw += depth * aspect - width;
     else cd += width / aspect - depth;
-    width = cw + thickness[1] + thickness[3] + 0.08;
-    depth = cd + thickness[0] + thickness[2] + 0.08;
+    width = cw + thickness[1] + thickness[3] + padding * 2;
+    depth = cd + thickness[0] + thickness[2] + padding * 2;
     const offsets = [0, 0, 0, 0], packed = [];
-    for (const lane of ['discard', 'riichi', 'payment', 'wall', 'wall.open', 'hand', 'kita', 'meld', 'marker', 'tray']) {
+    const lanes = compact ? ['discard', 'meld', 'kita', 'hand', 'wall', 'wall.open', 'riichi', 'payment', 'marker', 'tray']
+      : ['discard', 'riichi', 'payment', 'wall', 'wall.open', 'hand', 'kita', 'meld', 'marker', 'tray'];
+    for (const lane of lanes) {
       for (const g of [...groups.values()].filter(g => g.name === lane).sort((a, b) => a.seat - b.seat)) {
         const side = (g.seat - viewSeat + 4) % 4, s = size(g.bounds), c = center(g.bounds);
         const z = -(side % 2 === 0 ? cd / 2 : cw / 2) - offsets[side] - s[2] / 2;
         g.translation = [-c[0], 0, z - c[2]];
-        offsets[side] += s[2] + 0.04;
+        offsets[side] += s[2] + padding;
         packed.push(rotated(translated(g.bounds, g.translation), yaw(90 * (viewSeat - g.seat))));
       }
     }
@@ -89,7 +141,7 @@ function plan(layout, frame, viewport) {
     boardBounds = { min: sub(c, [width / 2, 0.04, depth / 2]), max: add(c, [width / 2, 0.04, depth / 2]) };
     packed.forEach(b => { extend(boardBounds, b.min); extend(boardBounds, b.max); });
   }
-  return { groups, view, rectangular, boardBounds, board, hand };
+  return { groups, view, rectangular, compact, boardBounds, board, hand };
 }
 
 function separateHandPoint(layout, frame, band, entityId, slotName) {
@@ -97,7 +149,7 @@ function separateHandPoint(layout, frame, band, entityId, slotName) {
   if (frame.localHand.drawnEntityId) ordered.push(frame.localHand.drawnEntityId);
   const targets = layout.slots.filter(s => s.group === 'hand' && s.seat === frame.localHand.seat)
     .sort((a, b) => (a.indexes[0] ?? Infinity) - (b.indexes[0] ?? Infinity));
-  const count = Math.max(ordered.length, targets.length);
+  const count = layout.gameType === 'CHANGSHA' ? Math.max(14, ordered.length) : Math.max(ordered.length, targets.length);
   let index = entityId ? ordered.indexOf(entityId) : -1;
   if (index < 0) {
     const occupied = ordered.map(id => frame.entities.find(e => e.entityId === id).slotName);
@@ -134,23 +186,28 @@ export function aimPoint(state, target) {
   const pose = convert(target.pose ?? target.poses[0]);
   const group = p.groups.get(`${target.seat ?? 0}:${target.group}`);
   let position = pose.p;
-  if (p.rectangular) position = add(position, rotate(group.translation, yaw(-90 * group.seat)));
+  if (p.compact) position = rotate(add(
+    mul(add(rotate(position, yaw(90 * group.seat)), group.offsets.get(target.slotName) ?? [0, 0, 0]), group.scale),
+    group.translation), yaw(-90 * group.seat));
+  else if (p.rectangular) position = add(position, rotate(group.translation, yaw(-90 * group.seat)));
   position = rotate(position, p.view);
   const flat = frame.presentation.viewMode === 'flat';
   const elevation = (flat ? 90 : 38 + 40 * frame.presentation.lookDown) * Math.PI / 180;
   const forward = [0, -Math.sin(elevation), Math.cos(elevation)], up = [0, Math.cos(elevation), Math.sin(elevation)];
   const half = mul(size(p.boardBounds), 0.5);
-  let maxX = 0, maxY = 0, near = 0;
+  let maxX = 0, maxY = 0, distance = 0;
+  const aspect = p.board.width / p.board.height;
+  const margin = p.compact ? 1.10 + (1.02 - 1.10) * (frame.presentation.zoom + 1) / 2
+    : 1.28 + (1.04 - 1.28) * (frame.presentation.zoom + 1) / 2;
   for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
     const c = [x * half[0], y * half[1], z * half[2]];
     maxX = Math.max(maxX, Math.abs(c[0]));
     maxY = Math.max(maxY, Math.abs(dot(c, up)));
-    near = Math.max(near, -dot(c, forward));
+    const fit = Math.max(Math.abs(dot(c, up)), Math.abs(c[0]) / Math.max(0.01, aspect));
+    distance = Math.max(distance, fit * margin / Math.tan(20 * Math.PI / 180) - dot(c, forward));
   }
-  const aspect = p.board.width / p.board.height;
-  const margin = 1.28 + (1.04 - 1.28) * (frame.presentation.zoom + 1) / 2;
   const ortho = Math.max(maxY, maxX / Math.max(0.01, aspect)) * margin;
-  const distance = flat ? Math.hypot(...size(p.boardBounds)) + 1 : ortho / Math.tan(20 * Math.PI / 180) + near + 0.1;
+  distance = flat ? Math.hypot(...size(p.boardBounds)) + 1 : distance + 0.1;
   const delta = sub(position, center(p.boardBounds));
   const denominator = flat ? ortho : (distance + dot(delta, forward)) * Math.tan(20 * Math.PI / 180);
   const x = delta[0] / denominator / aspect, y = dot(delta, up) / denominator;
