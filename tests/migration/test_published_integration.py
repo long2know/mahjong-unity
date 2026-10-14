@@ -409,6 +409,17 @@ class PublishedIntegrationTests(unittest.TestCase):
         _, stranger, _ = self.identity()
         status, _, _ = self.request(chat_path, opener=stranger)
         self.assertEqual(403, status)
+        # A sole human owner leaving a public seating room intentionally retires it.
+        hub.send({
+            "type": 1, "invocationId": "3", "target": "SetGamePublic",
+            "arguments": [alias, False, None],
+        }, signalr=True)
+        private = hub.wait(lambda message: message.get("type") == 3 and message.get("invocationId") == "3")
+        self.assertNotIn("error", private)
+        self.assertTrue(private["result"]["success"])
+        status, _, content = self.request("/api/matchmaking/lobby", opener=opener)
+        self.assertEqual(200, status)
+        self.assertNotIn(alias, [game["gameId"] for game in json.loads(content)["games"]])
         owner.close()
         reconnect = self.peer("/autotable/ws?" + urllib.parse.urlencode({
             "gameId": alias, "variant": "changsha", "join": 1,
@@ -419,14 +430,15 @@ class PublishedIntegrationTests(unittest.TestCase):
         self.assertEqual(identity["playerId"], rejoined["playerId"])
         restored = reconnect.wait(lambda message: message.get("type") == "UPDATE" and message.get("full") is True)
         self.assertEqual(alias, restored["viewer"]["roomId"])
+        self.assertEqual(0, restored["viewer"]["seat"])
         status, _, content = self.request("/health")
         self.assertEqual(200, status)
         self.assertEqual(1, json.loads(content)["activeGames"])
         self.receipt["checks"]["signedRawWsRoomLobbyChatReconnect"] = {
             "rawHandshake101": True, "signedIdentityReattached": True,
-            "viewerSeat": 0, "publicLobbyShape": sorted(listing),
+            "viewerSeat": restored["viewer"]["seat"], "publicLobbyShape": sorted(listing),
             "chatShape": sorted(message), "strangerChatDenied": True,
-            "runtimeCountAfterReconnect": 1,
+            "runtimeCountAfterReconnect": 1, "reconnectRoomVisibility": "private",
         }
 
     @unittest.skipUnless(shutil.which("google-chrome") and shutil.which("node"), "Native Chrome/Node unavailable")

@@ -137,6 +137,9 @@ at DPR1/2/3, progressed public piles, chat/orientation/explicit preferences,
 canceled gestures, desktop input and count-only manual pickup. Separate real
 native retakes preserved four relay variants, spectator privacy, chat and
 reconnect. These are Chromium emulation results, not physical-device claims.
+The native API smoke checks public listing and chat, then makes its room private
+before testing owner reconnect: a public seating room with no remaining live
+human intentionally retires when its sole owner disconnects.
 
 Repeat the mobile probe against a genuine clean runtime image and the matching
 actual Editor receipt, rather than overwriting an older build's evidence:
