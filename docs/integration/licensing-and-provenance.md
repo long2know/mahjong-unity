@@ -42,11 +42,26 @@ relay semantics. This iteration is not a rules or trust-model redesign.
 | Material | First-iteration disposition |
 | --- | --- |
 | Inherited Kanojo tile artwork described as CC BY-NC-SA, and its tile/icon/atlas/model derivatives | Excluded. Exact license version and the complete derivative chain are not established; no noncommercial artwork is shipped. |
-| External table textures, static sounds, fonts, and cheatsheet PDFs | Excluded even where an upstream document names CC0, OFL, or a CC license. Later reuse needs per-file provenance and its own obligations. |
+| Static sounds, fonts, cheatsheet PDFs and unverified table assets | Excluded even where an upstream document names a license. The specific audited CC0 table JPEG below is the only table-asset exception. |
 | Existing browser synthesizer | Source retained with inherited notices/credits; not a claim that synthesis code or generated audio is automatically CC0. |
 | `ArcturusZhang/Mahjong@c833d787146210f55e2ceec2cfcded40ecf53a4d` | Inspect-only. No project/code/assets copied; its MIT code license does not cover Majsoul resources or bundled third-party SDKs/fonts. |
 | `tomowatt/unity-docker-example` | Inspect-only static-serving example. No files imported; it is not a Unity compiler or an activation solution. |
-| New Unity meshes/textures and browser labels/icons | Original procedural work, not inherited tile art. The owner still needs to choose a license for new contributions. |
+| New Unity meshes/presentation, original generated stick/dice/marker textures and browser labels/icons | Original procedural work. The owner still needs to choose a license for new contributions; imported CC0 artwork is separate. |
+
+**October 12, 2026 visual-polish import:** Unity reuses the standalone
+FluffyStuff `riichi-mahjong-tiles` Regular artwork at
+`26e127ba2117f45cdce5ea0225748cc0cfad3169`, whose creator license and README
+explicitly grant CC0 public-domain use. All37 face PNGs (including blank Haku
+and three red fives), one back, SVG masters and byte-identical creator notice
+are retained in `Assets/Art/FluffyStuff`. Two padded/resized face atlases and
+two recolored common backs are documented derivatives, not noncommercial
+Kanojo/Majsoul art or sample geometry. The existing audited512x512 `table.jpg`
+is traced to ambientCG Fabric030/CC0 and copied from exact fork blob
+`f801a7ebe1431cd954a9963b180869eba3557bc3`; its earlier processing is unspecified,
+and no new PBR bundle is claimed. Exact sources, hashes, face/UV mapping,
+transformations and texture-budget/import intent are in Unity's provenance
+JSON. Credit/notice retention is project traceability, not an invented CC0
+attribution obligation; this does not select a root/game-code license.
 
 Unity records its creator, original geometry/glyph/texture sources, exclusions,
 and pending license disposition in
@@ -54,9 +69,9 @@ and pending license disposition in
 Engine/package components retain separate applicable terms; an original artwork
 record is not a grant for those components or all fork code.
 
-Do not restore excluded assets merely to satisfy an old reference, bundle test,
-or missing-image warning. Resolve a source dependency with original artwork
-inside its assigned implementation scope.
+Do not restore other excluded assets merely to satisfy an old reference, bundle
+test, or missing-image warning. Use original or specifically audited permitted
+artwork inside its assigned implementation scope.
 
 ## Unity tools are not a Unity license
 
