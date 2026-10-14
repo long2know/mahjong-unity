@@ -49,9 +49,29 @@ test('complete DTOs use exact frozen fields, entitled numeric-string faces and p
       'entityId', 'kind', 'slotName', 'group', 'seat', 'indexes', 'rotationIndex', 'pose', 'scale', 'appearance', 'display', 'interaction',
     ].sort());
   }
-  const json = JSON.stringify(frame);
-  for (const hidden of ['h_private_wire_handle', 'h_wall_handle', 'heldRotation', 'claimedBy', 'tileId', 'stateVersion', 'resultToken', '703']) {
-    assert.equal(json.includes(hidden), false, hidden);
+  const assertPrivateFixtureDataAbsent = candidate => {
+    const json = JSON.stringify(candidate, (_key, value) => {
+      assert.notEqual(value, 703, 'private runtime version must not cross the bridge');
+      assert.notEqual(value, '703', 'private runtime version must not cross the bridge');
+      return value;
+    });
+    for (const hidden of ['h_private_wire_handle', 'h_wall_handle', 'heldRotation', 'claimedBy', 'tileId', 'stateVersion', 'resultToken']) {
+      assert.equal(json.includes(hidden), false, hidden);
+    }
+  };
+  assertPrivateFixtureDataAbsent(frame);
+  // An opaque random ID may contain the same digits without exposing a numeric wire value.
+  const collision = plain(frame);
+  const previousId = collision.entities[0].entityId;
+  collision.entities[0].entityId = `entity_${'703'.padEnd(32, '0')}`;
+  collision.localHand.entityIds = collision.localHand.entityIds.map(id =>
+    id === previousId ? collision.entities[0].entityId : id);
+  assert.doesNotThrow(() => assertDto('RendererFrame', collision));
+  assert.doesNotThrow(() => assertPrivateFixtureDataAbsent(collision));
+  for (const leaked of [703, '703']) {
+    const corrupted = plain(frame);
+    corrupted.session.viewerRevision = leaked;
+    assert.throws(() => assertPrivateFixtureDataAbsent(corrupted), /private runtime version/);
   }
   assert.equal(h.adapter.layout.slots.some(s => s.slotName === 'hiddenpool@0'), false);
   assert.deepEqual(h.failures, []);
