@@ -40,7 +40,7 @@ function assertRegressionCommands(value) {
     'tests/migration/renderer-backend-shape.test.mjs',
     'tests/migration/relay-authority-delta.test.mjs',
   ]) assert(!value.plans['frontend-source'].find(item => item.name === 'frontend-tests')
-    .argv.some(argument => argument.endsWith(path)), `Keep ${path} separate from the 84 frontend cases`);
+    .argv.some(argument => argument.endsWith(path)), `Keep ${path} separate from the 85 frontend cases`);
 }
 
 function assertSourceJobs(value) {
@@ -95,7 +95,7 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assertRegressionCommands(description);
   const source = named('frontend-source', 'frontend-tests');
   assert.equal(source.cwd, 'src/frontend/autotable-src');
-  assert.equal(source.expected, 84);
+  assert.equal(source.expected, 85);
   assert.equal(named('frontend-source', 'workflow-contracts').expected, 12);
   for (const path of [
     'tests/node/room-startup-readiness.test.mjs',

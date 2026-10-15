@@ -60,28 +60,10 @@ namespace Mahjong.Renderer.Tests
         [TestCase(390, 844)]
         [TestCase(500, 900)]
         [TestCase(1280, 800)]
-        public void CompactChangshaFitsReadablePublicTilesWithoutEmptyReserves(int width, int height)
+        public void TraditionalChangshaHasCentralWallsBoundedRiversAndHandAdjacentMelds(int width, int height)
         {
-            RendererLayout layout = SourceFixtures.Lanes("CHANGSHA");
-            RendererFrame frame = SourceFixtures.Empty(layout);
-            Entity prototype = SourceFixtures.Read<RendererFrame>("RendererFrame").Entities[0];
-            frame.Entities = layout.Slots.Where(slot => slot.Kind == "TILE" &&
-                new[] { "discard", "meld", "hand", "wall" }.Contains(slot.Group)).Select(slot =>
-            {
-                Entity entity = SourceFixtures.Copy(prototype, "Entity");
-                entity.EntityId = slot.SlotName;
-                entity.SlotName = slot.SlotName;
-                entity.Group = slot.Group;
-                entity.Seat = slot.Seat;
-                entity.Indexes = slot.Indexes;
-                entity.Pose = slot.Poses[0];
-                entity.RotationIndex = 0;
-                entity.Interaction = new Interaction();
-                return entity;
-            }).ToArray();
-            frame.LocalHand.Seat = 0;
-            frame.LocalHand.EntityIds = frame.Entities.Where(entity => entity.Group == "hand" && entity.Seat == 0)
-                .Select(entity => entity.EntityId).ToArray();
+            RendererLayout layout = SourceFixtures.CanonicalChangsha();
+            RendererFrame frame = TraditionalFrame(layout);
             bool portrait = width < height;
             frame.Presentation.HandLayout = portrait ? "separate" : "in-table";
             frame.Presentation.BoardLayout = "rectangular";
@@ -95,20 +77,36 @@ namespace Mahjong.Renderer.Tests
             viewport.InsetsCssPx = new Insets { Top = 110, Bottom = 51 };
             LayoutPlan plan = BoardLayout.Build(layout, frame, viewport);
             Assert.That(plan.GroupBounds.ContainsKey("0:hand"), Is.EqualTo(!portrait));
-            Assert.That(plan.GroupBounds.Keys.All(key => !key.EndsWith(":payment") &&
-                !key.EndsWith(":wall.open") && !key.EndsWith(":kita")), Is.True);
+            Assert.That(plan.GroupBounds.ContainsKey("0:meld"), Is.EqualTo(!portrait));
             Assert.That(plan.Slots.Count, Is.EqualTo(layout.Slots.Length));
-            Bounds[] groups = plan.GroupBounds.Values.ToArray();
-            for (int a = 0; a < groups.Length; a++)
-                for (int b = 0; b < a; b++)
-                    Assert.That(Overlaps(groups[a], groups[b]), Is.False, "Public groups must not overlap");
+            Assert.That(plan.Rivers.Count, Is.EqualTo(4));
+            foreach (var river in plan.Rivers)
+            {
+                Assert.That(Mathf.Max(Mathf.Abs(river.Value.min.x), Mathf.Abs(river.Value.max.x),
+                    Mathf.Abs(river.Value.min.z), Mathf.Abs(river.Value.max.z)), Is.LessThan(0.3675f));
+                foreach (var other in plan.Rivers.Where(other => other.Key != river.Key))
+                    Assert.That(Overlaps(river.Value, other.Value), Is.False, "Each player has a separate river");
+            }
+            foreach (Entity entity in frame.Entities.Where(entity => entity.Group == "wall"))
+                Assert.That(Vector3.Distance(plan.Entities[entity.EntityId].Pose.Position,
+                    SourceCoordinates.Position(entity.Pose.Position)), Is.LessThan(0.00001), entity.SlotName);
             float aspect = plan.Viewport.BoardCss.width / plan.Viewport.BoardCss.height;
             CameraPose camera = CameraFit.Fit(plan.BoardBounds, aspect, portrait, 0, 0, plan.Compact);
-            foreach (Entity entity in frame.Entities.Where(entity => entity.Group == "discard" || entity.Group == "meld"))
+            foreach (Entity entity in frame.Entities.Where(entity => (entity.Group == "discard" || entity.Group == "meld") &&
+                !plan.Entities[entity.EntityId].Separate))
             {
                 RenderPose pose = plan.Entities[entity.EntityId].Pose;
-                Assert.That(pose.Scale, Is.EqualTo(2).Within(0.0001));
+                Assert.That(pose.Scale, Is.EqualTo(1).Within(0.0001));
                 Assert.That(Vector3.Distance(pose.Position, plan.Slots[entity.SlotName].Poses[0].Position), Is.LessThan(0.0001));
+                if (entity.Group == "discard")
+                {
+                    Bounds river = plan.Rivers[entity.Seat.Value];
+                    Bounds tile = SourceCoordinates.OrientedBounds(pose, entity.Kind);
+                    Assert.That(tile.min.x, Is.GreaterThanOrEqualTo(river.min.x - 0.0001f));
+                    Assert.That(tile.max.x, Is.LessThanOrEqualTo(river.max.x + 0.0001f));
+                    Assert.That(tile.min.z, Is.GreaterThanOrEqualTo(river.min.z - 0.0001f));
+                    Assert.That(tile.max.z, Is.LessThanOrEqualTo(river.max.z + 0.0001f));
+                }
                 Vector2 low = Project(pose.Position + pose.Rotation * new Vector3(-0.03f, 0.02f, 0) * pose.Scale,
                     camera, aspect, portrait, plan.Viewport.BoardCss);
                 Vector2 high = Project(pose.Position + pose.Rotation * new Vector3(0.03f, 0.02f, 0) * pose.Scale,
@@ -118,18 +116,142 @@ namespace Mahjong.Renderer.Tests
             }
             for (int seat = 0; seat < 4; seat++)
             {
-                Bounds discard = plan.GroupBounds[seat + ":discard"], meld = plan.GroupBounds[seat + ":meld"];
+                if (portrait && seat == 0) continue;
+                Bounds hand = plan.GroupBounds[seat + ":hand"], meld = plan.GroupBounds[seat + ":meld"];
                 Quaternion undo = Quaternion.Inverse(SourceCoordinates.SeatRotation(seat));
-                Bounds a = BoardLayout.RotateBounds(discard, undo), b = BoardLayout.RotateBounds(meld, undo);
-                Assert.That(a.min.z - b.max.z, Is.EqualTo(0.018f).Within(0.0001), "Meld/discard gutter");
+                Bounds a = BoardLayout.RotateBounds(hand, undo), b = BoardLayout.RotateBounds(meld, undo);
+                Assert.That(a.center.z, Is.EqualTo(b.center.z).Within(0.0001), "Meld and remaining hand share one outer row");
+                Assert.That(a.min.x - b.max.x, Is.EqualTo(0.012f).Within(0.0001), "Melds sit beside the hand, not beside discards");
+                Assert.That(b.max.z, Is.LessThan(-0.4725f), "Player melds remain outside the central wall");
             }
-            Slot empty = SourceFixtures.Copy(layout.Slots.First(slot => slot.Group == "meld"), "Slot");
-            empty.SlotName = "meld.empty@0";
-            empty.Seat = 0;
-            foreach (Contract.Pose pose in empty.Poses) pose.Position.X += 10000;
-            layout.Slots = layout.Slots.Concat(new[] { empty }).ToArray();
-            LayoutPlan withEmpty = BoardLayout.Build(layout, frame, viewport);
-            Assert.That(withEmpty.BoardBounds, Is.EqualTo(plan.BoardBounds), "Unused reserves must never shrink the occupied board");
+            if (portrait)
+                Assert.That(frame.Entities.Where(entity => entity.Seat == 0 && entity.Group == "meld")
+                    .All(entity => plan.Entities[entity.EntityId].Separate), Is.True, "Local melds follow the separate hand");
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void EveryCanonicalWallPoseAndDrawGapSurvivesDepletionAndViewChanges(int viewSeat)
+        {
+            RendererLayout layout = SourceFixtures.CanonicalChangsha();
+            RendererFrame frame = SourceFixtures.Empty(layout);
+            frame.Presentation.BoardLayout = "rectangular";
+            frame.Presentation.HandLayout = "in-table";
+            frame.Session.ViewSeat = viewSeat;
+            Slot[] wall = layout.Slots.Where(slot => slot.Group == "wall").ToArray();
+            frame.Entities = wall.Select(slot => At(slot)).ToArray();
+            Viewport viewport = SourceFixtures.Read<Viewport>("Viewport");
+            LayoutPlan full = BoardLayout.Build(layout, frame, viewport);
+            frame.Entities = frame.Entities.Where(entity => entity.Indexes[0] != 7 &&
+                (entity.Seat != 1 || entity.Indexes[0] >= 10) &&
+                (entity.Seat != 3 || entity.Indexes[0] <= 3)).ToArray();
+            LayoutPlan depleted = BoardLayout.Build(layout, frame, viewport);
+            Assert.That(depleted.BoardBounds, Is.EqualTo(full.BoardBounds), "Drawing cannot move or zoom the wall ring");
+            Quaternion view = SourceCoordinates.ViewRotation(viewSeat);
+            foreach (Slot slot in wall)
+                for (int index = 0; index < slot.Poses.Length; index++)
+                {
+                    RenderPose actual = depleted.Slots[slot.SlotName].Poses[index];
+                    RenderPose source = SourceCoordinates.Convert(slot.Poses[index]);
+                    Assert.That(Vector3.Distance(actual.Position, view * source.Position), Is.LessThan(0.00001), slot.SlotName);
+                    Assert.That(Quaternion.Angle(actual.Rotation, view * source.Rotation), Is.LessThan(0.001), slot.SlotName);
+                    Assert.That(actual.Scale, Is.EqualTo(source.Scale), slot.SlotName);
+                    Assert.That(Vector3.Distance(actual.Position, full.Slots[slot.SlotName].Poses[index].Position),
+                        Is.LessThan(0.00001), "Vacant draw stacks must not be collapsed");
+                }
+            foreach (Entity entity in frame.Entities)
+                Assert.That(Vector3.Distance(depleted.Entities[entity.EntityId].Pose.Position,
+                    full.Entities[entity.EntityId].Pose.Position), Is.LessThan(0.00001), entity.SlotName);
+        }
+
+        [TestCase(1, false)]
+        [TestCase(2, false)]
+        [TestCase(3, false)]
+        [TestCase(4, false)]
+        [TestCase(1, true)]
+        [TestCase(4, true)]
+        public void SeparateMeldsStayWithTheHandWithoutShrinkingDiscardTargets(int count, bool added)
+        {
+            RendererLayout layout = SourceFixtures.CanonicalChangsha();
+            RendererFrame frame = TraditionalFrame(layout);
+            var entities = frame.Entities.Where(entity => entity.Seat != 0 ||
+                entity.Group != "hand" && entity.Group != "meld").ToList();
+            entities.AddRange(layout.Slots.Where(slot => slot.Seat == 0 && slot.Group == "hand" &&
+                slot.Indexes.Length > 0 && slot.Indexes[0] < 14 - count * 3).Select(slot => At(slot)));
+            entities.AddRange(layout.Slots.Where(slot => slot.Seat == 0 && slot.Group == "meld" &&
+                slot.Indexes[0] < count && (added ? slot.Indexes[1] != 3 : slot.Indexes[1] < 4)).Select(slot => At(slot)));
+            frame.Entities = entities.ToArray();
+            frame.LocalHand.EntityIds = entities.Where(entity => entity.Seat == 0 && entity.Group == "hand")
+                .Select(entity => entity.EntityId).ToArray();
+            frame.LocalHand.DrawnEntityId = frame.LocalHand.EntityIds.Last();
+            frame.Presentation.BoardLayout = "rectangular";
+            frame.Presentation.HandLayout = "separate";
+            Viewport viewport = SourceFixtures.Read<Viewport>("Viewport");
+            viewport.WidthCssPx = 360;
+            viewport.HeightCssPx = 800;
+            viewport.WidthPx = Mathf.RoundToInt(360 * (float)viewport.RenderPixelRatio);
+            viewport.HeightPx = Mathf.RoundToInt(800 * (float)viewport.RenderPixelRatio);
+            viewport.HandBandCssPx = 148;
+            LayoutPlan plan = BoardLayout.Build(layout, frame, viewport);
+            foreach (Entity entity in entities.Where(entity => entity.Seat == 0 &&
+                (entity.Group == "hand" || entity.Group == "meld")))
+            {
+                EntityPlacement item = plan.Entities[entity.EntityId];
+                Assert.That(item.Separate, Is.True);
+                Bounds box = SourceCoordinates.OrientedBounds(item.Pose, "TILE");
+                Assert.That(box.min.x / SourceCoordinates.Unit, Is.GreaterThanOrEqualTo(-172.001f));
+                Assert.That(box.max.x / SourceCoordinates.Unit, Is.LessThanOrEqualTo(172.001f));
+                Assert.That(box.min.z / SourceCoordinates.Unit, Is.GreaterThanOrEqualTo(-68.001f));
+                Assert.That(box.max.z / SourceCoordinates.Unit, Is.LessThanOrEqualTo(68.001f));
+                if (entity.Group == "hand")
+                    Assert.That(box.size.x / SourceCoordinates.Unit, Is.GreaterThanOrEqualTo(40));
+            }
+            Assert.That(plan.GroupBounds.ContainsKey("0:meld"), Is.False, "Do not draw the same local melds on the table");
+            if (added)
+            {
+                Entity lower = entities.First(entity => entity.SlotName == "meld.0.1@0");
+                Entity upper = entities.First(entity => entity.SlotName == "meld.0.4@0");
+                RenderPose a = plan.Entities[lower.EntityId].Pose, b = plan.Entities[upper.EntityId].Pose;
+                Assert.That(a.Position.x, Is.EqualTo(b.Position.x).Within(0.0001));
+                Assert.That(a.Position.z, Is.EqualTo(b.Position.z).Within(0.0001));
+                Assert.That(b.Position.y - a.Position.y, Is.EqualTo(0.04f * a.Scale).Within(0.0001));
+            }
+        }
+
+        private static Entity At(Slot slot)
+        {
+            Entity entity = SourceFixtures.Copy(SourceFixtures.Read<RendererFrame>("RendererFrame").Entities[0], "Entity");
+            entity.EntityId = slot.SlotName;
+            entity.SlotName = slot.SlotName;
+            entity.Group = slot.Group;
+            entity.Seat = slot.Seat;
+            entity.Indexes = slot.Indexes;
+            entity.Pose = slot.Poses[0];
+            entity.RotationIndex = 0;
+            entity.Interaction = new Interaction();
+            entity.Appearance.ShowFace = slot.Group == "discard" || slot.Group == "meld" || slot.Group == "hand" && slot.Seat == 0;
+            entity.Appearance.KnownFace = entity.Appearance.ShowFace;
+            entity.Appearance.FaceIndex = entity.Appearance.ShowFace ? 0 : (int?)null;
+            return entity;
+        }
+
+        private static RendererFrame TraditionalFrame(RendererLayout layout)
+        {
+            RendererFrame frame = SourceFixtures.Empty(layout);
+            var publicAndHands = layout.Slots.Where(slot =>
+                slot.Group == "hand" && slot.Indexes.Length > 0 && slot.Indexes[0] < (slot.Seat == 0 ? 11 : 10) ||
+                slot.Group == "meld" && slot.Indexes[0] == 0 && slot.Indexes[1] < 3 ||
+                slot.Group == "discard" && slot.Indexes.Length == 2 && slot.Indexes[0] == 0)
+                .Select(slot => At(slot)).ToList();
+            publicAndHands.AddRange(layout.Slots.Where(slot => slot.Group == "wall")
+                .Skip(35).Take(108 - publicAndHands.Count).Select(slot => At(slot)));
+            frame.Entities = publicAndHands.ToArray();
+            frame.LocalHand.Seat = 0;
+            frame.LocalHand.EntityIds = frame.Entities.Where(entity => entity.Group == "hand" && entity.Seat == 0)
+                .Select(entity => entity.EntityId).ToArray();
+            return frame;
         }
 
         private static bool Overlaps(Bounds a, Bounds b) =>

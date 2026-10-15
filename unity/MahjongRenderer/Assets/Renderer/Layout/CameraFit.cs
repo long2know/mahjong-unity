@@ -46,7 +46,7 @@ namespace Mahjong.Renderer.Layout
                     }
             // Zoom changes margins, never crops canonical groups out of the safe viewport.
             float size = Mathf.Max(maxUp, maxRight / Mathf.Max(0.01f, aspect)) * margin;
-            distance = flat ? bounds.size.magnitude + 1 : distance + 0.1f;
+            distance = flat ? bounds.size.magnitude + 1 : distance + (compact ? 0.04f : 0.1f);
             return new CameraPose(bounds.center - forward * distance, rotation, size);
         }
     }

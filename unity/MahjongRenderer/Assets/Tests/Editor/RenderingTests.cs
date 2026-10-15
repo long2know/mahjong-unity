@@ -614,7 +614,8 @@ namespace Mahjong.Renderer.Tests
                 Vector3 low = scene.TableCamera.WorldToScreenPoint(phase.transform.TransformPoint(new Vector3(0, 0, text.min.z)));
                 Vector3 high = scene.TableCamera.WorldToScreenPoint(phase.transform.TransformPoint(new Vector3(0, 0, text.max.z)));
                 Assert.That(Mathf.Abs(high.y - low.y), Is.GreaterThanOrEqualTo(7.5f),
-                    "Real projected phase geometry must reach its CSS-pixel goal, not merely be nonempty");
+                    "Real projected phase geometry must reach its CSS-pixel goal, not merely be nonempty: " +
+                    "text=" + text + ", bounds=" + plan.BoardBounds + ", ortho=" + scene.TableCamera.orthographicSize);
                 Assert.That(scene.ActivePlan.BoardBounds, Is.EqualTo(plan.BoardBounds));
                 BoxCollider[] dice = parent.GetComponentsInChildren<BoxCollider>().Where(collider => collider.name == "Public die").ToArray();
                 Assert.That(dice.Length, Is.EqualTo(2));

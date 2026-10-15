@@ -1,6 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceLoader } from '../../src/frontend/autotable-src/tests/node/unity-test-support.mjs';
+import fs from 'node:fs';
+import { gameHarness, plain, sourceLoader } from '../../src/frontend/autotable-src/tests/node/unity-test-support.mjs';
+
+test('Editor topology fixture contains the exact retained Changsha wall, river and player slot geometry', t => {
+  const h = gameHarness();
+  t.after(h.close);
+  h.join();
+  h.snapshot([]);
+  const actual = { ...plain(h.adapter.layout), instanceId: 'fixture-instance',
+    sessionId: 'fixture-session', layoutRevision: 1 };
+  const path = new URL('../../unity/MahjongRenderer/Assets/Tests/Editor/ChangshaLayout.json', import.meta.url);
+  const fixture = JSON.parse(fs.readFileSync(path, 'utf8'));
+  assert.deepEqual(fixture, actual, 'Regenerate the Editor fixture from the retained source, never hand-copy wall geometry');
+  const wall = fixture.slots.find(slot => slot.slotName === 'wall.7.0@0');
+  wall.poses[0].position.x += 6;
+  assert.throws(() => assert.deepEqual(fixture, actual), assert.AssertionError,
+    'Moving a real exported draw stack must invalidate the topology fixture gate');
+});
 
 class Element extends EventTarget {
   constructor(tag) {
