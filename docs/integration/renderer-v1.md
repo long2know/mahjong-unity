@@ -110,8 +110,8 @@ browser preference, not a new renderer enum. Legacy perspective controls and
 the P shortcut still persist an explicit view, separate from game authority.
 
 Both layout preferences default to `auto` in `mahjong.settings.v1`. The
-implemented resolver uses the **canvas CSS dimensions**: Changsha uses compact
-rectangular lanes on desktop and phones; relay modes use rectangular below
+implemented resolver uses the **canvas CSS dimensions**: Changsha uses a fitted
+traditional table on desktop and phones; relay modes use rectangular below
 768 px and classic otherwise. Below 768 px or 520 px high, the automatic local
 hand is separate. Automatic camera is flat in narrow portrait and perspective
 otherwise. Older saved perspective choices migrate without being overridden.
@@ -119,20 +119,25 @@ Explicit choices
 persist and override that automatic fit. Resize republishes presentation; it
 does not change the variant, actor seat, or concealed-hand entitlement.
 
-**October 14, 2026 mobile correction:** Changsha rectangular layout fits occupied
-groups rather than unused public-slot reserves. Melds are single adjacent
-strips, public meld/discard bodies and colliders are uniformly 2x, side portrait
-discards use longer rows, and separately drawn local hands consume no table
-lane. Semantic slots, source tier heights, face privacy and rule commands are
-unchanged. Header, claim, chat, move-log and install chrome reserve their actual
-visible footprint. Explicit classic layout retains the original source poses.
+**October 15, 2026 traditional-layout correction:** the previous independent
+lane-packing experiment incorrectly placed walls outside the hands and closed
+gaps left by drawn stacks. Changsha rectangular presentation now preserves every
+canonical wall pose, tier and empty draw position. Four fixed discard rivers sit
+inside the wall ring; melds sit alongside each player's remaining hand outside
+it. The separate local hand includes that player's melds instead of duplicating
+them on the table. Public tiles retain their natural proportions, and a steeper
+oblique view keeps the side rivers readable without moving the wall.
+The approved tile artwork, bevels, felt, rail and shadows remain unchanged.
+Header, claim, chat, move-log and install chrome reserve their actual visible
+footprint. Explicit classic layout retains the original source poses.
 
 Ordinary unmoved touch release discards an authorized tile once; mouse retains
 selection/double-click. Movement, cancellation, long press, multi-touch, resize
 and authority loss cannot accidentally discard. The actual pinned Editor
-passed **134/134** cases, including minimum portrait hand widths, public-face
-CSS sizes, non-overlap, camera bounds and native pointer guards. The actual
-compiled browser mobile probe passed **20** cases: 360/390/500-width single taps
+passed **144/144** cases, including canonical wall/depletion identity, bounded
+rivers, hand/meld adjacency, portrait/Kong hand widths, public-face CSS sizes,
+camera bounds and native pointer guards. The earlier mobile correction's
+compiled browser probe passed **20** cases: 360/390/500-width single taps
 at DPR1/2/3, progressed public piles, chat/orientation/explicit preferences,
 canceled gestures, desktop input and count-only manual pickup. Separate real
 native retakes preserved four relay variants, spectator privacy, chat and

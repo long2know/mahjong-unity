@@ -70,6 +70,10 @@ data/
 *.key
 
 # IDE/user caches and OS noise, not shared IDE configuration.
+.copilot/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/tasks.json
 **/.vs/
 **/.idea/
 *.user

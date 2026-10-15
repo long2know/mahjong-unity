@@ -434,6 +434,25 @@ class PlayerEvidenceTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(AssertionError):
                 player_runner.validate_editor_evidence(bad, "unit-sha")
 
+    def test_traditional_meld_case_requires_real_claim_and_ordinary_post_claim_discard(self):
+        name = "actual-traditional-csharp-local-meld"
+        case = copy.deepcopy(self.evidence["cases"][0])
+        case.update(name=name, completeWallBeforeDrawing=108, localMeldTiles=3,
+                    actualClaimCommand=["claim", "0", {"action": "claim", "type": "Pung"}],
+                    ordinaryPostClaimTouch=True, postClaimNativeActions=case["nativeActions"],
+                    handTargetsBeforeDiscard=[{"canvasReceivesInput": True, "chatCovered": False} for _ in range(11)])
+        evidence = {**self.evidence, "scope": "gameplay", "cases": [case]}
+        player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [name])
+        for field, value in (
+            ("completeWallBeforeDrawing", 0), ("localMeldTiles", 0), ("actualClaimCommand", []),
+            ("ordinaryPostClaimTouch", False), ("postClaimNativeActions", []),
+            ("handTargetsBeforeDiscard", [{"canvasReceivesInput": False, "chatCovered": True}]),
+        ):
+            bad = copy.deepcopy(evidence)
+            bad["cases"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(bad, self.manifest, "gameplay", [name])
+
 
 if __name__ == "__main__":
     unittest.main()

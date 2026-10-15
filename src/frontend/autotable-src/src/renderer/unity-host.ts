@@ -446,7 +446,8 @@ export class UnityHost {
         && bounds.top < rect.top + rect.height * 0.45 && bounds.bottom > rect.top)
         insets.top = Math.max(insets.top, bounds.bottom - rect.top + 8);
     }
-    for (const overlay of [this.chat, document.getElementById('move-log'), document.getElementById('pwa-install-button')]) {
+    for (const overlay of [this.chat, document.getElementById('move-log'), document.getElementById('pwa-install-button'),
+      document.getElementById('bot-banner')]) {
       if (!overlay || overlay.hidden) continue;
       const style = getComputedStyle(overlay);
       const bounds = overlay.getBoundingClientRect();

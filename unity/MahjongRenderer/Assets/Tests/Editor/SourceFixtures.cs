@@ -20,6 +20,10 @@ namespace Mahjong.Renderer.Tests
         public static T Read<T>(string definition) => Schema.Read<T>(Json(definition).ToString(), definition);
         public static T Copy<T>(T value, string definition) => Schema.Read<T>(Schema.Write(value, definition), definition);
 
+        public static RendererLayout CanonicalChangsha() => Schema.Read<RendererLayout>(
+            UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Tests/Editor/ChangshaLayout.json").text,
+            "RendererLayout");
+
         public static RendererState State(bool relay = false)
         {
             var state = new RendererState(Schema, "fixture-build");

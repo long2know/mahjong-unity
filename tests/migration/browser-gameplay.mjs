@@ -390,6 +390,94 @@ try {
         await page.context().close();
       }
   });
+  await caseRun('actual-traditional-csharp-local-meld', async () => {
+    const table = await newTable({ mode: 'manual', mobile: true, dpr: 2 });
+    currentPage = table.page;
+    let state = await snapshot(table.page);
+    assert.equal(state.frame.entities.filter(entity => entity.group === 'wall').length, 108);
+    async function layoutShot(name, viewport) {
+      await table.page.setViewportSize(viewport);
+      await table.page.waitForFunction(size => window.game.renderer.state === 'ready' &&
+        window.game.renderer.viewport.widthCssPx === size.width && window.game.renderer.viewport.heightCssPx === size.height,
+      viewport);
+      await table.page.waitForTimeout(250);
+      await capture(table.page, name);
+      await table.page.screenshot({ path: `${probeRoot}/screenshots/${name}-full.png`, fullPage: true });
+    }
+    await capture(table.page, 'traditional-full-wall');
+    await table.page.screenshot({ path: `${probeRoot}/screenshots/traditional-full-wall-full.png`, fullPage: true });
+    await layoutShot('traditional-full-wall-desktop', { width: 1280, height: 800 });
+    await layoutShot('traditional-full-wall-portrait', { width: 390, height: 844 });
+    await table.page.locator('#roll-dice').click();
+    const nativeActions = [];
+    let submittedClaim = null;
+    let dealtShot = false;
+    for (let step = 0; step < 80; step++) {
+      await table.page.waitForFunction(() => window.game.renderer.state === 'failed'
+        || window.game.adapter.latest?.pickup?.canTake
+        || window.game.adapter.latest?.entities.some(entity => entity.interaction.canDiscard)
+        || !document.getElementById('claim-window-actions')?.hidden
+          && !document.querySelector('.ferro-claim-pass')?.disabled);
+      state = await snapshot(table.page);
+      assert.equal(state.state, 'ready', state.statusText);
+      if (state.frame.entities.some(entity => entity.group === 'meld' && entity.seat === 0)) break;
+      const overlay = table.page.locator('#claim-window-actions');
+      if (await overlay.isVisible()) {
+        const choice = overlay.locator('.ferro-claim-badge-pung:not(:disabled), .ferro-claim-badge-chow:not(:disabled)').first();
+        if (await choice.count()) {
+          const count = commands(table.room, 'claim', 0).length;
+          const type = await choice.getAttribute('data-claim-type');
+          await choice.click();
+          const chooser = table.page.locator('#rule-action-choice-dialog');
+          if (await chooser.isVisible()) await chooser.locator('.rule-action-choice').first().click();
+          await table.page.waitForFunction(() => window.game.adapter.latest?.entities
+            .filter(entity => entity.group === 'meld' && entity.seat === 0).length >= 3);
+          assert.equal(commands(table.room, 'claim', 0).length, count + 1);
+          submittedClaim = commands(table.room, 'claim', 0).at(-1);
+          assert.equal(submittedClaim[2].action, 'claim');
+          assert.equal(submittedClaim[2].type, type);
+          break;
+        }
+        await overlay.locator('.ferro-claim-pass').click();
+      } else if (state.frame.pickup?.canTake) {
+        nativeActions.push(await actualPickup(table.page, table.room));
+      } else {
+        if (!dealtShot) {
+          await layoutShot('traditional-dealt-desktop', { width: 1280, height: 800 });
+          await layoutShot('traditional-dealt-portrait', { width: 390, height: 844 });
+          dealtShot = true;
+        }
+        nativeActions.push(...(await actualDiscard(table.page, table.room, { touch: true })).nativeActions);
+      }
+      await table.page.waitForTimeout(200);
+    }
+    assert(submittedClaim, 'The actual human must claim a meld, not inject a projected fixture');
+    state = await snapshot(table.page);
+    const ownMelds = state.frame.entities.filter(entity => entity.group === 'meld' && entity.seat === 0);
+    assert(ownMelds.length >= 3);
+    const targets = await handControlReachability(table.page);
+    assert(targets.length > 0 && targets.length <= 11);
+    assert(targets.every(target => target.canvasReceivesInput && !target.chatCovered));
+    const bandTop = state.viewport.heightCssPx - state.viewport.insetsCssPx.bottom - state.viewport.handBandCssPx;
+    const meldTargets = ownMelds.map(entity => ({ entityId: entity.entityId, ...aimPoint(state, entity) }));
+    assert(meldTargets.every(target => target.y >= bandTop &&
+      target.y < state.viewport.heightCssPx - state.viewport.insetsCssPx.bottom),
+    'Local melds must be beside the separate hand, not left behind beside a discard river');
+    fs.writeFileSync(`${probeRoot}/traditional-local-meld-state.json`, JSON.stringify(state, null, 2) + '\n');
+    await capture(table.page, 'traditional-local-meld-before-discard');
+    await table.page.screenshot({ path: `${probeRoot}/screenshots/traditional-local-meld-full.png`, fullPage: true });
+    await layoutShot('traditional-meld-hand-desktop', { width: 1280, height: 800 });
+    await layoutShot('traditional-meld-hand-portrait', { width: 390, height: 844 });
+    const outcome = await actualDiscard(table.page, table.room, { touch: true });
+    nativeActions.push(...outcome.nativeActions);
+    await record('actual-traditional-csharp-local-meld', table.page, {
+      nativeActions, nativeWireVerified: true, serverOutcomeVerified: true, actualClaimCommand: submittedClaim,
+      completeWallBeforeDrawing: 108, localMeldTiles: ownMelds.length,
+      localMeldTargets: meldTargets, handTargetsBeforeDiscard: targets,
+      ordinaryPostClaimTouch: true, postClaimNativeActions: outcome.nativeActions,
+    });
+    await table.page.context().close();
+  });
   for (const dpr of [2, 3]) {
     await caseRun(`actual-mobile-dpr${dpr}-touch`, async () => {
       const table = await newTable({ dpr, mobile: true });

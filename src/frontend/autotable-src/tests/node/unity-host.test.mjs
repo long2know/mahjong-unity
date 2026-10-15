@@ -382,6 +382,20 @@ test('visible header and claim controls reserve real board space without shrinki
   banner.rect.left = 900;
   f.mutations[0].callback();
   assert.equal(f.host.viewport.insetsCssPx.top, 20, 'off-canvas panels do not shrink the table');
+  banner.hidden = true;
+  f.main.rect = { width: 1280, height: 800 };
+  f.window.innerHeight = f.window.visualViewport.height = 800;
+  f.host.setPresentation({ ...f.frame(1).presentation, handLayout: 'in-table' });
+  const roster = new Element('aside');
+  roster.id = 'bot-banner';
+  roster.rect = { left: 0, top: 670, width: 280, height: 130 };
+  roster.computed = { display: 'block', visibility: 'visible' };
+  f.document.body.append(roster);
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.bottom, 130, 'the visible roster must not cover the in-table hand');
+  roster.computed.display = 'none';
+  f.mutations[0].callback();
+  assert.equal(f.host.viewport.insetsCssPx.bottom, 10, 'hidden mobile rosters must not introduce a gutter');
 });
 
 test('visibility suspends visual playback only; disposal detaches observers/bridge and awaits runtime Quit', async () => {

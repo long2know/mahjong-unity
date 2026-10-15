@@ -22,7 +22,7 @@ namespace Mahjong.Renderer.Layout
 
         public static CameraPose Fit(Bounds bounds, float aspect, bool flat, double lookDown, double zoom, bool compact = false)
         {
-            float elevation = flat ? 90 : Mathf.Lerp(38, 78, (float)lookDown);
+            float elevation = flat ? 90 : Mathf.Lerp(compact ? 78 : 38, compact ? 88 : 78, (float)lookDown);
             Quaternion rotation = Quaternion.Euler(elevation, 0, 0);
             Vector3 forward = rotation * Vector3.forward;
             Vector3 right = rotation * Vector3.right;
@@ -46,7 +46,7 @@ namespace Mahjong.Renderer.Layout
                     }
             // Zoom changes margins, never crops canonical groups out of the safe viewport.
             float size = Mathf.Max(maxUp, maxRight / Mathf.Max(0.01f, aspect)) * margin;
-            distance = flat ? bounds.size.magnitude + 1 : distance + 0.1f;
+            distance = flat ? bounds.size.magnitude + 1 : distance + (compact ? 0.02f : 0.1f);
             return new CameraPose(bounds.center - forward * distance, rotation, size);
         }
     }
