@@ -89,7 +89,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
             "actual-auto-csharp-select-discard", "actual-manual-csharp-count-only-pickup-discard",
             "actual-dealt-hand-viewport-camera-controls", "actual-mobile-dpr2-touch",
             "actual-mobile-dpr3-touch", "actual-two-human-chat-spectator-privacy",
-            "actual-seat-revocation-reconnect",
+            "actual-seat-revocation-reconnect", "actual-traditional-csharp-local-meld",
             *{f"actual-{variant}-relay-native-input" for variant in
               ("FOUR_PLAYER", "THREE_PLAYER", "BAMBOO", "MINEFIELD")},
         }
@@ -116,6 +116,17 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                     or any(action.get("type") != "action" or not action.get("actionId")
                            or not action.get("intent", {}).get("kind") for action in native_actions)):
                 raise AssertionError("Gameplay case omitted actual C# actions and server/wire outcome")
+        if case["name"] == "actual-traditional-csharp-local-meld":
+            claim = case.get("actualClaimCommand", [])
+            targets = case.get("handTargetsBeforeDiscard", [])
+            if (case.get("completeWallBeforeDrawing") != 108 or case.get("localMeldTiles", 0) < 3
+                    or case.get("ordinaryPostClaimTouch") is not True
+                    or [action.get("intent", {}).get("kind") for action in case.get("postClaimNativeActions", [])] != ["discard"]
+                    or not isinstance(claim, list) or len(claim) != 3 or claim[:2] != ["claim", "0"]
+                    or claim[2].get("action") != "claim" or claim[2].get("type") not in ("Pung", "Chow")
+                    or not targets or len(targets) > 11
+                    or not all(target.get("canvasReceivesInput") is True and target.get("chatCovered") is False for target in targets)):
+                raise AssertionError("Traditional layout omitted its real wall/deal/meld and ordinary post-claim touch proof")
         if scope == "mobile-playability":
             is_touch = case["name"].endswith("-single-touch")
             is_desktop = case["name"] == "actual-desktop-native-double-click"

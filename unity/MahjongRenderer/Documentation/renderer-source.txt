@@ -181,18 +181,24 @@ once. Logical colliders retain original shape and uniform scale; the visual body
 beveled within those same logical bounds.
 Rectangular relay layout rigidly packs each seat/group into measured,
 non-overlapping lanes without repacking wall tiers/rows or changing slots.
-Changsha's compact rectangular view fits occupied groups only: empty meld/
-discard reserves and the separately displayed local hand take no board space.
-Public meld/discard tiles have a uniform2x visual/collider scale, melds form
-adjacent strips, portrait side discards use longer rows, and remaining wall
-stacks retain their source tier heights. Melds sit directly outside discards,
-followed by concealed hands and walls, with0.018-unit gutters. Source slot
-addresses, faces, entitlement, ordering and rule geometry are unchanged.
+Changsha's rectangular view preserves the traditional table topology. Every
+wall pose is the source pose plus POV rotation only, including vacant draw
+positions and both stack tiers. Four fixed six-column/three-row discard rivers
+fit inside the wall ring. Outside it, each player's exposed melds and remaining
+hand share a row. The local separate band contains both hand and melds, without
+a duplicate table copy; concealed targets retain useful touch widths while
+public melds use smaller adjacent clusters. Added Kong tiles retain their
+source stacked relationship. Empty meld reserves do not enlarge the table.
+Source slot addresses, face entitlement, rule geometry and draw order remain
+unchanged. The original tile artwork, bevels, felt, rail and shadows are retained.
+The traditional perspective profile is a steeper78..88-degree oblique view so
+side-player faces remain readable without moving or stretching the wall.
 Every schema group/kind is represented, including sticks, marker, Kita and
 Minefield wall.open. Four/three/two-seat active players remain source-defined;
 extra physical wall/payment slots may exist on otherwise inactive sides.
-Separate hand uses only explicit LocalHand order, camera layer/band, fitted rows
-and a drawn-tile gap. A viewSeat change never creates actor/hand entitlement.
+Separate hand uses explicit LocalHand order, the same actor's exposed melds,
+camera layer/band, fitted rows and a drawn-tile gap. A viewSeat change never
+creates actor/hand entitlement.
 Known entitled faces are drawn only when showFace is true; concealed surfaces
 use a common back and carry no face label/texture index.
 Flat/perspective, zoom/lookDown, viewSeat, CSS/DPR/insets and orientation refit

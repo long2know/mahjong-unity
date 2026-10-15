@@ -592,6 +592,7 @@ namespace Mahjong.Renderer.Tests
             RendererState state = SourceFixtures.State();
             var parent = new GameObject("Adaptive public label contract");
             var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            RenderTexture target = null;
             try
             {
                 var actions = new SemanticActions(state, _ => { });
@@ -609,13 +610,16 @@ namespace Mahjong.Renderer.Tests
                 scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
                 MeshFilter phase = parent.GetComponentsInChildren<MeshFilter>().Single(filter =>
                     filter.name == "Public vector label" && Mathf.Abs(filter.transform.localPosition.z - 0.075f) < 0.00001f);
+                // A headless GameView clamps pixelRect to 480px without a viewport-sized target.
+                target = new RenderTexture(Mathf.RoundToInt(plan.Viewport.BoardCss.width),
+                    Mathf.RoundToInt(plan.Viewport.BoardCss.height), 24);
+                scene.TableCamera.targetTexture = target;
                 scene.TableCamera.pixelRect = new Rect(0, 0, plan.Viewport.BoardCss.width, plan.Viewport.BoardCss.height);
                 Bounds text = phase.sharedMesh.bounds;
                 Vector3 low = scene.TableCamera.WorldToScreenPoint(phase.transform.TransformPoint(new Vector3(0, 0, text.min.z)));
                 Vector3 high = scene.TableCamera.WorldToScreenPoint(phase.transform.TransformPoint(new Vector3(0, 0, text.max.z)));
                 Assert.That(Mathf.Abs(high.y - low.y), Is.GreaterThanOrEqualTo(7.5f),
-                    "Real projected phase geometry must reach its CSS-pixel goal, not merely be nonempty: " +
-                    "text=" + text + ", bounds=" + plan.BoardBounds + ", ortho=" + scene.TableCamera.orthographicSize);
+                    "Real projected phase geometry must reach its CSS-pixel goal, not merely be nonempty");
                 Assert.That(scene.ActivePlan.BoardBounds, Is.EqualTo(plan.BoardBounds));
                 BoxCollider[] dice = parent.GetComponentsInChildren<BoxCollider>().Where(collider => collider.name == "Public die").ToArray();
                 Assert.That(dice.Length, Is.EqualTo(2));
@@ -629,7 +633,7 @@ namespace Mahjong.Renderer.Tests
                 Assert.That(face.localPosition.y - tile.Root.GetComponent<BoxCollider>().size.y / 2,
                     Is.EqualTo(0.0008f).Within(0.00001));
             }
-            finally { scene.Dispose(); EngineObjects.Release(parent); }
+            finally { scene.Dispose(); EngineObjects.Release(target); EngineObjects.Release(parent); }
         }
 
         private static string Hex(byte[] bytes) => BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
