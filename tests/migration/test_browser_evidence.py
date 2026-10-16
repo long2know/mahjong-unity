@@ -2,6 +2,7 @@
 
 import contextlib
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -93,6 +94,8 @@ class BrowserEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.fixture = ROOT / "artifacts/test-results" / ("browser-evidence-unit-" + uuid.uuid4().hex)
         self.fixture.mkdir(parents=True)
+        self.source_graph = self.fixture / "renderer-module-graph.json"
+        self.source_graph.write_text('{"artifactKind":"unit-only-source-graph","qualification":"mocked metadata, not browser evidence"}\n')
 
     def tearDown(self):
         shutil.rmtree(self.fixture)
@@ -137,8 +140,10 @@ class BrowserEvidenceTests(unittest.TestCase):
         read_bytes = Path.read_bytes
 
         def source_bytes(path):
-            if metadata_error and path.name == "renderer-module-graph.json":
-                raise OSError("Unit-only source metadata read failure")
+            if path.name == "renderer-module-graph.json":
+                if metadata_error:
+                    raise OSError("Unit-only source metadata read failure")
+                return read_bytes(self.source_graph)
             return read_bytes(path)
 
         with (
@@ -248,7 +253,11 @@ class BrowserEvidenceTests(unittest.TestCase):
         for probe in ("browser-unavailable.mjs", "browser-social.mjs"):
             with self.subTest(probe=probe):
                 returned, receipt = self.run_probe(json.dumps(unit_evidence(probe)), probe=probe)
-                self.assertEqual(0, returned)
+                self.assertEqual(0, returned, receipt.get("failure"))
+                self.assertEqual(
+                    hashlib.sha256(self.source_graph.read_bytes()).hexdigest(),
+                    receipt["sourceSha256"]["src/frontend/autotable/renderer-module-graph.json"],
+                )
                 self.assertEqual("passed", receipt["status"])
                 self.assertEqual(len(unit_evidence(probe)["cases"]), len(receipt["browserEvidence"]["cases"]))
                 self.assert_rejected(json.dumps(unit_evidence(probe)), probe=probe, code=3)

@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: "20"
           package-manager-cache: false
-      - name: Pinned import, 33 backend tool, 9 source/context and 1 player packaging contracts
+      - name: Pinned import, backend tools, camera evidence, source/context and packaging contracts
         run: python3 tests/migration/run_source_ci.py source-tools --install-dependencies
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
