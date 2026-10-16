@@ -322,8 +322,9 @@ try {
       await requirePrivacy(page, 0);
       manualPixels = await capture(page, 'camera-touch-manual');
       differences = cameraPixelProof(initialPixels, manualPixels, regions);
-      const remaining = pair(1.35, 30, 80, 30)[1];
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [remaining] });
+      const [released, remaining] = pair(1.35, 30, 80, 30);
+      // Chromium releases the listed contacts, not contacts omitted from touchMove.
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [released] });
       await page.waitForFunction(() => window.game.tableCamera.contacts.size === 1 && window.game.tableCamera.blocksGameplay);
       const hand = before.frame.entities.find(entity => entity.entityId === before.frame.localHand.entityIds[0]);
       const at = await pointAt(page, hand, { hover: false });
