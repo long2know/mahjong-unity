@@ -50,6 +50,7 @@ import {
 import { hideEl } from './dom-utils';
 import { handSortMode, type HandSortMode } from './hand-sort';
 import { COMPACT_VIEW_QUERY, mobileInfoPanel, type MobileInfoPanel } from './mobile-overlay-policy';
+import type { CameraView } from './renderer/renderer-contract';
 import {
   getGameState, getGameStateStatus, loadGameState, refreshGameState, subscribeGameState,
   type GameState,
@@ -69,6 +70,10 @@ export interface AppSettings {
   cameraMode: 'auto' | 'perspective' | 'flat';
   boardLayout: 'auto' | 'classic' | 'rectangular';
   handLayout: 'auto' | 'in-table' | 'separate';
+  tableZoom: number;
+  tableYaw: number;
+  tablePitch: number | null;
+  tableRoll: number;
   handSort: HandSortMode;
   mobileTableStatus: boolean;
   mobileInfoPanel: MobileInfoPanel;
@@ -82,6 +87,14 @@ export interface AppSettings {
 
 export const SETTINGS_LS_KEY = 'mahjong.settings.v1';
 const LS_KEY_SOUND_ENABLED_MIRROR = 'mahjong:soundEnabled';
+export const TABLE_CAMERA_DEFAULTS = { tableZoom: 1, tableYaw: 0, tablePitch: null, tableRoll: 0 } as const;
+const CAMERA_RANGES = [
+  { key: 'tableZoom', name: 'zoom', min: 0.5, max: 2.5, step: 0.05 },
+  { key: 'tableYaw', name: 'yaw', min: -180, max: 180, step: 1 },
+  { key: 'tablePitch', name: 'pitch', min: 20, max: 90, step: 1 },
+  { key: 'tableRoll', name: 'roll', min: -180, max: 180, step: 1 },
+] as const;
+export type TableCameraSettings = Pick<AppSettings, 'tableZoom' | 'tableYaw' | 'tablePitch' | 'tableRoll'>;
 
 export const SETTINGS_DEFAULT: AppSettings = {
   masterVolume: 0.8,
@@ -90,6 +103,7 @@ export const SETTINGS_DEFAULT: AppSettings = {
   cameraMode: 'auto',
   boardLayout: 'auto',
   handLayout: 'auto',
+  ...TABLE_CAMERA_DEFAULTS,
   handSort: 'suit',
   mobileTableStatus: false,
   mobileInfoPanel: 'none',
@@ -115,6 +129,7 @@ let legacyDisplayInstalled = false;
 let rendererLayoutInstalled = false;
 let drawerOpened = false;
 let applyingCamera = false;
+let automaticTablePitch = 78;
 let activeTab: SettingsTab = 'general';
 const listeners = new Set<(s: AppSettings) => void>();
 
@@ -135,6 +150,10 @@ function loadFromStorage(): AppSettings {
     else if (typeof j.perspective === 'boolean') out.cameraMode = j.perspective ? 'perspective' : 'flat';
     if (j.boardLayout === 'classic' || j.boardLayout === 'rectangular') out.boardLayout = j.boardLayout;
     if (j.handLayout === 'in-table' || j.handLayout === 'separate') out.handLayout = j.handLayout;
+    for (const { key, min, max } of CAMERA_RANGES) {
+      const value = j[key];
+      if (typeof value === 'number' && Number.isFinite(value)) out[key] = Math.max(min, Math.min(max, value));
+    }
     out.handSort = handSortMode(j.handSort);
     if (typeof j.mobileTableStatus === 'boolean') out.mobileTableStatus = j.mobileTableStatus;
     out.mobileInfoPanel = mobileInfoPanel(j.mobileInfoPanel);
@@ -181,8 +200,22 @@ export function cameraPerspective(settings: AppSettings, width: number, height: 
     : settings.cameraMode === 'perspective';
 }
 
-export function syncCameraInputs(width: number, height: number): void {
+export function tableCameraPresentation(settings: AppSettings): CameraView | null {
+  if (settings.tableZoom === 1 && settings.tableYaw === 0 && settings.tablePitch === null && settings.tableRoll === 0) return null;
+  return { scale: settings.tableZoom, yaw: settings.tableYaw, pitch: settings.tablePitch, roll: settings.tableRoll };
+}
+
+export function resetTableCamera(): void {
+  setSettings({ ...TABLE_CAMERA_DEFAULTS, cameraMode: 'auto' });
+  window.dispatchEvent(new Event('mahjong:camera-reset'));
+}
+
+export function syncCameraInputs(width: number, height: number, pitch?: number): void {
   const settings = getSettings();
+  if (pitch !== undefined && pitch !== automaticTablePitch) {
+    automaticTablePitch = pitch;
+    syncTableCameraInputs(settings);
+  }
   const checked = cameraPerspective(settings, width, height);
   const previous = applyingCamera;
   applyingCamera = true;
@@ -227,8 +260,10 @@ export function installLegacyDisplaySettings(): void {
     const mode = handSortMode(order.value);
     if (getSettings().handSort !== mode) setSettings({ handSort: mode });
   });
+  root.appendChild(buildTableCameraControls('settings-game-camera'));
   const localize = (): void => {
     translateElements(root);
+    syncTableCameraInputs(getSettings());
     order.setAttribute('aria-label', t('hand.order'));
     order.dispatchEvent(new Event('change', { bubbles: true }));
   };
@@ -276,6 +311,14 @@ function emit(): void {
 /** Replace the current settings (full object).  Persists + emits. */
 export function setSettings(next: Partial<AppSettings>): void {
   ensureSettingsLoaded();
+  for (const { key, min, max } of CAMERA_RANGES) {
+    if (!(key in next) || key === 'tablePitch' && next[key] === null) continue;
+    const value = next[key];
+    if (typeof value !== 'number' || !Number.isFinite(value)) throw new RangeError(`Invalid table camera setting: ${key}`);
+    next = { ...next, [key]: Math.max(min, Math.min(max, value)) };
+  }
+  if (typeof next.tablePitch === 'number' && !('cameraMode' in next) && !('perspective' in next))
+    next = { ...next, cameraMode: 'perspective' };
   if ('perspective' in next && !('cameraMode' in next)) {
     next = { ...next, cameraMode: next.perspective ? 'perspective' : 'flat' };
   } else if (next.cameraMode === 'perspective' || next.cameraMode === 'flat') {
@@ -331,6 +374,8 @@ function applyDerivedSettings(s: AppSettings, changed: Partial<AppSettings> = s)
   if ('tableColor' in changed) document.documentElement.style.setProperty('--app-table-color', s.tableColor);
   if ('perspective' in changed || 'cameraMode' in changed)
     syncCameraInputs(window.innerWidth ?? 1024, window.innerHeight ?? 768);
+  if ('perspective' in changed || 'cameraMode' in changed || CAMERA_RANGES.some(({ key }) => key in changed))
+    syncTableCameraInputs(s);
 }
 
 /** Reset all settings to defaults. */
@@ -714,6 +759,74 @@ function buildAudioPanel(): HTMLDivElement {
   return panel;
 }
 
+function cameraRangeValue(input: HTMLInputElement, output: HTMLOutputElement, key: TableCameraSettingsKey, s: AppSettings): void {
+  const value = s[key];
+  const flat = !cameraPerspective(s, window.innerWidth ?? 1024, window.innerHeight ?? 768);
+  input.value = String(key === 'tablePitch' ? flat ? 90 : value ?? automaticTablePitch : value);
+  output.textContent = value === null ? t('settings.camera_auto_angle') : key === 'tableZoom' ?
+    `${Math.round(value * 100)}%` : `${Math.round(key === 'tablePitch' && flat ? 90 : value)}\u00b0`;
+  input.setAttribute('aria-valuetext', output.textContent);
+}
+
+type TableCameraSettingsKey = typeof CAMERA_RANGES[number]['key'];
+
+function syncTableCameraInputs(s: AppSettings): void {
+  for (const prefix of ['settings-camera', 'settings-game-camera']) for (const { key, name } of CAMERA_RANGES) {
+    const input = document.getElementById(`${prefix}-${name}`) as HTMLInputElement | null;
+    const output = document.getElementById(`${prefix}-${name}-value`) as HTMLOutputElement | null;
+    if (input && output) cameraRangeValue(input, output, key, s);
+  }
+}
+
+function buildTableCameraControls(prefix: string): HTMLFieldSetElement {
+  const group = document.createElement('fieldset');
+  group.className = 'settings-camera-controls';
+  const legend = document.createElement('legend');
+  legend.dataset.i18n = 'settings.table_camera';
+  legend.textContent = t(legend.dataset.i18n);
+  group.appendChild(legend);
+  const settings = getSettings();
+  for (const { key, name, min, max, step } of CAMERA_RANGES) {
+    const row = document.createElement('label');
+    const label = document.createElement('span');
+    label.dataset.i18n = `settings.table_${name}`;
+    label.textContent = t(label.dataset.i18n);
+    const input = document.createElement('input');
+    input.id = `${prefix}-${name}`;
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.dataset.testid = input.id;
+    input.setAttribute('aria-describedby', `${prefix}-hint`);
+    const output = document.createElement('output');
+    output.id = `${prefix}-${name}-value`;
+    output.setAttribute('for', input.id);
+    cameraRangeValue(input, output, key, settings);
+    input.addEventListener('input', () => {
+      const value = Number(input.value);
+      setSettings({ [key]: value });
+    });
+    row.append(label, output, input);
+    group.appendChild(row);
+  }
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'btn btn-secondary';
+  reset.id = `${prefix}-reset`;
+  reset.dataset.testid = reset.id;
+  reset.dataset.i18n = 'settings.camera_reset';
+  reset.textContent = t(reset.dataset.i18n);
+  reset.addEventListener('click', resetTableCamera);
+  const hint = document.createElement('p');
+  hint.id = `${prefix}-hint`;
+  hint.className = 'settings-v2-hint';
+  hint.dataset.i18n = 'settings.camera_gestures_hint';
+  hint.textContent = t(hint.dataset.i18n);
+  group.append(reset, hint);
+  return group;
+}
+
 function buildDisplayPanel(): HTMLDivElement {
   const panel = buildPanelShell('display', t('settings.tab.display') || 'Display settings');
 
@@ -885,6 +998,7 @@ function buildDisplayPanel(): HTMLDivElement {
   sortHint.textContent = t('hand.sort_hint');
   sortSelect.setAttribute('aria-describedby', sortHint.id);
   sortRow.append(sortLabel, sortSelect, sortHint);
+  panel.appendChild(buildTableCameraControls('settings-camera'));
   panel.appendChild(sortRow);
   const statusRow = document.createElement('label');
   statusRow.className = 'settings-v2-field settings-v2-checkbox-row';

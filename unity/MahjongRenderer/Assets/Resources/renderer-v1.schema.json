@@ -254,6 +254,45 @@
         "viewerRevision"
       ]
     },
+    "CameraView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scale": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.5
+        },
+        "yaw": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "pitch": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 20,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "roll": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      },
+      "required": [
+        "scale",
+        "yaw",
+        "pitch",
+        "roll"
+      ]
+    },
     "Presentation": {
       "type": "object",
       "additionalProperties": false,
@@ -288,6 +327,16 @@
           "type": "number",
           "minimum": -1,
           "maximum": 1
+        },
+        "camera": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CameraView"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -1062,6 +1111,28 @@
         "sessionId",
         "type",
         "reason"
+      ]
+    },
+    "CancelInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "type": {
+          "const": "cancelInput"
+        }
+      },
+      "required": [
+        "contractVersion",
+        "instanceId",
+        "type"
       ]
     },
     "Playback": {
@@ -1973,6 +2044,9 @@
     },
     {
       "$ref": "#/definitions/Playback"
+    },
+    {
+      "$ref": "#/definitions/CancelInput"
     },
     {
       "$ref": "#/definitions/RendererLayout"

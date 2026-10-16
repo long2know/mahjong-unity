@@ -39,6 +39,49 @@ namespace Mahjong.Renderer.Tests
             Assert.That(json["pickup"].Type, Is.EqualTo(JTokenType.Null));
         }
 
+        [Test]
+        public void OptionalCameraOverrideRoundTripsWithBoundedAxesAndRejectsMalformedOverrides()
+        {
+            JObject frame = SourceFixtures.Json("RendererFrame");
+            Assert.That(SourceFixtures.Schema.Read<RendererFrame>(frame.ToString(), "RendererFrame").Presentation.Camera, Is.Null);
+            frame["presentation"]["camera"] = new JObject { ["scale"] = 1.5, ["yaw"] = 90, ["pitch"] = 45, ["roll"] = -30 };
+            RendererFrame parsed = SourceFixtures.Schema.Read<RendererFrame>(frame.ToString(), "RendererFrame");
+            Assert.That(parsed.Presentation.Camera.Scale, Is.EqualTo(1.5));
+            Assert.That(parsed.Presentation.Camera.Yaw, Is.EqualTo(90));
+            Assert.That(parsed.Presentation.Camera.Pitch, Is.EqualTo(45));
+            Assert.That(parsed.Presentation.Camera.Roll, Is.EqualTo(-30));
+            Assert.DoesNotThrow(() => SourceFixtures.Schema.Write(parsed, "RendererFrame"));
+            foreach (var invalid in new[]
+            {
+                new KeyValuePair<string, double>("scale", 0), new KeyValuePair<string, double>("scale", 2.51),
+                new KeyValuePair<string, double>("yaw", 181), new KeyValuePair<string, double>("pitch", 19),
+                new KeyValuePair<string, double>("pitch", 91), new KeyValuePair<string, double>("roll", -181),
+                new KeyValuePair<string, double>("scale", double.NaN),
+            })
+            {
+                JObject copy = (JObject)frame.DeepClone();
+                copy["presentation"]["camera"][invalid.Key] = invalid.Value;
+                Assert.That(() => SourceFixtures.Schema.Read<RendererFrame>(copy.ToString(), "RendererFrame"),
+                    Throws.TypeOf<ContractException>(), invalid.Key);
+            }
+            ((JObject)frame["presentation"]["camera"]).Remove("scale");
+            Assert.That(() => SourceFixtures.Schema.Read<RendererFrame>(frame.ToString(), "RendererFrame"),
+                Throws.TypeOf<ContractException>());
+            Assert.That(CameraView.Same(null, new CameraView()), Is.True);
+            Assert.That(CameraView.Same(null, parsed.Presentation.Camera), Is.False);
+        }
+
+        [Test]
+        public void CameraCancellationIsOnlyAnInstanceBoundLocalEnvelope()
+        {
+            var json = new JObject { ["contractVersion"] = ContractVersion.Current, ["instanceId"] = "camera", ["type"] = "cancelInput" };
+            CancelInput message = SourceFixtures.Schema.Read<CancelInput>(json.ToString(), "CancelInput");
+            Assert.That(message.InstanceId, Is.EqualTo("camera"));
+            json["actorSeat"] = 0;
+            Assert.That(() => SourceFixtures.Schema.Read<CancelInput>(json.ToString(), "CancelInput"),
+                Throws.TypeOf<ContractException>());
+        }
+
         [TestCase("tileId")]
         [TestCase("auth")]
         [TestCase("stateVersion")]

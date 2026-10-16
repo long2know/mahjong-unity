@@ -380,5 +380,54 @@ namespace Mahjong.Renderer.Tests
                             }
                 }
         }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void DefaultOverridePreservesExactFitAndManualScaleReallyResizesTheTable(bool flat)
+        {
+            var bounds = new Bounds(new Vector3(0.2f, 0.05f, -0.4f), new Vector3(2, 0.15f, 4));
+            CameraPose original = CameraFit.Fit(bounds, 0.6f, flat, 0, 0, true);
+            CameraPose defaults = CameraFit.Fit(bounds, 0.6f, flat, 0, 0, true, new CameraView());
+            Assert.That(defaults.Position, Is.EqualTo(original.Position));
+            Assert.That(defaults.Rotation, Is.EqualTo(original.Rotation));
+            Assert.That(defaults.OrthographicSize, Is.EqualTo(original.OrthographicSize));
+            CameraPose enlarged = CameraFit.Fit(bounds, 0.6f, flat, 0, 0, true, new CameraView { Scale = 1.5 });
+            Assert.That(enlarged.OrthographicSize, Is.EqualTo(original.OrthographicSize / 1.5f).Within(0.00001f));
+            if (!flat)
+                Assert.That(Vector3.Distance(enlarged.Position, bounds.center),
+                    Is.LessThan(Vector3.Distance(original.Position, bounds.center) * 0.9f));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ThreeAxisCameraFitsEveryCornerAtUnitScaleAndNeverCrossesTheNearPlaneWhenZoomed(bool flat)
+        {
+            var bounds = new Bounds(new Vector3(0.2f, 0.05f, -0.4f), new Vector3(2, 0.15f, 4));
+            foreach (double yaw in new[] { -170.0, 0, 90 })
+                foreach (double roll in new[] { -120.0, 0, 35 })
+                    foreach (double pitch in new[] { 20.0, 55, 90 })
+                    {
+                        var view = new CameraView { Yaw = yaw, Roll = roll, Pitch = pitch };
+                        CameraPose pose = CameraFit.Fit(bounds, 0.6f, flat, 0, 0, true, view);
+                        Assert.That(Quaternion.Angle(pose.Rotation,
+                            Quaternion.Euler(flat ? 90 : (float)pitch, (float)yaw, (float)roll)), Is.LessThan(0.05f));
+                        Quaternion inverse = Quaternion.Inverse(pose.Rotation);
+                        view.Scale = 2.5;
+                        CameraPose close = CameraFit.Fit(bounds, 0.6f, flat, 0, 0, true, view);
+                        Assert.That(close.Position.y, Is.GreaterThan(bounds.max.y));
+                        for (int x = -1; x <= 1; x += 2)
+                            for (int y = -1; y <= 1; y += 2)
+                                for (int z = -1; z <= 1; z += 2)
+                                {
+                                    Vector3 point = bounds.center + Vector3.Scale(bounds.extents, new Vector3(x, y, z));
+                                    Vector3 local = inverse * (point - pose.Position);
+                                    float half = flat ? pose.OrthographicSize : local.z * Mathf.Tan(CameraFit.FieldOfView * Mathf.Deg2Rad / 2);
+                                    Assert.That(Mathf.Abs(local.y), Is.LessThanOrEqualTo(half + 0.0001f));
+                                    Assert.That(Mathf.Abs(local.x), Is.LessThanOrEqualTo(half * 0.6f + 0.0001f));
+                                    Assert.That((Quaternion.Inverse(close.Rotation) * (point - close.Position)).z,
+                                        Is.GreaterThan(0.025f), "Manual zoom may crop, but must not pass through table geometry");
+                                }
+                    }
+        }
     }
 }

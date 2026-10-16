@@ -20,7 +20,7 @@ export class RendererActionRouter {
 
   constructor(private readonly adapter: RendererFrameAdapter, private readonly port: ActionPort) {}
 
-  handle(input: unknown): ActionResult | null {
+  handle(input: unknown, cameraGesture = false): ActionResult | null {
     let action: RendererAction;
     try {
       const value: unknown = typeof input === 'string' ? JSON.parse(input) : input;
@@ -56,6 +56,13 @@ export class RendererActionRouter {
     this.seen.add(action.actionId);
     if (!adapter.contextKnown(action.contextFrameId)) return result('rejected', 'stale-entity');
     if (!adapter.actionable()) return result('rejected', adapter.client.protocolUnavailableReason ? 'protocol-unavailable' : 'not-actionable');
+    const harmless = action.intent.kind === 'hover'
+      || action.intent.kind === 'select' && action.intent.entityIds.length === 0
+      || action.intent.kind === 'endDrag' && !action.intent.commit;
+    if (cameraGesture && !harmless) {
+      this.cancelGesture();
+      return result('rejected', 'not-actionable');
+    }
 
     const intent = action.intent;
     const world = adapter.world;

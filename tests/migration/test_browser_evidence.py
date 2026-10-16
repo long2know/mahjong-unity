@@ -2,6 +2,7 @@
 
 import contextlib
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -93,6 +94,8 @@ class BrowserEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.fixture = ROOT / "artifacts/test-results" / ("browser-evidence-unit-" + uuid.uuid4().hex)
         self.fixture.mkdir(parents=True)
+        self.source_graph = self.fixture / "renderer-module-graph.json"
+        self.source_graph.write_text('{"artifactKind":"unit-only-source-graph","qualification":"mocked metadata, not browser evidence"}\n')
 
     def tearDown(self):
         shutil.rmtree(self.fixture)
@@ -137,8 +140,10 @@ class BrowserEvidenceTests(unittest.TestCase):
         read_bytes = Path.read_bytes
 
         def source_bytes(path):
-            if metadata_error and path.name == "renderer-module-graph.json":
-                raise OSError("Unit-only source metadata read failure")
+            if path.name == "renderer-module-graph.json":
+                if metadata_error:
+                    raise OSError("Unit-only source metadata read failure")
+                return read_bytes(self.source_graph)
             return read_bytes(path)
 
         with (
@@ -248,7 +253,11 @@ class BrowserEvidenceTests(unittest.TestCase):
         for probe in ("browser-unavailable.mjs", "browser-social.mjs"):
             with self.subTest(probe=probe):
                 returned, receipt = self.run_probe(json.dumps(unit_evidence(probe)), probe=probe)
-                self.assertEqual(0, returned)
+                self.assertEqual(0, returned, receipt.get("failure"))
+                self.assertEqual(
+                    hashlib.sha256(self.source_graph.read_bytes()).hexdigest(),
+                    receipt["sourceSha256"]["src/frontend/autotable/renderer-module-graph.json"],
+                )
                 self.assertEqual("passed", receipt["status"])
                 self.assertEqual(len(unit_evidence(probe)["cases"]), len(receipt["browserEvidence"]["cases"]))
                 self.assert_rejected(json.dumps(unit_evidence(probe)), probe=probe, code=3)
@@ -451,6 +460,43 @@ class PlayerEvidenceTests(unittest.TestCase):
             bad = copy.deepcopy(evidence)
             bad["cases"][0][field] = value
             with self.subTest(field=field), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(bad, self.manifest, "gameplay", [name])
+
+    def test_camera_cases_require_actual_three_axis_pixels_fixed_hand_reset_and_restored_native_input(self):
+        name = "actual-camera-touch-orbit-zoom"
+        case = copy.deepcopy(self.evidence["cases"][0])
+        case.update(name=name, frameId=10, presentation={"camera": None}, cameraControls={
+            "inputs": sorted(player_runner.CAMERA_CASES[name]), "renderedFrameId": 3, "resetFrameId": 6,
+            "override": {"scale": 1.4, "yaw": 30, "pitch": 65, "roll": 20},
+            "sourceStatePreserved": True, "noNativeCameraCommands": True, "resetRestored": True,
+            "nativeInputRestored": True, "partialReleaseSafe": True,
+            "beforePixels": {"screenshot": "unit-before.png", "sha256": "a" * 64, "width": 500, "height": 900},
+            "movedPixels": {"screenshot": "unit-moved.png", "sha256": "b" * 64, "width": 500, "height": 900},
+            "differences": [
+                {"name": "board", "x": 0, "y": 0, "width": 500, "height": 400, "pixels": 200000,
+                 "changedPixels": 20000, "changedFraction": 0.1},
+                {"name": "hand", "x": 0, "y": 400, "width": 500, "height": 150, "pixels": 75000,
+                 "changedPixels": 0, "changedFraction": 0},
+            ],
+        })
+        evidence = {**self.evidence, "scope": "gameplay", "cases": [case]}
+        player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [name])
+        for field, value in (
+            ("inputs", []), ("renderedFrameId", 0), ("resetFrameId", 2),
+            ("override", {"scale": 1.4, "yaw": 0, "pitch": 65, "roll": 20}),
+            ("noNativeCameraCommands", False), ("partialReleaseSafe", False),
+            ("nativeInputRestored", False), ("sourceStatePreserved", False),
+            ("differences", case["cameraControls"]["differences"][:1]),
+            ("movedPixels", case["cameraControls"]["beforePixels"]),
+        ):
+            bad = copy.deepcopy(evidence)
+            bad["cases"][0]["cameraControls"][field] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(bad, self.manifest, "gameplay", [name])
+        for index, count, fraction in ((0, 1000, 0.005), (1, 1000, 1000 / 75000)):
+            bad = copy.deepcopy(evidence)
+            bad["cases"][0]["cameraControls"]["differences"][index].update(changedPixels=count, changedFraction=fraction)
+            with self.subTest(region=index), self.assertRaises(AssertionError):
                 player_runner.validate_player_evidence(bad, self.manifest, "gameplay", [name])
 
 

@@ -64,7 +64,7 @@ def main():
     require("path: Assets/Scenes/MahjongRenderer.unity" in settings and
             "guid: " + guid("Assets/Scenes/MahjongRenderer.unity") in settings, "Build scene disconnected.")
     bridge = (project / "Assets/Renderer/Bridge/MahjongBridge.cs").read_text()
-    expected = {"Configure", "Clear", "ApplyLayout", "ApplyFrame", "SetViewport", "SetPlayback", "ReceiveActionResult"}
+    expected = {"Configure", "Clear", "ApplyLayout", "ApplyFrame", "SetViewport", "SetPlayback", "CancelInput", "ReceiveActionResult"}
     methods = set(re.findall(r"public void (\w+)\(string json\)", bridge))
     require(methods == expected, "Frozen SendMessage receiver method inventory drift.")
     require("WaitForEndOfFrame" in bridge and "Camera.onPostRender" in bridge and

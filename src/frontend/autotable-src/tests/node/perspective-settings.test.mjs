@@ -14,10 +14,15 @@ const javascript = source => ts.transpileModule(source, {
 }).outputText;
 
 class Input extends EventTarget {
+  constructor(tag = 'input') { super(); this.tagName = tag.toUpperCase(); }
   checked = true;
   value = 'suit';
   attributes = {};
+  dataset = {};
+  children = [];
   setAttribute(name, value) { this.attributes[name] = value; }
+  appendChild(child) { this.children.push(child); return child; }
+  append(...children) { children.forEach(child => this.appendChild(child)); }
 }
 
 function settingsHarness(saved = {}, withCameraInput = true) {
@@ -27,11 +32,16 @@ function settingsHarness(saved = {}, withCameraInput = true) {
   const nodes = new Map([
     ['settings-camera-view', display], ['settings-game-perspective', legacy],
     ['settings-hand-sort', order], ['settings-game-hand-sort', legacyOrder],
-    ['settings-table-display', {}],
+    ['settings-table-display', new Input('div')],
   ]);
   if (withCameraInput) nodes.set('perspective', native);
   const document = {
-    activeElement: null, getElementById: id => nodes.get(id) ?? null,
+    activeElement: null,
+    createElement: tag => new Input(tag),
+    getElementById: id => {
+      const find = node => node.id === id ? node : (node.children ?? []).map(find).find(Boolean);
+      return nodes.get(id) ?? [...nodes.values()].map(find).find(Boolean) ?? null;
+    },
     body: { classList: { toggle: () => {} } },
     documentElement: { style: { setProperty: () => {} } },
   };

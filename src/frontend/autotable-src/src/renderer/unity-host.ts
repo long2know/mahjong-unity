@@ -28,7 +28,7 @@ class HostError extends Error {
 }
 const methods: Record<ReceiverMethod, string> = {
   Configure: 'Configure', Clear: 'Clear', ApplyLayout: 'RendererLayout', ApplyFrame: 'RendererFrame',
-  SetViewport: 'Viewport', SetPlayback: 'Playback', ReceiveActionResult: 'ActionResult',
+  SetViewport: 'Viewport', SetPlayback: 'Playback', CancelInput: 'CancelInput', ReceiveActionResult: 'ActionResult',
 };
 
 export function artifactUrl(path: string, origin: string, suffix?: string): string {
@@ -298,6 +298,10 @@ export class UnityHost {
 
   actionResult(result: ActionResult): void {
     if (this.handshake && result.instanceId === this.instanceId && result.sessionId === this.sessionId) this.send('ReceiveActionResult', result);
+  }
+
+  cancelInput(): void {
+    this.send('CancelInput', { contractVersion: CONTRACT_VERSION, instanceId: this.instanceId, type: 'cancelInput' });
   }
 
   setPresentation(presentation: Presentation): void {

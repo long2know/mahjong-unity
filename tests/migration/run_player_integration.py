@@ -22,6 +22,11 @@ IMAGE = (
     "mcr.microsoft.com/playwright:v1.60.0-noble@"
     "sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9"
 )
+CAMERA_CASES = {
+    "actual-camera-touch-orbit-zoom": {"pinch", "two-finger-orbit", "twist", "partial-release", "touch-discard", "reset-button"},
+    "actual-camera-mouse-keyboard-settings": {"wheel", "alt-drag", "middle-shift-drag", "arrows", "keyboard-roll", "keyboard-zoom", "home-reset", "sliders", "legacy-reset"},
+    "actual-camera-relay-input-recovery": {"wheel", "home-reset", "right-click", "native-f"},
+}
 sys.dont_write_bytecode = True
 
 
@@ -90,6 +95,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
             "actual-dealt-hand-viewport-camera-controls", "actual-mobile-dpr2-touch",
             "actual-mobile-dpr3-touch", "actual-two-human-chat-spectator-privacy",
             "actual-seat-revocation-reconnect", "actual-traditional-csharp-local-meld",
+            *CAMERA_CASES,
             *{f"actual-{variant}-relay-native-input" for variant in
               ("FOUR_PLAYER", "THREE_PLAYER", "BAMBOO", "MINEFIELD")},
         }
@@ -109,6 +115,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
         if scope in ("gameplay", "mobile-playability") and ("csharp" in case["name"] or "touch" in case["name"]
                                    or case["name"] == "actual-mobile-combined-reachability"
                                    or "relay-native-input" in case["name"]
+                                   or case["name"] in CAMERA_CASES
                                    or case["name"] in ("actual-desktop-native-double-click", "actual-mobile-manual-pickup")):
             native_actions = case.get("nativeActions", [])
             if (not isinstance(native_actions, list) or not native_actions
@@ -127,6 +134,56 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                     or not targets or len(targets) > 11
                     or not all(target.get("canvasReceivesInput") is True and target.get("chatCovered") is False for target in targets)):
                 raise AssertionError("Traditional layout omitted its real wall/deal/meld and ordinary post-claim touch proof")
+        if case["name"] in CAMERA_CASES:
+            camera = case.get("cameraControls")
+            if (not isinstance(camera, dict) or not isinstance(camera.get("inputs"), list)
+                    or not CAMERA_CASES[case["name"]] <= set(camera["inputs"])
+                    or any(camera.get(field) is not True for field in
+                           ("sourceStatePreserved", "noNativeCameraCommands", "resetRestored", "nativeInputRestored"))
+                    or type(camera.get("renderedFrameId")) is not int
+                    or type(camera.get("resetFrameId")) is not int
+                    or not 0 < camera["renderedFrameId"] < camera["resetFrameId"] <= case.get("frameId", 0)
+                    or not isinstance(case.get("presentation"), dict) or case["presentation"].get("camera") is not None):
+                raise AssertionError("Camera case omitted its rendered/reset/input-isolation proof")
+            view = camera.get("override")
+            if (not isinstance(view, dict) or set(view) != {"scale", "yaw", "pitch", "roll"}
+                    or any(type(view[field]) not in (int, float) or not math.isfinite(view[field])
+                           for field in ("scale", "yaw", "roll"))
+                    or not 1.05 < view["scale"] <= 2.5
+                    or not -180 <= view["yaw"] <= 180 or not -180 <= view["roll"] <= 180
+                    or view["pitch"] is not None and
+                    (type(view["pitch"]) not in (int, float) or not math.isfinite(view["pitch"]) or not 20 <= view["pitch"] <= 90)):
+                raise AssertionError("Camera case omitted its bounded actual camera override")
+            if case["name"] != "actual-camera-relay-input-recovery" and (
+                    view["pitch"] is None or abs(view["yaw"]) < 2 or abs(view["roll"]) < 2):
+                raise AssertionError("Camera case did not exercise actual pitch, yaw and roll")
+            if (case["name"] == "actual-camera-touch-orbit-zoom" and camera.get("partialReleaseSafe") is not True
+                    or case["name"] == "actual-camera-mouse-keyboard-settings" and
+                    (camera.get("settingsMirrored") is not True or camera.get("preferencesPersisted") is not True)):
+                raise AssertionError("Camera input/settings surfaces were not actually exercised")
+            before, moved = camera.get("beforePixels"), camera.get("movedPixels")
+            if (not isinstance(before, dict) or not isinstance(moved, dict)
+                    or not before.get("screenshot") or not moved.get("screenshot")
+                    or not before.get("sha256") or before.get("sha256") == moved.get("sha256")
+                    or any(type(before.get(field)) is not int or before[field] <= 0
+                           or before[field] != moved.get(field) for field in ("width", "height"))):
+                raise AssertionError("Camera case omitted actual before/after screenshot artifacts")
+            regions = camera.get("differences")
+            if (not isinstance(regions, list) or len(regions) != 2
+                    or {region.get("name") for region in regions} != {"board", "hand"}):
+                raise AssertionError("Camera evidence must measure the board and separate hand independently")
+            for region in regions:
+                if (any(type(region.get(field)) is not int for field in
+                        ("x", "y", "width", "height", "pixels", "changedPixels"))
+                        or region["x"] < 0 or region["y"] < 0 or region["width"] <= 0 or region["height"] <= 0
+                        or region["x"] + region["width"] > before["width"] or region["y"] + region["height"] > before["height"]
+                        or region["pixels"] != region["width"] * region["height"]
+                        or not 0 <= region["changedPixels"] <= region["pixels"]
+                        or type(region.get("changedFraction")) not in (int, float) or not math.isfinite(region["changedFraction"])
+                        or abs(region["changedFraction"] - region["changedPixels"] / region["pixels"]) > 1e-9
+                        or region["name"] == "board" and region["changedFraction"] <= 0.02
+                        or region["name"] == "hand" and region["changedFraction"] > 0.001):
+                    raise AssertionError("Camera pixel evidence did not prove a moving table and fixed hand")
         if scope == "mobile-playability":
             is_touch = case["name"].endswith("-single-touch")
             is_desktop = case["name"] == "actual-desktop-native-double-click"

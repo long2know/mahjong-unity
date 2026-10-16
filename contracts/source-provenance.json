@@ -9,6 +9,18 @@
   "contractSha256": "4e373e7b195e8c8c71fdedae9b87d051b2a8d073abf612a0744b8ce91ea8a38e",
   "rendererSchemaSha256": "87150bc61c7c4555d2f143baf9cc02fb78380b83c39052fbb9a0478c648dd6a7",
   "contractApproval": "Coordinator-approved frozen contract; original audit status retained byte-for-byte",
+  "rendererContractExtensions": [
+    {
+      "introducedBy": "long2know/mahjong-unity#16",
+      "recordedOn": "2026-10-16",
+      "reason": "User-requested optional local table camera scale, pitch, yaw and roll, with local CancelInput for safe pointer/double-click interruption. No native game wire, rule or baseline inventory changes.",
+      "parentContractSha256": "4e373e7b195e8c8c71fdedae9b87d051b2a8d073abf612a0744b8ce91ea8a38e",
+      "parentRendererSchemaSha256": "87150bc61c7c4555d2f143baf9cc02fb78380b83c39052fbb9a0478c648dd6a7",
+      "contractSha256": "ff514d0b21214308c6688fd9db483c3125ae7c7314e952b1d2c4f50243314719",
+      "rendererSchemaSha256": "1e7a71fa2b34ce050e96c567449ae7e8e8eff9f0a75fdd5ba5afeb3569534d0f",
+      "backwardCompatibility": "Missing/null Presentation.camera preserves the original automatic fit and accepts existing frame fixtures."
+    }
+  ],
   "auditMetadataOnly": [
     "migration-contract.json teamRoot/repositoryRoot/referenceRoot/sourcePins[].localPath",
     "Historical audit/session tool paths and commands are provenance, not runtime dependencies."

@@ -120,6 +120,7 @@ namespace Mahjong.Renderer.Bridge
         });
 
         public void ReceiveActionResult(string json) => Receive<ActionResult>(json, "ActionResult", message => state.ReceiveActionResult(message));
+        public void CancelInput(string json) => Receive<CancelInput>(json, "CancelInput", message => state.CancelInput(message));
 
         private void Receive<T>(string json, string definition, Action<T> apply)
         {

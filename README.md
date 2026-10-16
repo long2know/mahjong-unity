@@ -53,12 +53,26 @@ The software-browser comparison still has a documented visual cost: about
 with native selection latency about 11% higher. These are isolated container
 observations, not physical-device FPS guarantees.
 
-The clean polished image **`mahjong-unity:polished-95d06eb`** is running on port
-5086 without a dirty-build override. Its actual clean Editor, runtime and
-post-upgrade native-input receipts are under
+The local preview on port 5086 serves a qualified clean-source image without a
+dirty-build override. Its exact current source/image identity is recorded in
+`artifacts/preview/desktop-changsha-20261010/protected-start-config.json`.
+Historical tile-polish Editor, runtime and post-upgrade native-input receipts remain under
 `artifacts/test-results/visual-polish-clean-build/` and
 `artifacts/test-results/visual-polish-clean-runtime/`. Existing protected
 configuration and persistent database state were preserved.
+
+## Table camera controls
+
+Pinch with two fingers over the table to resize/zoom it. Drag both fingers to
+turn or tilt the table; twist them to roll the view. With a mouse, use the wheel
+to zoom and **Alt+left-drag** or **middle-drag** to orbit; add **Shift** to roll.
+Ordinary single-touch tile actions and unmodified mouse picking stay unchanged.
+
+Focus the canvas for keyboard controls: **Left/Right** turn, **Up/Down** tilt,
+**Shift+Left/Right** roll, **+/-** zoom, and **Home** resets the view. Both existing
+settings drawers also expose camera sliders and **Reset view**. Camera preferences
+are saved locally. Manual zoom can intentionally crop/enlarge the table; reset
+restores automatic fitting. The separate hand stays upright and fixed.
 
 ## Source delivered
 

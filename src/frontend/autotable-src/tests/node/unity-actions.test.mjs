@@ -35,6 +35,30 @@ test('Unity discard resolves a live entitled own tile to the exact unchanged sou
   assert.equal(r.send({ kind: 'discard', entityId: '4' }).status, 'rejected', 'raw physical IDs are not entity IDs');
 });
 
+test('camera contact gate explicitly rejects native game intents but allows stable hover and a fresh real discard afterward', t => {
+  const h = gameHarness();
+  t.after(h.close);
+  h.join();
+  const frame = h.snapshot([['4', thing('hand.0@0', 1)]]);
+  const own = frame.entities[0];
+  const r = router(h);
+  h.sockets.at(-1).sent.length = 0;
+  assert.equal(r.actions.handle(r.action({ kind: 'hover', entityId: own.entityId }), true).status, 'local');
+  assert.equal(r.actions.handle(r.action({ kind: 'select', entityIds: [] }), true).status, 'local',
+    'Escape/local cancellation must remain available during camera navigation');
+  for (const intent of [
+    { kind: 'discard', entityId: own.entityId }, { kind: 'select', entityIds: [own.entityId] },
+    { kind: 'rollDice' }, { kind: 'flip', entityIds: [own.entityId], direction: 1, animated: true },
+  ]) {
+    const result = r.actions.handle(r.action(intent), true);
+    assert.equal(result.status, 'rejected');
+    assert.equal(result.reason, 'not-actionable');
+  }
+  assert.equal(r.wire().length, 0, 'a camera release cannot become any native wire write');
+  assert.equal(r.send({ kind: 'discard', entityId: own.entityId }).status, 'submitted');
+  assert.deepEqual(r.wire(), [['discard', 0, { tileId: 4 }]]);
+});
+
 test('manual pickup uses the single live uncovered trigger and emits only seatIndex/count', t => {
   const h = gameHarness();
   t.after(h.close);

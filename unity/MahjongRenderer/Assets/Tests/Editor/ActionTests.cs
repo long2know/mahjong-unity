@@ -37,6 +37,10 @@ namespace Mahjong.Renderer.Tests
         [TestCase("long-pressed")]
         [TestCase("permission-lost")]
         [TestCase("resized")]
+        [TestCase("camera-scale")]
+        [TestCase("camera-yaw")]
+        [TestCase("camera-pitch")]
+        [TestCase("camera-roll")]
         public void NonTapOrStaleTouchCannotDiscard(string reason)
         {
             WithPointer((pointer, state, position, emitted) =>
@@ -55,6 +59,17 @@ namespace Mahjong.Renderer.Tests
                     Viewport next = SourceFixtures.Copy(state.Viewport, "Viewport");
                     next.ResizeRevision++;
                     state.SetViewport(next);
+                }
+                else if (reason.StartsWith("camera-"))
+                {
+                    RendererFrame next = SourceFixtures.Copy(state.Frame, "RendererFrame");
+                    next.FrameId++;
+                    next.Presentation.Camera = new CameraView();
+                    if (reason == "camera-scale") next.Presentation.Camera.Scale = 1.4;
+                    if (reason == "camera-yaw") next.Presentation.Camera.Yaw = 30;
+                    if (reason == "camera-pitch") next.Presentation.Camera.Pitch = 45;
+                    if (reason == "camera-roll") next.Presentation.Camera.Roll = 20;
+                    state.ApplyFrame(next);
                 }
                 else
                 {
@@ -80,6 +95,29 @@ namespace Mahjong.Renderer.Tests
                 PointerCall(pointer, "End", position, false);
                 Assert.That(emitted.Select(action => action.Intent["kind"].Value<string>()),
                     Is.EqualTo(new[] { "select", "discard" }));
+            });
+        }
+
+        [Test]
+        public void CameraCancellationWithoutMovementBreaksTheNativeDoubleClickChainWithoutRebinding()
+        {
+            WithPointer((pointer, state, position, emitted) =>
+            {
+                PointerCall(pointer, "Begin", position, false, -1);
+                PointerCall(pointer, "End", position, false);
+                RendererFrame frame = state.Frame;
+                Viewport viewport = state.Viewport;
+                string session = state.SessionId;
+                state.CancelInput(new CancelInput { Type = "cancelInput", InstanceId = state.InstanceId });
+                Assert.That(state.Frame, Is.SameAs(frame));
+                Assert.That(state.Viewport, Is.SameAs(viewport));
+                Assert.That(state.SessionId, Is.EqualTo(session));
+                Assert.That(state.Actionable, Is.True);
+                PointerCall(pointer, "Begin", position, false, -1);
+                PointerCall(pointer, "End", position, false);
+                Assert.That(emitted.Select(action => action.Intent["kind"].Value<string>()),
+                    Is.EqualTo(new[] { "select", "select" }),
+                    "A stationary intervening camera gesture must not turn the next single mouse click into a discard");
             });
         }
 

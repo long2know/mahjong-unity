@@ -18,7 +18,7 @@ function settingsFixture(saved = {}) {
     ['settings-board-layout', drawerBoard], ['settings-hand-layout', drawerHand],
   ]);
   const { load } = sourceLoader({
-    window: { localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) } },
+    window: Object.assign(new EventTarget(), { localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) } }),
     document: {
       getElementById: id => nodes.get(id) ?? null, body: { classList: { toggle() {} } },
       documentElement: { style: { setProperty() {} } },
@@ -40,11 +40,16 @@ function keyboardGameFixture() {
       this.style = { setProperty() {} };
       this.classList = { add() {}, toggle() {} };
       this.checked = false;
+      this.captured = new Set();
     }
     append(...children) { this.children.push(...children); }
     setAttribute() {}
     removeAttribute() {}
-    getBoundingClientRect() { return { width: 1280, height: 800 }; }
+    getBoundingClientRect() { return { left: 0, top: 0, width: 1280, height: 800 }; }
+    focus() { document.activeElement = this; }
+    setPointerCapture(id) { this.captured.add(id); }
+    hasPointerCapture(id) { return this.captured.has(id); }
+    releasePointerCapture(id) { this.captured.delete(id); }
     remove() {}
   }
   const nodes = new Map(['main', 'loading', 'perspective', 'tile-labels', 'benchmark', 'muted', 'sticky', 'unity-notice']
@@ -119,7 +124,7 @@ function keyboardGameFixture() {
   };
   const writes = () => socket.sent.flatMap(packet => packet.entries ?? [])
     .filter(([kind, id]) => kind === 'things' && id === 0);
-  return { game, document, GameType, entityId, select, send, key, writes,
+  return { game, document, window, GameType, entityId, select, send, key, writes,
     preferences: () => loader.load('settings-drawer.ts').getSettings() };
 }
 
@@ -142,6 +147,55 @@ test('registered Game P handler persists the clicked value before applying autom
   assert.equal(h.writes().length, 0, 'camera changes must not rewrite any tile');
 });
 
+test('actual Game F/R handlers resume after camera input but cannot flip while camera contacts are held', async t => {
+  const h = keyboardGameFixture();
+  t.after(() => h.game.dispose());
+  h.select();
+  const wheel = new Event('wheel', { cancelable: true });
+  for (const [key, value] of Object.entries({ clientX: 300, clientY: 300, deltaY: -100, deltaMode: 0 }))
+    Object.defineProperty(wheel, key, { value });
+  h.game.renderer.canvas.dispatchEvent(wheel);
+  assert.equal(wheel.defaultPrevented, true);
+  assert.equal(h.game.tableCamera.blocksGameplay, true);
+  const callback = id => h.game.renderer.hooks.action({
+    contractVersion: '1.0.0', type: 'action', instanceId: h.game.adapter.instanceId, sessionId: h.game.adapter.sessionId,
+    actionId: id, contextFrameId: h.game.adapter.latest.frameId,
+    intent: { kind: 'flip', entityIds: [h.entityId], direction: 1, animated: true },
+  });
+  callback('unit-camera-blocked');
+  assert.equal(h.writes().length, 0, 'the actual HostHooks -> router caller must pass the camera guard');
+  h.document.activeElement = h.game.renderer.canvas;
+  h.key('keydown', 'f');
+  assert.equal(h.game.tableCamera.blocksGameplay, false, 'native canvas F must not remain locked after camera zoom');
+  assert.equal(h.writes().length, 0, 'canvas F is still owned by native C# only');
+  callback('unit-camera-resumed');
+  assert.equal(h.writes().length, 1, 'the same host caller resumes after a fresh game key');
+  h.key('keyup', 'f');
+  h.select();
+  h.document.activeElement = h.document.body;
+  h.key('keydown', 'r');
+  assert.equal(h.writes().length, 1, 'the retained browser R path still flips exactly once');
+  h.key('keyup', 'r');
+  h.select();
+  const pointer = type => {
+    const event = new Event(type, { cancelable: true });
+    for (const [key, value] of Object.entries({
+      clientX: 300, clientY: 300, pointerId: 77, pointerType: 'mouse', button: 0, altKey: true, shiftKey: false,
+    })) Object.defineProperty(event, key, { value });
+    (type === 'pointerdown' ? h.game.renderer.canvas : h.window).dispatchEvent(event);
+    return event;
+  };
+  pointer('pointerdown');
+  assert.equal(h.game.tableCamera.blocksGameplay, true);
+  h.key('keydown', 'r');
+  assert.equal(h.writes().length, 0, 'held camera contacts must not also perform a keyboard tile flip');
+  h.key('keyup', 'r');
+  pointer('pointerup');
+  h.key('keydown', 'r');
+  assert.equal(h.writes().length, 1, 'a new game key after all camera contacts end resumes the retained path');
+  h.key('keyup', 'r');
+});
+
 test('actual layout settings default/normalize to auto and persist synchronized legacy/Display choices without resetting language', () => {
   const f = settingsFixture({ boardLayout: 'stretched', handLayout: 'all-hands', lang: 'zh-Hans', perspective: false });
   f.settings.installRendererLayoutSettings();
@@ -161,6 +215,29 @@ test('actual layout settings default/normalize to auto and persist synchronized 
   assert.equal(f.hand.value, 'auto');
 });
 
+test('table camera preferences normalize storage, round-trip all axes, select perspective for explicit tilt, and reset without losing unrelated settings', () => {
+  const f = settingsFixture({ lang: 'zh-Hant', tableZoom: 20, tableYaw: -900, tablePitch: 5, tableRoll: 'bad', boardLayout: 'rectangular' });
+  assert.deepEqual(plain(f.settings.tableCameraPresentation(f.settings.getSettings())),
+    { scale: 2.5, yaw: -180, pitch: 20, roll: 0 });
+  f.settings.setSettings({ tableZoom: 1.4, tableYaw: 80, tablePitch: 42, tableRoll: -25 });
+  assert.equal(f.settings.getSettings().cameraMode, 'perspective');
+  assert.deepEqual(plain(f.settings.tableCameraPresentation(f.settings.getSettings())),
+    { scale: 1.4, yaw: 80, pitch: 42, roll: -25 });
+  assert.equal(f.saved().lang, 'zh-Hant');
+  const reloaded = settingsFixture(f.saved());
+  assert.deepEqual(plain(reloaded.settings.tableCameraPresentation(reloaded.settings.getSettings())),
+    { scale: 1.4, yaw: 80, pitch: 42, roll: -25 });
+  for (const invalid of [{ tableZoom: NaN }, { tableYaw: Infinity }, { tablePitch: '45' }, { tableRoll: undefined }]) {
+    assert.throws(() => f.settings.setSettings(invalid), /Invalid table camera setting/);
+  }
+  assert.equal(f.saved().tableZoom, 1.4, 'invalid updates must not be persisted');
+  f.settings.resetTableCamera();
+  assert.equal(f.settings.tableCameraPresentation(f.settings.getSettings()), null);
+  assert.equal(f.saved().cameraMode, 'auto');
+  assert.equal(f.saved().boardLayout, 'rectangular');
+  assert.equal(f.saved().lang, 'zh-Hant');
+});
+
 test('actual Game presentation and registered keyboard callers preserve layouts and exclusive F ownership', async t => {
   const source = ts.createSourceFile('game.ts', fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const game = source.statements.find(s => ts.isClassDeclaration(s) && s.name?.text === 'Game');
@@ -169,10 +246,10 @@ test('actual Game presentation and registered keyboard callers preserve layouts 
   const code = ts.transpileModule(`class Fixture { ${body} }\nFixture;`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const { cameraPerspective } = settingsFixture().settings;
+  const { cameraPerspective, tableCameraPresentation, SETTINGS_DEFAULT } = settingsFixture().settings;
   const h = keyboardGameFixture();
   t.after(() => h.game.dispose());
-  const Fixture = runInNewContext(code, { cameraPerspective, GameType: h.GameType });
+  const Fixture = runInNewContext(code, { cameraPerspective, tableCameraPresentation, GameType: h.GameType });
   const fixture = new Fixture();
   fixture.world = { conditions: { gameType: h.GameType.FOUR_PLAYER } };
   fixture.height = 844;
@@ -181,20 +258,20 @@ test('actual Game presentation and registered keyboard callers preserve layouts 
   fixture.zoom = { pos: -0.2 };
   for (const [width, boardLayout, handLayout] of [[390, 'rectangular', 'separate'], [767, 'rectangular', 'separate'], [768, 'classic', 'in-table'], [1024, 'classic', 'in-table']]) {
     fixture.width = width;
-    const presentation = fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' });
+    const presentation = fixture.presentation({ ...SETTINGS_DEFAULT, cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' });
     assert.deepEqual(plain(presentation), { viewMode: width < 768 ? 'flat' : 'perspective',
       boardLayout, handLayout, tileLabels: true, lookDown: 0.5, zoom: -0.2 });
   }
   fixture.world.conditions.gameType = h.GameType.CHANGSHA;
-  assert.equal(fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).boardLayout,
+  assert.equal(fixture.presentation({ ...SETTINGS_DEFAULT, cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).boardLayout,
     'rectangular', 'desktop Changsha also uses compact public lanes');
   fixture.width = 844;
   fixture.height = 390;
-  assert.equal(fixture.presentation({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).handLayout,
+  assert.equal(fixture.presentation({ ...SETTINGS_DEFAULT, cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto' }).handLayout,
     'separate', 'phone landscape must not shrink the hand back into the table');
   fixture.width = 390;
   fixture.settings.perspective.checked = true;
-  const explicit = fixture.presentation({ cameraMode: 'perspective', boardLayout: 'classic', handLayout: 'in-table' });
+  const explicit = fixture.presentation({ ...SETTINGS_DEFAULT, cameraMode: 'perspective', boardLayout: 'classic', handLayout: 'in-table' });
   assert.equal(explicit.boardLayout, 'classic');
   assert.equal(explicit.handLayout, 'in-table');
   assert.equal(explicit.viewMode, 'perspective');
@@ -276,7 +353,10 @@ test('viewport DTOs round real backing buffers, cap DPR at two and remove the se
 test('all shipped locales label the new controls and inherited art is absent from the active shell/result CSS', () => {
   for (const locale of ['en', 'zh-Hans', 'zh-Hant']) {
     const catalog = JSON.parse(fs.readFileSync(path.join(root, `src/i18n/${locale}.json`), 'utf8'));
-    for (const key of ['settings.board_layout', 'settings.hand_layout', 'settings.layout_auto', 'settings.layout_classic', 'settings.layout_rectangular', 'settings.layout_in-table', 'settings.layout_separate']) {
+    for (const key of ['settings.board_layout', 'settings.hand_layout', 'settings.layout_auto', 'settings.layout_classic',
+      'settings.layout_rectangular', 'settings.layout_in-table', 'settings.layout_separate', 'settings.table_camera',
+      'settings.table_zoom', 'settings.table_yaw', 'settings.table_pitch', 'settings.table_roll',
+      'settings.camera_reset', 'settings.camera_auto_angle', 'settings.camera_gestures_hint']) {
       assert.equal(typeof catalog[key], 'string');
       assert(catalog[key].length > 0);
     }
