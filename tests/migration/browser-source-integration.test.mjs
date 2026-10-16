@@ -76,14 +76,7 @@ function actualGame({ advanceAnimations = false } = {}) {
     console: { log() {}, warn() {}, error() {} },
   }, {
     'sound-player.ts': { SoundPlayer: class { play() {} } },
-    'settings-drawer.ts': {
-      getSettings: () => ({ cameraMode: 'auto', boardLayout: 'auto', handLayout: 'auto', handSort: 'suit', soundEnabled: true }),
-      cameraPerspective: (settings, width, height) => settings.cameraMode === 'auto' ? !(width < 768 && height > width)
-        : settings.cameraMode === 'perspective',
-      syncCameraInputs() {},
-      installPerspectiveSetting() {}, installRendererLayoutSettings() {},
-      onSettingsChange: () => () => {},
-    },
+    'theme.ts': {}, 'rule-presets.ts': {},
     'profile.ts': {
       loadProfile: async () => ({ displayName: 'Source test player' }), refreshProfile: async () => {},
       snapshotStatsForGame() {}, onProfile() {}, initProfileHubBindings() {},

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -771,6 +772,68 @@ namespace Mahjong.Renderer.Tests
                 resized.ResizeRevision++;
                 state.SetViewport(resized);
                 Assert.That(picker.Entity(screen, false).Found, Is.False);
+            }
+            finally { scene.Dispose(); EngineObjects.Release(parent); }
+        }
+
+        [TestCase("flat")]
+        [TestCase("perspective")]
+        public void CameraOverridesMoveOnlyTheTableCameraPreservePrivacyAndRejectPickingUntilRendered(string mode)
+        {
+            RendererState state = SourceFixtures.State();
+            RendererFrame initial = SourceFixtures.Copy(state.Frame, "RendererFrame");
+            initial.FrameId++;
+            initial.Presentation.ViewMode = mode;
+            state.ApplyFrame(initial);
+            var parent = new GameObject("Three-axis camera picking");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            try
+            {
+                var actions = new SemanticActions(state, _ => { });
+                scene.Commit(BoardLayout.Build(state.Layout, state.Frame, state.Viewport), state.Frame, actions,
+                    state.Viewport.ResizeRevision);
+                var picker = new CameraPicker(scene, state);
+                Vector3 handPosition = scene.HandCamera.transform.position;
+                Quaternion handRotation = scene.HandCamera.transform.rotation;
+                float handSize = scene.HandCamera.orthographicSize;
+                Vector3 handScreen = scene.HandCamera.WorldToScreenPoint(scene.ActiveEntities["fixture-own-tile"].Root.transform.position);
+                var positions = scene.ActiveEntities.ToDictionary(pair => pair.Key, pair => pair.Value.Root.transform.position);
+                var views = new List<CameraView>
+                {
+                    new CameraView { Scale = 1.1 },
+                    new CameraView { Yaw = 60 },
+                    new CameraView { Roll = 25 },
+                };
+                if (mode == "perspective") views.Add(new CameraView { Pitch = 45 });
+                foreach (CameraView view in views)
+                {
+                    Vector3 oldPosition = scene.TableCamera.transform.position;
+                    Quaternion oldRotation = scene.TableCamera.transform.rotation;
+                    float oldSize = scene.TableCamera.orthographicSize;
+                    RendererFrame next = SourceFixtures.Copy(state.Frame, "RendererFrame");
+                    next.FrameId++;
+                    next.Presentation.Camera = view;
+                    state.ApplyFrame(next);
+                    Assert.That(picker.At(handScreen), Is.Null, "Input cannot use a camera override before it is displayed");
+                    scene.Commit(BoardLayout.Build(state.Layout, state.Frame, state.Viewport), state.Frame, actions,
+                        state.Viewport.ResizeRevision);
+                    Assert.That(scene.TableCamera.transform.position != oldPosition ||
+                        scene.TableCamera.transform.rotation != oldRotation || scene.TableCamera.orthographicSize != oldSize, Is.True);
+                    Assert.That(scene.HandCamera.transform.position, Is.EqualTo(handPosition));
+                    Assert.That(scene.HandCamera.transform.rotation, Is.EqualTo(handRotation));
+                    Assert.That(scene.HandCamera.orthographicSize, Is.EqualTo(handSize));
+                    Assert.That(scene.HandCamera.WorldToScreenPoint(scene.ActiveEntities["fixture-own-tile"].Root.transform.position),
+                        Is.EqualTo(handScreen));
+                    Assert.That(picker.Entity(handScreen, false).Id, Is.EqualTo("fixture-own-tile"));
+                    foreach (var pair in scene.ActiveEntities)
+                        Assert.That(pair.Value.Root.transform.position, Is.EqualTo(positions[pair.Key]),
+                            "Camera controls must not move source tiles or relayout walls");
+                    EntityView wall = scene.ActiveEntities["fixture-concealed-wall"];
+                    Vector3 wallScreen = scene.TableCamera.WorldToScreenPoint(wall.Root.transform.position);
+                    Assert.That(picker.Entity(wallScreen, false).Id, Is.EqualTo("fixture-concealed-wall"));
+                    Assert.That(wall.VisibleFaceIndex, Is.Null);
+                    Assert.That(wall.VisibleFaceLabel, Is.Null);
+                }
             }
             finally { scene.Dispose(); EngineObjects.Release(parent); }
         }

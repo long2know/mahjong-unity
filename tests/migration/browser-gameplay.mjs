@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   base, probeRoot, receipt, wire, pageFor, ready, snapshot, capture, recordCaseFailure, rendererSummary,
-  manualMeasurements, launchPlayerBrowser, finishPlayerBrowser,
+  manualMeasurements, launchPlayerBrowser, finishPlayerBrowser, pixelDifference,
 } from './browser-player.mjs';
 import { aimPoint } from './player-aim.mjs';
 
@@ -217,8 +217,275 @@ async function caseRun(name, action) {
   }
 }
 
+async function displayedCamera(page, expected, previous = 0) {
+  await page.waitForFunction(({ expected, previous }) => {
+    const game = window.game;
+    if (game.renderer.state === 'failed') return true;
+    const frame = window.__playerProbe.frames.find(frame => frame.frameId === game.renderer.lastRendered
+      && frame.sessionId === game.adapter.latest?.sessionId);
+    if (!frame || game.renderer.lastRendered <= previous) return false;
+    const camera = frame.presentation.camera ?? null;
+    return expected === null ? camera === null : camera && Object.entries(expected)
+      .every(([key, value]) => Math.abs(camera[key] - value) <= (key === 'scale' ? 0.03 : 1));
+  }, { expected, previous }, { timeout: 15000 });
+  await page.waitForTimeout(150);
+  const state = await snapshot(page);
+  assert.equal(state.state, 'ready', state.statusText);
+  const rendered = await page.evaluate(() => {
+    const game = window.game;
+    const frame = window.__playerProbe.frames.find(frame => frame.frameId === game.renderer.lastRendered
+      && frame.sessionId === game.adapter.latest.sessionId);
+    return frame ? { frameId: frame.frameId, camera: frame.presentation.camera ?? null } : null;
+  });
+  assert(rendered, 'Camera evidence must link to an actual matching C# frameRendered receipt');
+  return { state, rendered };
+}
+
+function sourceState(state) {
+  return state.frame.entities.map(entity => ({
+    entityId: entity.entityId, slotName: entity.slotName, rotationIndex: entity.rotationIndex,
+    pose: entity.pose, appearance: entity.appearance,
+  })).sort((a, b) => a.entityId.localeCompare(b.entityId));
+}
+
+function cameraRegions(state, pixels) {
+  const viewport = state.viewport, inset = viewport.insetsCssPx;
+  assert.equal(state.frame.presentation.handLayout, 'separate');
+  assert(viewport.handBandCssPx > 20);
+  const rx = pixels.width / viewport.widthCssPx, ry = pixels.height / viewport.heightCssPx;
+  const bottom = viewport.heightCssPx - inset.bottom;
+  const boundary = bottom - viewport.handBandCssPx;
+  return [['board', inset.top, boundary], ['hand', boundary, bottom]].map(([name, top, end]) => {
+    const x = Math.ceil((inset.left + 4) * rx), y = Math.ceil((top + 4) * ry);
+    return { name, x, y, width: Math.floor((viewport.widthCssPx - inset.right - 4) * rx) - x,
+      height: Math.floor((end - 4) * ry) - y };
+  });
+}
+
+function cameraPixelProof(before, after, regions) {
+  const differences = pixelDifference(fs.readFileSync(`${probeRoot}/${before.screenshot}`),
+    fs.readFileSync(`${probeRoot}/${after.screenshot}`), regions);
+  assert(differences.find(region => region.name === 'board').changedFraction > 0.02,
+    'Actual compiled camera movement must change more than 2% of board pixels');
+  assert(differences.find(region => region.name === 'hand').changedFraction <= 0.001,
+    'Table navigation must leave the separate hand visually fixed');
+  return differences;
+}
+
+async function cameraLayout(page) {
+  await page.locator('#settings-button').click();
+  await page.locator('#settings-tab-display').click();
+  await page.locator('#settings-hand-layout').selectOption('separate');
+  await page.locator('#settings-close-v2').click();
+  await page.waitForFunction(() => window.game.renderer.state === 'ready'
+    && window.game.adapter.latest.presentation.handLayout === 'separate'
+    && window.game.renderer.viewport.handBandCssPx > 0);
+  await page.waitForTimeout(250);
+}
+
+function commandCounts(room) {
+  return Object.fromEntries(['discard', 'pickup', 'things'].map(kind => [kind, commands(room, kind).length]));
+}
+
 try {
   await launchPlayerBrowser();
+  await caseRun('actual-camera-touch-orbit-zoom', async () => {
+    const { page, room } = await newTable({ mobile: true, dpr: 2 });
+    await page.waitForFunction(() => window.game.adapter.latest?.entities.some(entity => entity.interaction.canDiscard));
+    await page.waitForTimeout(300);
+    const before = await requirePrivacy(page, 0);
+    const initialPixels = await capture(page, 'camera-touch-before');
+    const regions = cameraRegions(before, initialPixels);
+    const counts = commandCounts(room), start = before.actions.length;
+    const viewport = before.viewport, inset = viewport.insetsCssPx;
+    const center = { x: inset.left + (viewport.widthCssPx - inset.left - inset.right) / 2,
+      y: inset.top + (viewport.heightCssPx - inset.top - inset.bottom - viewport.handBandCssPx) * 0.45 };
+    const cdp = await page.context().newCDPSession(page);
+    const pair = (scale, dx = 0, dy = 0, rotation = 0) => [-1, 1].map((sign, id) => ({
+      id, x: center.x + dx + sign * 60 * scale * Math.cos(rotation * Math.PI / 180),
+      y: center.y + dy + sign * 60 * scale * Math.sin(rotation * Math.PI / 180),
+    }));
+    let manual, manualPixels, differences;
+    try {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pair(1) });
+      await page.waitForTimeout(100);
+      for (let step = 1; step <= 6; step++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pair(1 + 0.35 * step / 6) });
+        await page.waitForTimeout(35);
+      }
+      for (let step = 1; step <= 6; step++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pair(1.35, 30 * step / 6, 80 * step / 6, 30 * step / 6) });
+        await page.waitForTimeout(35);
+      }
+      manual = await displayedCamera(page, { scale: 1.35, yaw: -10.5, pitch: 70, roll: 30 }, before.lastRendered);
+      assert.deepEqual(sourceState(manual.state), sourceState(before));
+      await requirePrivacy(page, 0);
+      manualPixels = await capture(page, 'camera-touch-manual');
+      differences = cameraPixelProof(initialPixels, manualPixels, regions);
+      const remaining = pair(1.35, 30, 80, 30)[1];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [remaining] });
+      await page.waitForFunction(() => window.game.tableCamera.contacts.size === 1 && window.game.tableCamera.blocksGameplay);
+      const hand = before.frame.entities.find(entity => entity.entityId === before.frame.localHand.entityIds[0]);
+      const at = await pointAt(page, hand, { hover: false });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...at, id: remaining.id }] });
+      await page.waitForTimeout(100);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(450);
+    } finally { await cdp.detach(); }
+    const after = await requirePrivacy(page, 0);
+    assert.deepEqual(commandCounts(room), counts);
+    assert(!after.actions.slice(start).some(action => ['discard', 'takePickup', 'flip', 'rollDice'].includes(action.intent.kind)));
+    assert.deepEqual(sourceState(after), sourceState(before));
+    const outcome = await actualDiscard(page, room, { touch: true });
+    await page.locator('#settings-button').tap();
+    await page.locator('#settings-tab-display').tap();
+    await page.locator('#settings-camera-reset').tap();
+    await page.locator('#settings-close-v2').tap();
+    const reset = await displayedCamera(page, null, manual.rendered.frameId);
+    await record('actual-camera-touch-orbit-zoom', page, {
+      nativeActions: outcome.nativeActions, serverOutcomeVerified: true, nativeWireVerified: true,
+      cameraControls: {
+        inputs: ['pinch', 'two-finger-orbit', 'twist', 'partial-release', 'touch-discard', 'reset-button'],
+        renderedFrameId: manual.rendered.frameId, resetFrameId: reset.rendered.frameId, override: manual.rendered.camera,
+        beforePixels: initialPixels, movedPixels: manualPixels, differences,
+        sourceStatePreserved: true, noNativeCameraCommands: true, partialReleaseSafe: true,
+        resetRestored: true, nativeInputRestored: true,
+      },
+    });
+    await page.context().close();
+  });
+  await caseRun('actual-camera-mouse-keyboard-settings', async () => {
+    const { page, room } = await newTable();
+    await page.waitForFunction(() => window.game.adapter.latest?.entities.some(entity => entity.interaction.canDiscard));
+    await cameraLayout(page);
+    const before = await requirePrivacy(page, 0);
+    const initialPixels = await capture(page, 'camera-mouse-before'), regions = cameraRegions(before, initialPixels);
+    const counts = commandCounts(room);
+    const viewport = before.viewport, inset = viewport.insetsCssPx;
+    const x = inset.left + (viewport.widthCssPx - inset.left - inset.right) / 2;
+    const y = inset.top + (viewport.heightCssPx - inset.top - inset.bottom - viewport.handBandCssPx) / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(0, -160);
+    await page.waitForTimeout(150);
+    await page.keyboard.down('Alt');
+    await page.mouse.down();
+    await page.mouse.move(x + 60, y + 40, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    await page.mouse.move(x, y);
+    await page.keyboard.down('Shift');
+    await page.mouse.down({ button: 'middle' });
+    await page.mouse.move(x + 50, y, { steps: 5 });
+    await page.mouse.up({ button: 'middle' });
+    await page.keyboard.up('Shift');
+    await page.locator('#unity-canvas').focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Shift+ArrowRight');
+    await page.keyboard.press('Shift+Equal');
+    const manual = await displayedCamera(page, { scale: Math.exp(0.32) * 1.1, yaw: -26, pitch: 63, roll: 25 }, before.lastRendered);
+    assert.deepEqual(sourceState(manual.state), sourceState(before));
+    const movedPixels = await capture(page, 'camera-mouse-manual');
+    const differences = cameraPixelProof(initialPixels, movedPixels, regions);
+    await page.keyboard.press('Home');
+    await displayedCamera(page, null, manual.rendered.frameId);
+    const resetPixels = await capture(page, 'camera-mouse-reset');
+    const resetDifferences = pixelDifference(fs.readFileSync(`${probeRoot}/${initialPixels.screenshot}`),
+      fs.readFileSync(`${probeRoot}/${resetPixels.screenshot}`), regions);
+    assert(resetDifferences.every(region => region.changedFraction <= 0.001), 'Reset must restore the actual fitted camera pixels');
+    await page.locator('#settings-button').click();
+    await page.locator('#settings-tab-display').click();
+    for (const [name, key] of [['zoom', 'ArrowRight'], ['yaw', 'ArrowRight'], ['pitch', 'ArrowLeft'], ['roll', 'ArrowRight']]) {
+      await page.locator(`#settings-camera-${name}`).focus();
+      await page.keyboard.press(key);
+    }
+    const fromSettings = await displayedCamera(page, { scale: 1.05, yaw: 1, pitch: 77, roll: 1 });
+    const mirrored = {};
+    for (const name of ['zoom', 'yaw', 'pitch', 'roll'])
+      mirrored[name] = Number(await page.locator(`#settings-game-camera-${name}`).inputValue());
+    assert.deepEqual(mirrored, { zoom: 1.05, yaw: 1, pitch: 77, roll: 1 });
+    const saved = await page.evaluate(() => {
+      const settings = JSON.parse(localStorage.getItem('mahjong.settings.v1'));
+      return { scale: settings.tableZoom, yaw: settings.tableYaw, pitch: settings.tablePitch, roll: settings.tableRoll };
+    });
+    assert.deepEqual(saved, fromSettings.rendered.camera);
+    await page.locator('#settings-close-v2').click();
+    await page.locator('#settings-toggle').click();
+    await page.locator('#settings-game-camera-reset').click();
+    await page.locator('#settings-close').click();
+    const reset = await displayedCamera(page, null, fromSettings.rendered.frameId);
+    assert.deepEqual(commandCounts(room), counts);
+    await requirePrivacy(page, 0);
+    const outcome = await actualDiscard(page, room);
+    await record('actual-camera-mouse-keyboard-settings', page, {
+      nativeActions: outcome.nativeActions, serverOutcomeVerified: true, nativeWireVerified: true,
+      cameraControls: {
+        inputs: ['wheel', 'alt-drag', 'middle-shift-drag', 'arrows', 'keyboard-roll', 'keyboard-zoom', 'home-reset', 'sliders', 'legacy-reset'],
+        renderedFrameId: manual.rendered.frameId, resetFrameId: reset.rendered.frameId, override: manual.rendered.camera,
+        beforePixels: initialPixels, movedPixels, differences, resetPixels, resetDifferences,
+        sourceStatePreserved: true, noNativeCameraCommands: true, settingsMirrored: true, preferencesPersisted: true,
+        resetRestored: true, nativeInputRestored: true,
+      },
+    });
+    await page.context().close();
+  });
+  await caseRun('actual-camera-relay-input-recovery', async () => {
+    const { page, room } = await newTable({ variant: 'four_player', bots: 0 });
+    await page.locator('.seat-button-0 .take-seat').click();
+    await page.waitForFunction(() => window.game.client.seat === 0);
+    await page.locator('#deal').click();
+    await page.waitForFunction(() => window.game.adapter.latest?.entities.some(entity => entity.group === 'hand'
+      && entity.seat === 0 && entity.interaction.canFlip));
+    await cameraLayout(page);
+    const before = await snapshot(page);
+    const initialPixels = await capture(page, 'camera-relay-before'), regions = cameraRegions(before, initialPixels);
+    const counts = commandCounts(room);
+    const inset = before.viewport.insetsCssPx;
+    await page.mouse.move((inset.left + before.viewport.widthCssPx - inset.right) / 2,
+      (inset.top + before.viewport.heightCssPx - inset.bottom - before.viewport.handBandCssPx) / 2);
+    await page.mouse.wheel(0, -160);
+    const manual = await displayedCamera(page, { scale: Math.exp(0.32), yaw: 0, roll: 0 }, before.lastRendered);
+    const movedPixels = await capture(page, 'camera-relay-manual');
+    const differences = cameraPixelProof(initialPixels, movedPixels, regions);
+    assert.deepEqual(sourceState(manual.state), sourceState(before));
+    assert.deepEqual(commandCounts(room), counts);
+    await page.locator('#unity-canvas').focus();
+    await page.keyboard.press('Home');
+    await displayedCamera(page, null, manual.rendered.frameId);
+    let state = await snapshot(page);
+    const tile = state.frame.entities.find(entity => entity.group === 'hand' && entity.seat === 0 && entity.interaction.canFlip);
+    const point = await pointAt(page, tile);
+    let start = (await snapshot(page)).actions.length;
+    await page.mouse.click(point.x, point.y, { button: 'right', delay: 55 });
+    const right = await observeAction(page, start, 'flip', tile.entityId);
+    await page.waitForFunction(({ id, rotation }) => window.game.adapter.latest.entities
+      .some(entity => entity.entityId === id && entity.rotationIndex !== rotation), { id: tile.entityId, rotation: tile.rotationIndex });
+    state = await snapshot(page);
+    const afterRight = state.frame.entities.find(entity => entity.entityId === tile.entityId).rotationIndex;
+    await page.mouse.move((inset.left + before.viewport.widthCssPx - inset.right) / 2,
+      (inset.top + before.viewport.heightCssPx - inset.bottom - before.viewport.handBandCssPx) / 2);
+    await page.mouse.wheel(0, -80);
+    await displayedCamera(page, { scale: Math.exp(0.16) });
+    await page.keyboard.press('Home');
+    const reset = await displayedCamera(page, null);
+    await pointAt(page, (await snapshot(page)).frame.entities.find(entity => entity.entityId === tile.entityId));
+    start = (await snapshot(page)).actions.length;
+    await page.keyboard.press('f');
+    const key = await observeAction(page, start, 'flip', tile.entityId);
+    await page.waitForFunction(({ id, rotation }) => window.game.adapter.latest.entities
+      .some(entity => entity.entityId === id && entity.rotationIndex !== rotation), { id: tile.entityId, rotation: afterRight });
+    assert.equal(commands(room, 'things').length, counts.things + 2, 'Right-click and F must each write exactly one retained tile update');
+    await record('actual-camera-relay-input-recovery', page, {
+      nativeActions: [right, key], serverOutcomeVerified: true, nativeWireVerified: true,
+      cameraControls: {
+        inputs: ['wheel', 'home-reset', 'right-click', 'native-f'],
+        renderedFrameId: manual.rendered.frameId, resetFrameId: reset.rendered.frameId, override: manual.rendered.camera,
+        beforePixels: initialPixels, movedPixels, differences,
+        sourceStatePreserved: true, noNativeCameraCommands: true, resetRestored: true, nativeInputRestored: true,
+      },
+    });
+    await page.context().close();
+  });
   await caseRun('actual-auto-csharp-select-discard', async () => {
     const table = await newTable();
     currentPage = table.page;

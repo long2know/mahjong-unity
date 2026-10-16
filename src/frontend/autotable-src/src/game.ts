@@ -5,11 +5,12 @@ import { Animation } from './utils';
 import { ClientUi } from './client-ui';
 import { SoundPlayer } from './sound-player';
 import type { GameUi } from './game-ui';
-import { cameraPerspective, getSettings, installPerspectiveSetting, installRendererLayoutSettings, onSettingsChange, syncCameraInputs, type AppSettings } from './settings-drawer';
+import { cameraPerspective, getSettings, installPerspectiveSetting, installRendererLayoutSettings, onSettingsChange, syncCameraInputs, tableCameraPresentation, type AppSettings } from './settings-drawer';
 import { BufferedRendererSink } from './renderer/renderer-sink';
 import { RendererFrameAdapter } from './renderer/renderer-frame';
 import { RendererActionRouter } from './renderer/renderer-actions';
 import { UnityHost } from './renderer/unity-host';
+import { TableCameraControls } from './renderer/table-camera-controls';
 import type { Presentation } from './renderer/renderer-contract';
 import { GameType } from './types';
 
@@ -23,6 +24,7 @@ export class Game {
   private gameUi: GameUi | null = null;
   private adapter: RendererFrameAdapter | null = null;
   private actions: RendererActionRouter | null = null;
+  private tableCamera: TableCameraControls | null = null;
   private readonly events = new AbortController();
   private unsubscribeSettings: (() => void) | null = null;
   private frameHandle = 0;
@@ -59,9 +61,10 @@ export class Game {
       sticky: document.getElementById('sticky') as HTMLInputElement,
     };
     this.renderer = new UnityHost(document.getElementById('main')!, {
-      action: action => this.actions?.handle(action),
+      action: action => this.actions?.handle(action, this.tableCamera?.blocksGameplay ?? false),
       resized: viewport => {
         this.actions?.cancelGesture();
+        this.tableCamera?.cancel();
         this.width = viewport.widthCssPx;
         this.height = viewport.heightCssPx;
         if (this.adapter) this.updateSettings();
@@ -80,6 +83,14 @@ export class Game {
       notice: message => { document.getElementById('unity-notice')!.textContent = message; },
       unavailable: message => this.adapter?.fail(message),
     });
+    this.tableCamera = new TableCameraControls(this.renderer.canvas, {
+      viewport: () => this.renderer.viewport,
+      pitch: () => this.cameraPitch(this.presentation(getSettings())),
+      cancel: () => {
+        this.actions?.cancelGesture();
+        this.renderer.cancelInput();
+      },
+    });
     this.setupEvents();
   }
 
@@ -92,6 +103,12 @@ export class Game {
     window.addEventListener('keydown', event => this.onKeyDown(event), { signal: this.events.signal });
     window.addEventListener('keyup', event => this.onKeyUp(event), { signal: this.events.signal });
     window.addEventListener('pagehide', () => { void this.dispose(); }, { signal: this.events.signal });
+    window.addEventListener('mahjong:camera-reset', () => {
+      this.tableCamera?.cancel();
+      this.lookDownState = 0;
+      this.lookDown.start(0);
+      this.zoom.start(0);
+    }, { signal: this.events.signal });
     installPerspectiveSetting();
     for (const input of Object.values(this.settings)) input?.addEventListener('change', () => this.updateSettings(), { signal: this.events.signal });
     installRendererLayoutSettings();
@@ -105,24 +122,32 @@ export class Game {
 
   private presentation(settings: AppSettings): Presentation {
     const compact = this.width < 768;
+    const camera = tableCameraPresentation(settings);
     return {
       viewMode: cameraPerspective(settings, this.width, this.height) ? 'perspective' : 'flat',
       boardLayout: settings.boardLayout === 'auto' ?
         compact || this.world.conditions.gameType === GameType.CHANGSHA ? 'rectangular' : 'classic' : settings.boardLayout,
       handLayout: settings.handLayout === 'auto' ? compact || this.height < 520 ? 'separate' : 'in-table' : settings.handLayout,
       tileLabels: this.settings.tileLabels.checked, lookDown: this.lookDown.pos, zoom: this.zoom.pos,
+      ...(camera ? { camera } : {}),
     };
   }
 
   private updateSettings(): void {
     const settings = getSettings();
-    syncCameraInputs(this.width, this.height);
-    this.soundPlayer.muted = this.settings.muted.checked || !settings.soundEnabled;
     const presentation = this.presentation(settings);
+    syncCameraInputs(this.width, this.height, this.cameraPitch(presentation));
+    this.soundPlayer.muted = this.settings.muted.checked || !settings.soundEnabled;
     this.world.setHandSortMode(settings.handSort);
     this.adapter?.setPresentation(presentation);
     this.renderer?.setPresentation(presentation);
     this.adapter?.refresh();
+  }
+
+  private cameraPitch(view: Presentation): number {
+    const compact = view.boardLayout === 'rectangular' && this.world.conditions.gameType === GameType.CHANGSHA;
+    return view.viewMode === 'flat' ? 90 : view.camera?.pitch ??
+      (compact ? 78 + 10 * view.lookDown : 38 + 40 * view.lookDown);
   }
 
   start(): void {
@@ -141,11 +166,14 @@ export class Game {
     this.lastUpdate = time;
     this.lookDown.update();
     this.zoom.update();
-    this.adapter?.setPresentation(this.presentation(getSettings()));
+    const presentation = this.presentation(getSettings());
+    syncCameraInputs(this.width, this.height, this.cameraPitch(presentation));
+    this.adapter?.setPresentation(presentation);
     this.adapter?.refresh();
   }
 
   private onKeyDown(event: KeyboardEvent): void {
+    if (event.defaultPrevented) return;
     const active = document.activeElement as HTMLElement | null;
     if (active && (['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName) || active.isContentEditable
       || (event.key === ' ' && ['BUTTON', 'A'].includes(active.tagName)))) return;
@@ -153,6 +181,7 @@ export class Game {
     this.keys.add(event.key);
     switch (event.key) {
       case 'f': case 'F': case 'r': case 'R':
+        if (this.tableCamera && !this.tableCamera.resumeGameplay()) break;
         if (event.key.toLowerCase() === 'f' && active === this.renderer.canvas) break;
         if (this.renderer.state === 'ready' && this.adapter?.actionable()
           && this.world.conditions.gameType !== GameType.CHANGSHA) {
@@ -190,6 +219,7 @@ export class Game {
     this.disposed = true;
     cancelAnimationFrame(this.frameHandle);
     this.events.abort();
+    this.tableCamera?.dispose();
     this.unsubscribeSettings?.();
     this.actions?.cancelGesture();
     this.adapter?.dispose();

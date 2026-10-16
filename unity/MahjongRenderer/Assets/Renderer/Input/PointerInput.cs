@@ -42,7 +42,7 @@ namespace Mahjong.Renderer.Input
             {
                 ignoreMouseUntil = Time.unscaledTime + 0.4f;
                 actions.EndDrag(false);
-                Reset();
+                Invalidate();
                 return;
             }
             if (UnityEngine.Input.touchCount == 1)

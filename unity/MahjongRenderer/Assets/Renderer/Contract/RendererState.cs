@@ -107,6 +107,7 @@ namespace Mahjong.Renderer.Contract
                  Frame.Presentation.ViewMode != message.Presentation.ViewMode ||
                  Frame.Presentation.Zoom != message.Presentation.Zoom ||
                  Frame.Presentation.LookDown != message.Presentation.LookDown ||
+                 !CameraView.Same(Frame.Presentation.Camera, message.Presentation.Camera) ||
                  Frame.LocalHand.Seat != message.LocalHand.Seat ||
                  Frame.LocalHand.DrawnEntityId != message.LocalHand.DrawnEntityId ||
                  !Frame.LocalHand.EntityIds.SequenceEqual(message.LocalHand.EntityIds));
@@ -134,6 +135,12 @@ namespace Mahjong.Renderer.Contract
             RequireInstance(message);
             if (message.Suspended) Invalidated?.Invoke();
             Suspended = message.Suspended;
+        }
+
+        public void CancelInput(CancelInput message)
+        {
+            RequireInstance(message);
+            Invalidated?.Invoke();
         }
 
         public void ReceiveActionResult(ActionResult message)

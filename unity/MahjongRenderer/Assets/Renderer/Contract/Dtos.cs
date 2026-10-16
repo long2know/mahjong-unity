@@ -20,6 +20,9 @@ namespace Mahjong.Renderer.Contract
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
+    public sealed class CancelInput : Envelope { }
+
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class SessionEnvelope : Envelope
     {
         [JsonProperty("sessionId")] public string SessionId;
@@ -83,6 +86,19 @@ namespace Mahjong.Renderer.Contract
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
+    public sealed class CameraView
+    {
+        [JsonProperty("scale")] public double Scale = 1;
+        [JsonProperty("yaw")] public double Yaw;
+        [JsonProperty("pitch")] public double? Pitch;
+        [JsonProperty("roll")] public double Roll;
+
+        public static bool Same(CameraView a, CameraView b) =>
+            (a?.Scale ?? 1) == (b?.Scale ?? 1) && (a?.Yaw ?? 0) == (b?.Yaw ?? 0) &&
+            a?.Pitch == b?.Pitch && (a?.Roll ?? 0) == (b?.Roll ?? 0);
+    }
+
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public sealed class Presentation
     {
         [JsonProperty("viewMode")] public string ViewMode;
@@ -91,6 +107,7 @@ namespace Mahjong.Renderer.Contract
         [JsonProperty("tileLabels")] public bool TileLabels;
         [JsonProperty("lookDown")] public double LookDown;
         [JsonProperty("zoom")] public double Zoom;
+        [JsonProperty("camera")] public CameraView Camera;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]

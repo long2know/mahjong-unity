@@ -159,6 +159,29 @@ test('missing build, HTML fallback and unsupported browser are visible failures 
   }
 });
 
+test('camera input cancellation sends only the validated local envelope without rebinding or inventing a resize', async t => {
+  const f = fixture();
+  t.after(() => f.host.dispose());
+  f.host.cancelInput();
+  assert.equal(f.calls.length, 0);
+  await f.host.mount();
+  f.ready();
+  const viewport = plain(f.host.viewport);
+  const previousViewports = f.calls.filter(call => call.method === 'SetViewport').length;
+  f.host.cancelInput();
+  const sent = f.calls.filter(call => call.method === 'CancelInput');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].value, {
+    contractVersion: '1.0.0', instanceId: f.host.instanceId, type: 'cancelInput',
+  });
+  assert.deepEqual(plain(f.host.viewport), viewport);
+  assert.equal(f.calls.filter(call => call.method === 'SetViewport').length, previousViewports);
+  assert.equal(f.calls.filter(call => call.method === 'Clear').length, 1);
+  await f.host.dispose();
+  f.host.cancelInput();
+  assert.equal(f.calls.filter(call => call.method === 'CancelInput').length, 1);
+});
+
 test('manifest validation enforces pins, safe same-origin paths, no development bypass and explicit local dirty-source qualification', t => {
   const f = fixture();
   t.after(() => f.host.dispose());

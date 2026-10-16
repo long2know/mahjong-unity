@@ -25,7 +25,7 @@ let browser;
 let page;
 const contexts = [];
 
-function pngPixels(bytes) {
+function pngPixels(bytes, visit = null) {
   assert.equal(bytes.subarray(1, 4).toString(), 'PNG');
   let width, height, channels;
   const chunks = [];
@@ -62,6 +62,7 @@ function pngPixels(bytes) {
       assert.notEqual(predictor, undefined);
       row[x] = (row[x] + predictor) & 255;
     }
+    if (visit) visit(row, y, width, height, channels);
     for (let x = 0; x < width; x++) {
       const index = x * channels, r = row[index], g = row[index + 1], b = row[index + 2];
       const key = `${r >> 3},${g >> 3},${b >> 3}`;
@@ -78,6 +79,36 @@ function pngPixels(bytes) {
     boardGreenFraction: boardGreen / pixels, tileLightFraction: tileLight / pixels,
     sha256: createHash('sha256').update(bytes).digest('hex'),
   };
+}
+
+function pixelDifference(beforeBytes, afterBytes, regions) {
+  const rows = [];
+  let beforeChannels;
+  const before = pngPixels(beforeBytes, (row, _y, _width, _height, channels) => {
+    rows.push(Buffer.from(row));
+    beforeChannels = channels;
+  });
+  const changes = regions.map(region => {
+    assert([region.x, region.y, region.width, region.height].every(Number.isInteger)
+      && region.x >= 0 && region.y >= 0 && region.width > 0 && region.height > 0
+      && region.x + region.width <= before.width && region.y + region.height <= before.height,
+    `Invalid camera comparison region: ${region.name}`);
+    return { ...region, pixels: region.width * region.height, changedPixels: 0 };
+  });
+  pngPixels(afterBytes, (row, y, width, height, channels) => {
+    assert.equal(width, before.width, 'Camera screenshot width changed');
+    assert.equal(height, before.height, 'Camera screenshot height changed');
+    for (const region of changes) {
+      if (y < region.y || y >= region.y + region.height) continue;
+      for (let x = region.x; x < region.x + region.width; x++) {
+        const a = x * channels, b = x * beforeChannels;
+        if (Math.abs(row[a] - rows[y][b]) > 8 || Math.abs(row[a + 1] - rows[y][b + 1]) > 8 ||
+          Math.abs(row[a + 2] - rows[y][b + 2]) > 8)
+          region.changedPixels++;
+      }
+    }
+  });
+  return changes.map(region => ({ ...region, changedFraction: region.changedPixels / region.pixels }));
 }
 
 async function snapshot(target) {
@@ -382,7 +413,7 @@ async function finishPlayerBrowser() {
 
 export {
   base, origin, probeRoot, receipt, wire, pageFor, ready, snapshot, capture, recordCaseFailure, rendererSummary,
-  manualMeasurements, launchPlayerBrowser, finishPlayerBrowser,
+  manualMeasurements, launchPlayerBrowser, finishPlayerBrowser, pixelDifference,
 };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

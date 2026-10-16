@@ -83,6 +83,8 @@ def plans():
                     kind="unittest", expected=9),
             command("player-packaging", ["python3", "tests/migration/test_player_packaging.py", "-v"],
                     kind="unittest", expected=1),
+            command("player-evidence", ["python3", "tests/migration/test_browser_evidence.py", "-v"],
+                    kind="unittest", expected=20),
             command("missing-unity-artifact", [
                 "docker", "build", "--target", "unity-artifacts-check", "--progress", "plain", ".",
             ], kind="missing-unity"),
@@ -111,7 +113,7 @@ def plans():
                 "node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs",
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
-                    cwd=FRONTEND, kind="node", expected=85),
+                    cwd=FRONTEND, kind="node", expected=103),
             command("renderer-regressions", [
                 "node", "--test", "--test-reporter=tap",
                 "tests/migration/renderer-backend-shape.test.mjs",
@@ -243,6 +245,7 @@ class SourceRun:
             "source-tools": [
                 "tests/migration/run_backend_tools.py", "tests/migration/test_source_gate.py",
                 "tests/migration/test_player_packaging.py",
+                "tests/migration/test_browser_evidence.py", "tests/migration/run_player_integration.py",
                 FRONTEND + "/src/renderer/renderer-contract.ts",
                 "scripts/import-baseline.py", "scripts/verify-unity-build.py",
                 ".gitignore", ".dockerignore", "Dockerfile",
@@ -261,6 +264,9 @@ class SourceRun:
                 FRONTEND + "/src/renderer/renderer-frame.ts",
                 FRONTEND + "/src/renderer/renderer-sink.ts",
                 FRONTEND + "/src/renderer/renderer-contract.ts",
+                FRONTEND + "/src/renderer/table-camera-controls.ts",
+                FRONTEND + "/src/renderer/unity-host.ts", FRONTEND + "/src/game.ts",
+                FRONTEND + "/src/settings-drawer.ts",
             ],
             "unity-source": [SYNTAX_PROJECT, "unity/MahjongRenderer/Tools/CSharpSyntax/Program.cs"],
         }[self.group]

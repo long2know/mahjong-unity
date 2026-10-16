@@ -15,8 +15,10 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "artifacts/test-results/migration-work"
 PIN = "d10d351e543aa3e341960de9800828b6c0662a82"
-CONTRACT_SHA256 = "4e373e7b195e8c8c71fdedae9b87d051b2a8d073abf612a0744b8ce91ea8a38e"
-SCHEMA_SHA256 = "87150bc61c7c4555d2f143baf9cc02fb78380b83c39052fbb9a0478c648dd6a7"
+IMPORT_CONTRACT_SHA256 = "4e373e7b195e8c8c71fdedae9b87d051b2a8d073abf612a0744b8ce91ea8a38e"
+IMPORT_SCHEMA_SHA256 = "87150bc61c7c4555d2f143baf9cc02fb78380b83c39052fbb9a0478c648dd6a7"
+CONTRACT_SHA256 = "ff514d0b21214308c6688fd9db483c3125ae7c7314e952b1d2c4f50243314719"
+SCHEMA_SHA256 = "1e7a71fa2b34ce050e96c567449ae7e8e8eff9f0a75fdd5ba5afeb3569534d0f"
 sys.dont_write_bytecode = True
 
 
@@ -78,8 +80,13 @@ class ImportSourceTests(unittest.TestCase):
         self.assertEqual(SCHEMA_SHA256, sha256(ROOT / "contracts/renderer-v1.schema.json"))
         self.assertEqual(schema, embedded)
         self.assertEqual(schema, self.contract["renderer"]["schema"])
-        self.assertEqual(CONTRACT_SHA256, self.provenance["contractSha256"])
-        self.assertEqual(SCHEMA_SHA256, self.provenance["rendererSchemaSha256"])
+        self.assertEqual(IMPORT_CONTRACT_SHA256, self.provenance["contractSha256"])
+        self.assertEqual(IMPORT_SCHEMA_SHA256, self.provenance["rendererSchemaSha256"])
+        extension = self.provenance["rendererContractExtensions"][-1]
+        self.assertEqual(IMPORT_CONTRACT_SHA256, extension["parentContractSha256"])
+        self.assertEqual(IMPORT_SCHEMA_SHA256, extension["parentRendererSchemaSha256"])
+        self.assertEqual(CONTRACT_SHA256, extension["contractSha256"])
+        self.assertEqual(SCHEMA_SHA256, extension["rendererSchemaSha256"])
 
     def test_inventory_matches_actual_immutable_tree_and_allowlist_not_just_counts(self):
         if self.tree is None:

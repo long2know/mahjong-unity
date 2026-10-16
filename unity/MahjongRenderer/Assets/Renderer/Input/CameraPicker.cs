@@ -30,7 +30,8 @@ namespace Mahjong.Renderer.Input
                 state.Frame.Presentation.HandLayout != scene.ActiveFrame.Presentation.HandLayout ||
                 state.Frame.Presentation.ViewMode != scene.ActiveFrame.Presentation.ViewMode ||
                 state.Frame.Presentation.Zoom != scene.ActiveFrame.Presentation.Zoom ||
-                state.Frame.Presentation.LookDown != scene.ActiveFrame.Presentation.LookDown)
+                state.Frame.Presentation.LookDown != scene.ActiveFrame.Presentation.LookDown ||
+                !CameraView.Same(state.Frame.Presentation.Camera, scene.ActiveFrame.Presentation.Camera))
                 return null;
             if (scene.HandCamera.enabled && scene.HandCamera.pixelRect.Contains(position)) return scene.HandCamera;
             if (scene.TableCamera.enabled && scene.TableCamera.pixelRect.Contains(position)) return scene.TableCamera;

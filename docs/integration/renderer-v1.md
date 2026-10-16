@@ -119,6 +119,38 @@ Explicit choices
 persist and override that automatic fit. Resize republishes presentation; it
 does not change the variant, actor seat, or concealed-hand entitlement.
 
+`Presentation.camera` is an optional, nullable local view override:
+`{ scale, yaw, pitch, roll }`. Scale is **0.5..2.5**; yaw and roll are bounded to
+**-180..180 degrees**; pitch is **20..90 degrees** or `null` to keep the original
+view's angle. Missing/null camera retains the exact original automatic fit.
+Manual scaling can deliberately crop the table, but the perspective camera stays
+above the table and outside its geometry. Flat view ignores pitch; explicitly
+adjusting pitch selects perspective. Only the table camera moves, never source
+coordinates, tile faces/entitlements, seat authority or the separate hand camera.
+This additive presentation field does not change native game wire messages.
+Its exact contract/schema hashes are recorded as an extension in source
+provenance; the original one-time import hashes and baseline inventory remain
+unchanged.
+
+The settings drawers share zoom, yaw, pitch and roll sliders plus Reset view.
+The four preferences persist in the existing local settings blob. Pinch zoom,
+two-finger drag orbit and twist roll work on the board, not the hand/chrome.
+Mouse wheel zoom and Alt-left/middle-drag orbit preserve ordinary left-drag and
+right-click; Shift with a camera drag rolls. Focused-canvas arrows tilt/turn,
+Shift-Left/Right roll, +/- zoom and Home resets. Typing and browser shortcuts are
+not claimed by camera keyboard input.
+
+Camera contacts cancel active game drags and remain blocked through the final
+old finger's release until a fresh ordinary contact or game keystroke. The browser returns the
+normal rejected/not-actionable result for game intents during that interval;
+harmless hover and cancellation can settle without an action-result loop or
+blocking Escape. C# independently
+invalidates input when any camera axis changes and rejects picking against a
+camera override until that exact frame has been committed to the scene.
+The local `CancelInput` receiver clears native pointer and double-click state at
+gesture start, even when the fingers/mouse never move; cancellation is not a
+session/authority change or a fabricated viewport resize.
+
 **October 15, 2026 traditional-layout correction:** the previous independent
 lane-packing experiment incorrectly placed walls outside the hands and closed
 gaps left by drawn stacks. Changsha rectangular presentation now preserves every

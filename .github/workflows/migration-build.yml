@@ -48,6 +48,7 @@ jobs:
             artifacts/test-results/migration-ci/source-tools/backend-tools.log
             artifacts/test-results/migration-ci/source-tools/source-gates.log
             artifacts/test-results/migration-ci/source-tools/player-packaging.log
+            artifacts/test-results/migration-ci/source-tools/player-evidence.log
             artifacts/test-results/migration-ci/source-tools/missing-unity-artifact.log
 
   backend:

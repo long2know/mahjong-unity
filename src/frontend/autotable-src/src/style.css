@@ -1537,6 +1537,24 @@ body.spectating #roll-dice { display: none !important; }
     min-height: 44px;
 }
 #settings-table-display .settings-hint { margin-left: 0; }
+.settings-camera-controls {
+    min-width: 0;
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid rgba(160, 160, 160, 0.4);
+    border-radius: 6px;
+}
+.settings-camera-controls legend { width: auto; padding: 0 4px; font-size: 1rem; }
+.settings-camera-controls label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+    gap: 2px 8px;
+    margin-bottom: 8px;
+}
+.settings-camera-controls output { text-align: right; }
+.settings-camera-controls input[type="range"] { grid-column: 1 / -1; width: 100%; min-height: 44px; margin: 0; }
+.settings-camera-controls button { min-height: 44px; margin-bottom: 8px; }
+.settings-camera-controls p { margin-bottom: 0; line-height: 1.4; }
 body.theme-light #settings-drawer .settings-label,
 body.theme-light #settings-drawer .settings-drawer-title { color: #5a3a00; }
 body.theme-light #settings-drawer .settings-hint,

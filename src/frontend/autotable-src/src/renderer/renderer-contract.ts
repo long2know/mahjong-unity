@@ -41,6 +41,12 @@ export interface Layout extends SessionEnvelope {
     drawShadow: boolean; shadowRotationIndex: number; canFlipMultiple: boolean; rotateHeld: boolean;
   }>;
 }
+export interface CameraView {
+  scale: number;
+  yaw: number;
+  pitch: number | null;
+  roll: number;
+}
 export interface Presentation {
   viewMode: 'perspective' | 'flat';
   boardLayout: 'classic' | 'rectangular';
@@ -48,6 +54,7 @@ export interface Presentation {
   tileLabels: boolean;
   lookDown: number;
   zoom: number;
+  camera?: CameraView | null;
 }
 export interface Frame extends SessionEnvelope {
   type: 'frame';
@@ -113,7 +120,7 @@ export interface RendererError extends Envelope {
   message: string;
 }
 export type ClearReason = 'join' | 'disconnect' | 'authority-change' | 'protocol-unavailable' | 'dispose';
-export type ReceiverMethod = 'Configure' | 'Clear' | 'ApplyLayout' | 'ApplyFrame' | 'SetViewport' | 'SetPlayback' | 'ReceiveActionResult';
+export type ReceiverMethod = 'Configure' | 'Clear' | 'ApplyLayout' | 'ApplyFrame' | 'SetViewport' | 'SetPlayback' | 'CancelInput' | 'ReceiveActionResult';
 
 type Schema = {
   $ref?: string; type?: string; const?: unknown; enum?: unknown[]; properties?: Record<string, Schema>; required?: string[];

@@ -40,7 +40,7 @@ function assertRegressionCommands(value) {
     'tests/migration/renderer-backend-shape.test.mjs',
     'tests/migration/relay-authority-delta.test.mjs',
   ]) assert(!value.plans['frontend-source'].find(item => item.name === 'frontend-tests')
-    .argv.some(argument => argument.endsWith(path)), `Keep ${path} separate from the 85 frontend cases`);
+    .argv.some(argument => argument.endsWith(path)), `Keep ${path} separate from the frontend source cases`);
 }
 
 function assertSourceJobs(value) {
@@ -95,13 +95,15 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assertRegressionCommands(description);
   const source = named('frontend-source', 'frontend-tests');
   assert.equal(source.cwd, 'src/frontend/autotable-src');
-  assert.equal(source.expected, 85);
+  assert.equal(source.expected, 103);
   assert.equal(named('frontend-source', 'workflow-contracts').expected, 12);
   for (const path of [
     'tests/node/room-startup-readiness.test.mjs',
     'tests/node/hand-result-render-and-wire.test.mjs',
     'tests/node/sc2-slot-owner.invariants.test.mjs',
     'tests/node/perspective-settings.test.mjs',
+    'tests/node/unity-camera-controls.test.mjs',
+    'tests/node/unity-pixel-evidence.test.mjs',
     '../../../tests/migration/browser-source-integration.test.mjs',
   ]) assert(source.argv.includes(path), path);
   assert(source.argv.some(path => path.startsWith('tests/node/unity-')));
@@ -112,7 +114,7 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assert.equal(JSON.parse(readFileSync(join(root, 'src/frontend/autotable-src/tsconfig.json'))).compilerOptions.strict, true);
 });
 
-test('tools execute relocated 33 cases, all 9 object/ignore/Docker gates and 1 packaging regression using a public full pin', () => {
+test('tools execute relocated cases, camera evidence, object/ignore/Docker gates and packaging using a public full pin', () => {
   assertRegressionCommands(description);
   const fetch = named('source-tools', 'baseline-fetch');
   assert.equal(description.baselineRevision, pin);
@@ -126,6 +128,8 @@ test('tools execute relocated 33 cases, all 9 object/ignore/Docker gates and 1 p
   assert.equal(named('source-tools', 'backend-tools').expected, 33);
   assert.deepEqual(named('source-tools', 'source-gates').argv, ['python3', 'tests/migration/test_source_gate.py', '-v']);
   assert.equal(named('source-tools', 'source-gates').expected, 9);
+  assert.deepEqual(named('source-tools', 'player-evidence').argv, ['python3', 'tests/migration/test_browser_evidence.py', '-v']);
+  assert.equal(named('source-tools', 'player-evidence').expected, 20);
   assert.equal(named('source-tools', 'missing-unity-artifact').kind, 'missing-unity');
   const implementation = readFileSync(join(root, runner), 'utf8');
   assert.match(implementation, /"MIGRATION_BASELINE_GIT_STORE": str\(self\.work \/ "baseline\.git"\)/);
