@@ -510,7 +510,7 @@ The source-tools runner always fetches the exact public baseline commit
 session path or cached source mirror is required.
 
 Coverage is **33 tooling + 9 import/ignore/real-Docker-context cases**,
-**23 fail-closed player-evidence cases**, **147 combined
+**24 fail-closed player-evidence and runner-environment cases**, **147 combined
 backend/hosting/room/relay/continuation cases**, **107 retained,
 Unity-adapter and actual Game startup/settled-viewport source cases**, distinct
 strict primary TypeScript and Vite builds, and Unity metadata/frozen-contract,

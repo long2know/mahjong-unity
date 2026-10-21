@@ -291,6 +291,18 @@ class BrowserEvidenceTests(unittest.TestCase):
 
 
 class PlayerEvidenceTests(unittest.TestCase):
+    def test_headful_temporary_files_use_private_tmpfs_not_the_evidence_bind_mount(self):
+        for headful, temporary in ((True, "/tmp"), (False, "/probe/temp")):
+            with self.subTest(headful=headful):
+                environment = player_runner.browser_environment("gameplay", player_runner.IDLE_FOCUS_CASE, headful)
+                self.assertEqual({
+                    "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
+                    "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
+                    "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+                    "MAHJONG_PLAYER_SCOPE": "gameplay", "MAHJONG_PLAYER_CASE": player_runner.IDLE_FOCUS_CASE,
+                    "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
+                }, environment)
+
     def setUp(self):
         self.manifest = {"buildId": "unit-player", "unityVersion": "unit-version", "contractVersion": "1.0.0"}
         names = [

@@ -38,6 +38,17 @@ def load(name, path):
     return module
 
 
+def browser_environment(scope, cases, headful):
+    temporary = "/tmp" if headful else "/probe/temp"
+    return {
+        "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
+        "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
+        "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+        "MAHJONG_PLAYER_SCOPE": scope, "MAHJONG_PLAYER_CASE": cases,
+        "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
+    }
+
+
 def validate_editor_evidence(editor, manifest_sha):
     checks = editor["qualificationChecks"]
     tests = editor["editMode"]
@@ -508,14 +519,7 @@ def main():
         ]
         if headful:
             command.extend(("--tmpfs", "/tmp:rw,nosuid,nodev,size=256m", "--memory=1536m", "--pids-limit=512"))
-        for key, value in (
-            ("HOME", "/probe/home"), ("XDG_CONFIG_HOME", "/probe/home/config"),
-            ("XDG_DATA_HOME", "/probe/home/data"), ("XDG_CACHE_HOME", "/probe/home/cache"),
-            ("TMPDIR", "/probe/temp"), ("TMP", "/probe/temp"), ("TEMP", "/probe/temp"),
-            ("MAHJONG_PLAYER_SCOPE", args.scope),
-            ("MAHJONG_PLAYER_CASE", args.cases),
-            ("MAHJONG_PLAYER_HEADFUL", "1" if headful else "0"),
-        ):
+        for key, value in browser_environment(args.scope, args.cases, headful).items():
             command.extend(("--env", key + "=" + value))
         for source, target, readonly in (
             *[(ROOT / "tests/migration" / name, "/workspace/tests/migration/" + name, True)

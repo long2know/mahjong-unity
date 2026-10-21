@@ -84,7 +84,7 @@ def plans():
             command("player-packaging", ["python3", "tests/migration/test_player_packaging.py", "-v"],
                     kind="unittest", expected=1),
             command("player-evidence", ["python3", "tests/migration/test_browser_evidence.py", "-v"],
-                    kind="unittest", expected=23),
+                    kind="unittest", expected=24),
             command("missing-unity-artifact", [
                 "docker", "build", "--target", "unity-artifacts-check", "--progress", "plain", ".",
             ], kind="missing-unity"),

@@ -129,7 +129,7 @@ test('tools execute relocated cases, camera evidence, object/ignore/Docker gates
   assert.deepEqual(named('source-tools', 'source-gates').argv, ['python3', 'tests/migration/test_source_gate.py', '-v']);
   assert.equal(named('source-tools', 'source-gates').expected, 9);
   assert.deepEqual(named('source-tools', 'player-evidence').argv, ['python3', 'tests/migration/test_browser_evidence.py', '-v']);
-  assert.equal(named('source-tools', 'player-evidence').expected, 23);
+  assert.equal(named('source-tools', 'player-evidence').expected, 24);
   assert.equal(named('source-tools', 'missing-unity-artifact').kind, 'missing-unity');
   const implementation = readFileSync(join(root, runner), 'utf8');
   assert.match(implementation, /"MIGRATION_BASELINE_GIT_STORE": str\(self\.work \/ "baseline\.git"\)/);

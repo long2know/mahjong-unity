@@ -91,7 +91,9 @@ visible/focused playback. An active player that stops acknowledging frames for
 
 The actual-player `actual-idle-visible-unfocused-memory` case uses a private
 Xvfb display and disables Playwright's always-focused override before changing
-OS focus. It checks native heap bounds, no full-frame publication during the
+OS focus. Its headful Chromium temporary files use the container's private
+`/tmp` tmpfs rather than the source-backed evidence directory. It checks native
+heap bounds, no full-frame publication during the
 pause, the newest rendered frame on resume, and a real tile action after the
 old action contexts expire. This is not physical-device evidence.
 
