@@ -45,7 +45,7 @@ function actualGame({ advanceAnimations = false } = {}) {
   const find = (element, id) => element.id === id ? element
     : element.children.map(child => find(child, id)).find(Boolean);
   const document = Object.assign(new EventTarget(), {
-    body, head: new Element('head'), hidden: false, activeElement: null,
+    body, head: new Element('head'), hidden: false, activeElement: null, hasFocus: () => true,
     documentElement: new Element('html'),
     createElement: tag => new Element(tag),
     getElementById: id => find(body, id),

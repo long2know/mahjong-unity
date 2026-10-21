@@ -391,7 +391,9 @@ function rendererSummary(state) {
 
 async function launchPlayerBrowser() {
   fs.mkdirSync(`${probeRoot}/screenshots`, { recursive: true });
-  browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const headless = process.env.MAHJONG_PLAYER_HEADFUL !== '1';
+  browser = await chromium.launch({ headless, args: ['--no-sandbox'] });
+  receipt.browserHeadless = headless;
   receipt.browserVersion = browser.version();
   receipt.browserArgs = ['--no-sandbox'];
 }

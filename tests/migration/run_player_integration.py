@@ -27,6 +27,7 @@ CAMERA_CASES = {
     "actual-camera-mouse-keyboard-settings": {"wheel", "alt-drag", "middle-shift-drag", "arrows", "keyboard-roll", "keyboard-zoom", "home-reset", "sliders", "legacy-reset"},
     "actual-camera-relay-input-recovery": {"wheel", "home-reset", "right-click", "native-f"},
 }
+IDLE_FOCUS_CASE = "actual-idle-visible-unfocused-memory"
 sys.dont_write_bytecode = True
 
 
@@ -35,6 +36,17 @@ def load(name, path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def browser_environment(scope, cases, headful):
+    temporary = "/tmp" if headful else "/probe/temp"
+    return {
+        "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
+        "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
+        "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+        "MAHJONG_PLAYER_SCOPE": scope, "MAHJONG_PLAYER_CASE": cases,
+        "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
+    }
 
 
 def validate_editor_evidence(editor, manifest_sha):
@@ -95,6 +107,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
             "actual-dealt-hand-viewport-camera-controls", "actual-mobile-dpr2-touch",
             "actual-mobile-dpr3-touch", "actual-two-human-chat-spectator-privacy",
             "actual-seat-revocation-reconnect", "actual-traditional-csharp-local-meld",
+            IDLE_FOCUS_CASE,
             *CAMERA_CASES,
             *{f"actual-{variant}-relay-native-input" for variant in
               ("FOUR_PLAYER", "THREE_PLAYER", "BAMBOO", "MINEFIELD")},
@@ -116,6 +129,7 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                                    or case["name"] == "actual-mobile-combined-reachability"
                                    or "relay-native-input" in case["name"]
                                    or case["name"] in CAMERA_CASES
+                                   or case["name"] == IDLE_FOCUS_CASE
                                    or case["name"] in ("actual-desktop-native-double-click", "actual-mobile-manual-pickup")):
             native_actions = case.get("nativeActions", [])
             if (not isinstance(native_actions, list) or not native_actions
@@ -123,6 +137,64 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
                     or any(action.get("type") != "action" or not action.get("actionId")
                            or not action.get("intent", {}).get("kind") for action in native_actions)):
                 raise AssertionError("Gameplay case omitted actual C# actions and server/wire outcome")
+        if case["name"] == IDLE_FOCUS_CASE:
+            idle = case.get("idleMemory")
+            if (evidence.get("browserHeadless") is not False or not isinstance(idle, dict)
+                    or any(idle.get(field) is not True for field in
+                           ("headful", "focusEmulationDisabled", "nativeMetrics", "oldContextRetired",
+                            "sourceStatePreserved", "nativeInputRestored"))
+                    or type(idle.get("maxInFlight")) is not int or idle["maxInFlight"] != 1):
+                raise AssertionError("Idle memory case omitted its real focus/native flow-control proof")
+            initial, resumed, paused = idle.get("initial"), idle.get("resumed"), idle.get("paused")
+            if not isinstance(initial, dict) or not isinstance(resumed, dict) or not isinstance(paused, list) or len(paused) < 20:
+                raise AssertionError("Idle memory case requires actual before/paused/resumed samples")
+            for sample in [initial, *paused, resumed]:
+                if (not isinstance(sample, dict)
+                        or type(sample.get("timeMs")) not in (int, float) or not math.isfinite(sample["timeMs"])
+                        or not isinstance(sample.get("sessionId"), str) or not sample["sessionId"]
+                        or any(type(sample.get(field)) is not int or sample[field] <= 0
+                               for field in ("frameId", "usedWasmBytes", "linearMemoryBytes"))
+                        or type(sample.get("framesSent")) is not int or sample["framesSent"] < 0
+                        or sample["usedWasmBytes"] > sample["linearMemoryBytes"]):
+                    raise AssertionError("Idle memory case omitted finite real native heap and frame counters")
+            if (initial.get("focused") is not True or initial.get("visible") is not True or initial.get("suspended") is not False
+                    or resumed.get("focused") is not True or resumed.get("visible") is not True or resumed.get("suspended") is not False
+                    or not initial["timeMs"] < paused[0]["timeMs"] < paused[-1]["timeMs"] < resumed["timeMs"]
+                    or type(idle.get("pauseDurationMs")) not in (int, float) or not math.isfinite(idle["pauseDurationMs"])
+                    or idle["pauseDurationMs"] < 45000
+                    or abs(idle["pauseDurationMs"] - (paused[-1]["timeMs"] - paused[0]["timeMs"])) > 0.001):
+                raise AssertionError("Idle memory case did not exercise a real sustained focus pause and resume")
+            for index, sample in enumerate(paused):
+                if (sample.get("focused") is not False or sample.get("visible") is not True or sample.get("suspended") is not True
+                        or sample["sessionId"] != initial["sessionId"]
+                        or sample["framesSent"] != paused[0]["framesSent"] or sample["frameId"] != paused[0]["frameId"]
+                        or index and sample["timeMs"] <= paused[index - 1]["timeMs"]
+                        or sample["usedWasmBytes"] - paused[0]["usedWasmBytes"] > 32 * 1048576
+                        or sample["linearMemoryBytes"] - paused[0]["linearMemoryBytes"] > 32 * 1048576):
+                    raise AssertionError("Paused native frames or WASM heap grew instead of remaining bounded")
+            queued = paused[-1].get("queuedFrameId")
+            native_actions = case.get("nativeActions", [])
+            receipt = idle.get("resumedReceipt", {})
+            if (type(queued) is not int or queued - initial["frameId"] < 240
+                    or resumed["sessionId"] != initial["sessionId"] or resumed["frameId"] <= queued
+                    or not isinstance(receipt, dict) or receipt.get("type") != "frameRendered"
+                    or receipt.get("frameId") != resumed["frameId"] or receipt.get("sessionId") != resumed["sessionId"]
+                    or receipt.get("instanceId") != case.get("instanceId")
+                    or [action.get("intent", {}).get("kind") for action in native_actions] != ["discard"]
+                    or any(type(action.get("contextFrameId")) is not int or action["contextFrameId"] <= queued
+                           or action.get("sessionId") != resumed["sessionId"] for action in native_actions)):
+                raise AssertionError("Idle resume omitted its newest actual C# frame and fresh native input context")
+            lifecycle = idle.get("lifecycle", [])
+            if not isinstance(lifecycle, list):
+                raise AssertionError("Idle memory case omitted actual trusted focus events")
+            blurred = [index for index, event in enumerate(lifecycle) if isinstance(event, dict)
+                       and event.get("type") == "blur" and event.get("trusted") is True
+                       and event.get("focused") is False and event.get("visible") is True and event.get("suspended") is True]
+            focused = [index for index, event in enumerate(lifecycle) if isinstance(event, dict)
+                       and event.get("type") == "focus" and event.get("trusted") is True
+                       and event.get("focused") is True and event.get("visible") is True and event.get("suspended") is False]
+            if not blurred or not focused or min(blurred) >= max(focused):
+                raise AssertionError("Synthetic or missing focus transitions cannot qualify the idle OOM correction")
         if case["name"] == "actual-traditional-csharp-local-meld":
             claim = case.get("actualClaimCommand", [])
             targets = case.get("handTargetsBeforeDiscard", [])
@@ -307,6 +379,9 @@ def main():
     parser.add_argument("--probe", choices=("browser-player.mjs", "browser-gameplay.mjs", "browser-mobile-playability.mjs"), default="browser-player.mjs")
     parser.add_argument("--cases", default="", help="Exact comma-separated real gameplay cases for a focused retake")
     args = parser.parse_args()
+    headful = (args.probe == "browser-gameplay.mjs" and args.scope == "gameplay"
+               and (not args.cases or IDLE_FOCUS_CASE in args.cases.split(",")))
+    browser_entry = ["xvfb-run", "-a", "node"] if headful else ["node"]
     global OUTPUT
     if not args.output_name.startswith("migration-player-") or "/" in args.output_name:
         parser.error("Output must be a project-local migration-player-* artifact directory")
@@ -327,7 +402,7 @@ def main():
         if (info["State"]["Status"] != "created" or config["User"] != f"{os.getuid()}:{os.getgid()}"
                 or not host["ReadonlyRootfs"] or host["Privileged"] or host["NetworkMode"] != "host"
                 or "ALL" not in host["CapDrop"] or "no-new-privileges:true" not in host["SecurityOpt"]
-                or config["Cmd"] != ["node", "tests/migration/" + args.probe, expected_origin]):
+                or config["Cmd"] != [*browser_entry, "tests/migration/" + args.probe, expected_origin]):
             raise AssertionError("The created container does not match this exact hardened owned probe")
         mounts = [mount for mount in info["Mounts"] if mount["Destination"] == "/probe"]
         if len(mounts) != 1 or not Path(mounts[0]["Source"]).is_relative_to(WORK):
@@ -434,6 +509,7 @@ def main():
             tester.assertTrue(health["db"]["connected"])
             api.receipt["checks"]["actualHealthyPersistentDatabase"] = health
         receipt["origin"] = base
+        receipt["browserDisplay"] = "private Xvfb (headful), not physical hardware" if headful else "headless"
         stage = "actual-browser-player"
         command = [
             "docker", "run", "--rm", "--pull=never", "--init", "--name", container,
@@ -441,13 +517,9 @@ def main():
             "--cap-drop=ALL", "--security-opt=no-new-privileges:true", "--network=host",
             "--shm-size=256m", "--workdir=/workspace",
         ]
-        for key, value in (
-            ("HOME", "/probe/home"), ("XDG_CONFIG_HOME", "/probe/home/config"),
-            ("XDG_DATA_HOME", "/probe/home/data"), ("XDG_CACHE_HOME", "/probe/home/cache"),
-            ("TMPDIR", "/probe/temp"), ("TMP", "/probe/temp"), ("TEMP", "/probe/temp"),
-            ("MAHJONG_PLAYER_SCOPE", args.scope),
-            ("MAHJONG_PLAYER_CASE", args.cases),
-        ):
+        if headful:
+            command.extend(("--tmpfs", "/tmp:rw,nosuid,nodev,size=256m", "--memory=1536m", "--pids-limit=512"))
+        for key, value in browser_environment(args.scope, args.cases, headful).items():
             command.extend(("--env", key + "=" + value))
         for source, target, readonly in (
             *[(ROOT / "tests/migration" / name, "/workspace/tests/migration/" + name, True)
@@ -462,7 +534,7 @@ def main():
             (fixture, "/probe", False),
         ):
             command.extend(("--mount", f"type=bind,source={source},target={target}" + (",readonly" if readonly else "")))
-        command.extend((IMAGE, "node", "tests/migration/" + args.probe, base))
+        command.extend((IMAGE, *browser_entry, "tests/migration/" + args.probe, base))
         if args.reuse_created_container:
             command = ["docker", "start", "--attach", container]
             receipt["resumedOwnedCreatedContainer"] = True

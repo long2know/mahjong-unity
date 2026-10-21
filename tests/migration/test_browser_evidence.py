@@ -291,6 +291,18 @@ class BrowserEvidenceTests(unittest.TestCase):
 
 
 class PlayerEvidenceTests(unittest.TestCase):
+    def test_headful_temporary_files_use_private_tmpfs_not_the_evidence_bind_mount(self):
+        for headful, temporary in ((True, "/tmp"), (False, "/probe/temp")):
+            with self.subTest(headful=headful):
+                environment = player_runner.browser_environment("gameplay", player_runner.IDLE_FOCUS_CASE, headful)
+                self.assertEqual({
+                    "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
+                    "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
+                    "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+                    "MAHJONG_PLAYER_SCOPE": "gameplay", "MAHJONG_PLAYER_CASE": player_runner.IDLE_FOCUS_CASE,
+                    "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
+                }, environment)
+
     def setUp(self):
         self.manifest = {"buildId": "unit-player", "unityVersion": "unit-version", "contractVersion": "1.0.0"}
         names = [
@@ -341,6 +353,88 @@ class PlayerEvidenceTests(unittest.TestCase):
 
     def validate(self, evidence):
         return player_runner.validate_player_evidence(evidence, self.manifest, "mobile-playability")
+
+    def idle_evidence(self):
+        case = copy.deepcopy(self.evidence["cases"][0])
+        initial = {
+            "timeMs": 1000, "focused": True, "visible": True, "suspended": False,
+            "sessionId": "unit-session", "frameId": 3, "queuedFrameId": None, "framesSent": 1,
+            "usedWasmBytes": 100000000, "linearMemoryBytes": 134217728,
+        }
+        paused = [{**initial, "timeMs": 2000 + n * 2000, "focused": False, "suspended": True,
+                   "queuedFrameId": 301 + n * 2, "framesSent": 2} for n in range(25)]
+        resumed = {**initial, "timeMs": 51000, "frameId": 350, "framesSent": 3}
+        case.update(name=player_runner.IDLE_FOCUS_CASE, frameId=400, idleMemory={
+            "headful": True, "focusEmulationDisabled": True, "nativeMetrics": True,
+            "oldContextRetired": True, "sourceStatePreserved": True, "nativeInputRestored": True,
+            "maxInFlight": 1, "pauseDurationMs": 48000, "initial": initial, "paused": paused, "resumed": resumed,
+            "resumedReceipt": {"type": "frameRendered", "instanceId": "unit-instance",
+                               "sessionId": "unit-session", "frameId": 350, "layoutRevision": 1},
+            "lifecycle": [
+                {"type": "blur", "trusted": True, "focused": False, "visible": True, "suspended": True},
+                {"type": "focus", "trusted": True, "focused": True, "visible": True, "suspended": False},
+            ],
+        })
+        case["nativeActions"][0]["contextFrameId"] = 351
+        return {**self.evidence, "scope": "gameplay", "browserHeadless": False, "cases": [case]}
+
+    def test_idle_memory_case_requires_native_heap_focus_pause_and_input_proof(self):
+        evidence = self.idle_evidence()
+        name = player_runner.IDLE_FOCUS_CASE
+        self.assertIs(evidence, player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [name]))
+        for field, value in (
+            ("headful", False), ("focusEmulationDisabled", False), ("nativeMetrics", False),
+            ("oldContextRetired", False), ("sourceStatePreserved", False), ("nativeInputRestored", False),
+            ("maxInFlight", 2), ("pauseDurationMs", 1000), ("paused", []), ("lifecycle", []),
+            ("resumedReceipt", {}),
+        ):
+            bad = copy.deepcopy(evidence)
+            bad["cases"][0]["idleMemory"][field] = value
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(bad, self.manifest, "gameplay", [name])
+        evidence["browserHeadless"] = True
+        with self.assertRaises(AssertionError):
+            player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [name])
+
+    def test_idle_memory_samples_reject_runaway_native_publication_memory_and_stale_resume(self):
+        for mutation in ("snapshot-traffic", "native-growth", "linear-growth", "not-visible", "not-paused",
+                         "duplicate-time", "fabricated-duration", "old-context", "stale-resume", "stale-discard"):
+            evidence = self.idle_evidence()
+            case = evidence["cases"][0]
+            idle = case["idleMemory"]
+            if mutation == "snapshot-traffic":
+                idle["paused"][-1]["framesSent"] += 1
+            elif mutation == "native-growth":
+                idle["paused"][-1].update(usedWasmBytes=150000000, linearMemoryBytes=268435456)
+            elif mutation == "linear-growth":
+                idle["paused"][-1]["linearMemoryBytes"] += 33 * 1048576
+            elif mutation == "not-visible":
+                idle["paused"][5]["visible"] = False
+            elif mutation == "not-paused":
+                idle["paused"][5]["frameId"] += 1
+            elif mutation == "duplicate-time":
+                idle["paused"][5]["timeMs"] = idle["paused"][4]["timeMs"]
+            elif mutation == "fabricated-duration":
+                idle["paused"][-1]["timeMs"] -= 1000
+            elif mutation == "old-context":
+                idle["paused"][-1]["queuedFrameId"] = idle["initial"]["frameId"] + 239
+            elif mutation == "stale-resume":
+                idle["resumed"]["frameId"] = idle["paused"][-1]["queuedFrameId"]
+            else:
+                case["nativeActions"][0]["contextFrameId"] = idle["paused"][-1]["queuedFrameId"]
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [player_runner.IDLE_FOCUS_CASE])
+
+    def test_idle_memory_case_rejects_untrusted_or_out_of_order_focus_events(self):
+        for mutation in ("untrusted-blur", "untrusted-focus", "wrong-order"):
+            evidence = self.idle_evidence()
+            events = evidence["cases"][0]["idleMemory"]["lifecycle"]
+            if mutation == "wrong-order":
+                events.reverse()
+            else:
+                events[0 if mutation == "untrusted-blur" else 1]["trusted"] = False
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                player_runner.validate_player_evidence(evidence, self.manifest, "gameplay", [player_runner.IDLE_FOCUS_CASE])
 
     def test_complete_mobile_unit_inventory_is_accepted(self):
         self.assertIs(self.evidence, self.validate(self.evidence))

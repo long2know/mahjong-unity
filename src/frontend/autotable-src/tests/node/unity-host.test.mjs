@@ -27,7 +27,33 @@ class Element extends EventTarget {
     return { left, top, width, height, right: left + width, bottom: top + height };
   }
 }
-function fixture({ missing = false, mime = 'application/json', html = false, unsupported = false, loaderFailure = false, deferred = false, dirty = false, development = false, allow = false, corrupt, chatRect } = {}) {
+function clock() {
+  let next = 0;
+  const jobs = new Map();
+  const timer = {
+    now: 0,
+    setTimeout: (callback, delay = 0) => {
+      const id = ++next;
+      jobs.set(id, { at: timer.now + delay, callback });
+      return id;
+    },
+    clearTimeout: id => jobs.delete(id),
+    tick: duration => {
+      const end = timer.now + duration;
+      while (true) {
+        const [id, job] = [...jobs].sort((a, b) => a[1].at - b[1].at)[0] ?? [];
+        if (!job || job.at > end) break;
+        timer.now = job.at;
+        jobs.delete(id);
+        job.callback();
+      }
+      timer.now = end;
+    },
+  };
+  return timer;
+}
+
+function fixture({ missing = false, mime = 'application/json', html = false, unsupported = false, loaderFailure = false, deferred = false, dirty = false, development = false, allow = false, corrupt, chatRect, timer, sendFailure } = {}) {
   const requests = [], calls = [], actions = [], notices = [], resizes = [];
   let failures = 0, quits = 0, reloads = 0, resolveInstance;
   const body = new Element('body'), head = new Element('head');
@@ -42,7 +68,8 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
   }
   const walk = (element, id) => element.id === id ? element : element.children.map(child => walk(child, id)).find(Boolean);
   const document = Object.assign(new EventTarget(), {
-    body, head, hidden: false, documentElement: new Element('html'),
+    body, head, hidden: false, focused: true, documentElement: new Element('html'),
+    hasFocus: () => document.focused,
     createElement: tag => new Element(tag), getElementById: id => walk(body, id),
   });
   const visual = Object.assign(new EventTarget(), { height: 844, offsetTop: 0 });
@@ -70,7 +97,10 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
     ...artifacts, streamingAssetsPath: null,
   };
   const MockUnityInstance = {
-    SendMessage: (receiver, method, json) => calls.push({ receiver, method, value: JSON.parse(json) }),
+    SendMessage: (receiver, method, json) => {
+      calls.push({ receiver, method, value: JSON.parse(json) });
+      if (method === sendFailure) throw Error('Mock native metadata send failure');
+    },
     Quit: async () => { quits++; },
   };
   const fetch = async (input, options) => {
@@ -111,6 +141,7 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
   }
   const { UnityHost, validateBuildManifest, artifactUrl } = sourceLoader({
     document, window, fetch, ResizeObserver: Observer, MutationObserver: Mutation,
+    ...(timer ? { setTimeout: timer.setTimeout, clearTimeout: timer.clearTimeout, performance: { now: () => timer.now } } : {}),
     getComputedStyle: element => element.computed
       ?? { paddingTop: '20px', paddingRight: '0px', paddingBottom: '10px', paddingLeft: '0px' },
   }).load('renderer/unity-host.ts');
@@ -136,8 +167,9 @@ function fixture({ missing = false, mime = 'application/json', html = false, uns
     contractVersion: '1.0.0', instanceId: host.instanceId, type: 'ready', buildId: manifest.buildId,
     unityVersion: '6000.3.24f1', ...extra,
   });
-  const rendered = frameId => emit({
+  const rendered = (frameId, extra = {}) => emit({
     contractVersion: '1.0.0', instanceId: host.instanceId, sessionId, type: 'frameRendered', frameId, layoutRevision: 1,
+    ...extra,
   });
   return {
     host, manifest, layout, frame, ready, rendered, emit, document, window, main, chat, hooks, calls, requests, resizes, notices, actions,
@@ -241,6 +273,136 @@ test('mock Ready is not readiness; only a matching simulated FrameRendered for t
   assert.equal(f.document.body.getAttribute('data-unity-renderer-ready'), null, 'late old-session receipt cannot resurrect private state');
 });
 
+test('a stalled native player receives only one frame while newer authoritative frames and layouts coalesce', async t => {
+  const timer = clock();
+  const f = fixture({ timer });
+  t.after(() => f.host.dispose());
+  await f.host.mount();
+  f.ready();
+  f.host.publish(f.layout, f.frame(1));
+  timer.tick(40);
+  for (let n = 2; n <= 500; n++) {
+    const layout = { ...f.layout, layoutRevision: 2 };
+    const frame = { ...f.frame(n), layoutRevision: 2 };
+    frame.presentation.zoom = n / 1000;
+    f.host.publish(layout, frame);
+    timer.tick(40);
+  }
+  assert.deepEqual(f.calls.filter(call => call.method === 'ApplyFrame').map(call => call.value.frameId), [1],
+    'No second full JSON frame may enter Unity until its actual frameRendered receipt');
+  assert.deepEqual(f.calls.filter(call => call.method === 'ApplyLayout').map(call => call.value.layoutRevision), [1]);
+  f.rendered(1);
+  timer.tick(40);
+  const calls = f.calls.filter(call => ['ApplyLayout', 'ApplyFrame'].includes(call.method));
+  assert.deepEqual(calls.map(call => [call.method, call.value.layoutRevision, call.value.frameId]),
+    [['ApplyLayout', 1, undefined], ['ApplyFrame', 1, 1], ['ApplyLayout', 2, undefined], ['ApplyFrame', 2, 500]]);
+  assert.equal(calls.at(-1).value.presentation.zoom, 0.5);
+  f.rendered(500, { layoutRevision: 2 });
+  assert.equal(f.host.state, 'ready');
+  assert.equal(f.failures(), 0);
+});
+
+test('a missing rendered-frame receipt fails visibly, but hidden playback does not consume its response deadline', async t => {
+  const timer = clock();
+  const f = fixture({ timer });
+  t.after(() => f.host.dispose());
+  await f.host.mount();
+  f.ready();
+  f.host.publish(f.layout, f.frame(1));
+  timer.tick(40);
+  f.rendered(1);
+  f.host.publish(f.layout, f.frame(2));
+  timer.tick(40);
+  f.document.hidden = true;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  f.host.publish(f.layout, f.frame(3));
+  timer.tick(120000);
+  assert.equal(f.host.state, 'ready', 'A hidden native player is expected not to complete a visible frame');
+  assert.equal(f.failures(), 0);
+  f.document.hidden = false;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  timer.tick(29999);
+  assert.equal(f.host.state, 'ready');
+  timer.tick(1);
+  assert.equal(f.host.state, 'failed');
+  assert.equal(f.failures(), 1);
+  assert.equal(f.host.canvas.hidden, true);
+  assert.equal(f.document.body.getAttribute('data-unity-renderer-ready'), null);
+  assert.match(f.document.getElementById('unity-status').children[1].textContent, /rendered|respond|Reload/i);
+  assert.deepEqual(f.calls.filter(call => call.method === 'ApplyFrame').map(call => call.value.frameId), [1, 2]);
+});
+
+test('hidden startup defers its deadline and completed startup does not restart while disconnected', async t => {
+  const timer = clock();
+  const f = fixture({ timer });
+  t.after(() => f.host.dispose());
+  f.document.hidden = true;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  f.host.publish(f.layout, f.frame(1));
+  await f.host.mount();
+  timer.tick(120000);
+  assert.equal(f.host.state, 'awaiting-ready');
+  assert.equal(f.failures(), 0);
+  f.ready();
+  assert.equal(f.calls.filter(call => call.method === 'ApplyFrame').length, 0);
+  f.document.hidden = false;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  timer.tick(40);
+  f.rendered(1);
+  assert.equal(f.host.state, 'ready');
+  assert.equal(f.failures(), 0);
+  f.host.clear('disconnected-session', 'disconnect');
+  f.document.focused = false;
+  f.window.dispatchEvent(new Event('blur'));
+  timer.tick(120000);
+  f.document.focused = true;
+  f.window.dispatchEvent(new Event('focus'));
+  timer.tick(120000);
+  assert.equal(f.host.state, 'awaiting-ready', 'Waiting for a new server snapshot is not a native startup failure');
+  assert.equal(f.failures(), 0);
+});
+
+test('visible window focus loss suspends native publication and coalesces resizes until actually focused and visible again', async t => {
+  const timer = clock();
+  const f = fixture({ timer });
+  t.after(() => f.host.dispose());
+  await f.host.mount();
+  f.ready();
+  f.host.publish(f.layout, f.frame(1));
+  timer.tick(40);
+  f.rendered(1);
+  const viewports = f.calls.filter(call => call.method === 'SetViewport').length;
+  f.document.focused = false;
+  f.window.dispatchEvent(new Event('blur'));
+  assert.equal(f.calls.at(-1).method, 'SetPlayback');
+  assert.equal(f.calls.at(-1).value.suspended, true);
+  f.main.rect = { width: 844, height: 390 };
+  f.window.innerHeight = f.window.visualViewport.height = 390;
+  f.window.dispatchEvent(new Event('resize'));
+  for (let n = 2; n <= 500; n++) {
+    f.host.publish(f.layout, f.frame(n));
+    timer.tick(100);
+  }
+  assert.equal(f.calls.filter(call => call.method === 'ApplyFrame').length, 1);
+  assert.equal(f.calls.filter(call => call.method === 'SetViewport').length, viewports);
+  assert.equal(f.host.state, 'ready');
+  f.document.hidden = true;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  f.document.focused = true;
+  f.window.dispatchEvent(new Event('focus'));
+  timer.tick(120000);
+  assert.equal(f.calls.at(-1).value.suspended, true, 'Focusing a still-hidden document must not resume native playback');
+  assert.equal(f.failures(), 0);
+  f.document.hidden = false;
+  f.document.dispatchEvent(new Event('visibilitychange'));
+  timer.tick(40);
+  assert.deepEqual(f.calls.filter(call => call.method === 'ApplyFrame').map(call => call.value.frameId), [1, 500]);
+  assert.equal(f.calls.filter(call => call.method === 'SetViewport').at(-1).value.widthCssPx, 844);
+  f.rendered(500);
+  assert.equal(f.host.state, 'ready');
+  assert.equal(f.failures(), 0);
+});
+
 test('corrupt files, wrong handshake and loader rejection fail visibly and never report graphics success', async t => {
   for (const options of [{ corrupt: 'wasm' }, { loaderFailure: true }, {}]) {
     const f = fixture(options);
@@ -251,6 +413,16 @@ test('corrupt files, wrong handshake and loader rejection fail visibly and never
     assert.equal(f.document.body.getAttribute('data-unity-renderer-ready'), null);
     assert.equal(f.document.getElementById('unity-status').hidden, false);
   }
+  const timer = clock(), f = fixture({ timer, sendFailure: 'ApplyLayout' });
+  t.after(() => f.host.dispose());
+  f.host.publish(f.layout, f.frame(1));
+  await f.host.mount();
+  f.ready();
+  timer.tick(40);
+  assert.equal(f.host.state, 'failed');
+  assert.equal(f.host.inFlight, null, 'A failed metadata send must not allocate a new pending frame');
+  assert.equal(f.host.frameTimer, null);
+  assert.equal(f.calls.some(call => call.method === 'ApplyFrame'), false);
 });
 
 test('resizes/orientation/DPR/chat insets/hand band update the real host buffer without stale reentrant picking transforms', async t => {
