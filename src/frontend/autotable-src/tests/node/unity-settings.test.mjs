@@ -55,7 +55,7 @@ function keyboardGameFixture() {
   const nodes = new Map(['main', 'loading', 'perspective', 'tile-labels', 'benchmark', 'muted', 'sticky', 'unity-notice']
     .map(id => [id, new Element(id === 'main' ? 'main' : 'input')]));
   const document = Object.assign(new EventTarget(), {
-    body: new Element('body'), head: new Element('head'), hidden: false, activeElement: null,
+    body: new Element('body'), head: new Element('head'), hidden: false, activeElement: null, hasFocus: () => true,
     documentElement: new Element('html'), createElement: tag => new Element(tag),
     getElementById: id => nodes.get(id) ?? null,
   });

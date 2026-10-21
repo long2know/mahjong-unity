@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import {
   base, probeRoot, receipt, wire, pageFor, ready, snapshot, capture, recordCaseFailure, rendererSummary,
   manualMeasurements, launchPlayerBrowser, finishPlayerBrowser, pixelDifference,
@@ -287,8 +288,141 @@ function commandCounts(room) {
   return Object.fromEntries(['discard', 'pickup', 'things'].map(kind => [kind, commands(room, kind).length]));
 }
 
+function nativeWindowFocus(windowId = null) {
+  assert.equal(process.env.MAHJONG_PLAYER_HEADFUL, '1');
+  assert.match(process.env.DISPLAY ?? '', /^:\d+$/);
+  if (windowId !== null) assert.match(windowId, /^\d+$/);
+  const script = `import ctypes,sys
+x=ctypes.CDLL('libX11.so.6'); x.XOpenDisplay.argtypes=[ctypes.c_char_p]; x.XOpenDisplay.restype=ctypes.c_void_p
+d=x.XOpenDisplay(None); assert d
+x.XGetInputFocus.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_ulong),ctypes.POINTER(ctypes.c_int)]
+w=ctypes.c_ulong(); r=ctypes.c_int(); x.XGetInputFocus(d,ctypes.byref(w),ctypes.byref(r)); print(w.value)
+x.XDefaultRootWindow.argtypes=[ctypes.c_void_p]; x.XDefaultRootWindow.restype=ctypes.c_ulong
+x.XSetInputFocus.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.c_int,ctypes.c_ulong]
+x.XSetInputFocus(d,int(sys.argv[1]) if len(sys.argv)>1 else x.XDefaultRootWindow(d),2,0)
+x.XSync.argtypes=[ctypes.c_void_p,ctypes.c_int]; x.XSync(d,0)
+x.XCloseDisplay.argtypes=[ctypes.c_void_p]; x.XCloseDisplay(d)`;
+  const previous = execFileSync('python3', ['-c', script, ...(windowId === null ? [] : [windowId])],
+    { encoding: 'utf8', timeout: 5000 }).trim();
+  assert.match(previous, /^\d+$/);
+  return previous;
+}
+
 try {
   await launchPlayerBrowser();
+  await caseRun('actual-idle-visible-unfocused-memory', async () => {
+    const { page, room } = await newTable({ mobile: true, dpr: 2 });
+    await page.waitForFunction(() => window.game.adapter.latest?.entities.some(entity => entity.interaction.canDiscard));
+    await page.waitForTimeout(3000);
+    const cdp = await page.context().newCDPSession(page);
+    // Playwright otherwise forces every page to stay focused, hiding Unity's real pause behavior.
+    await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: false });
+    await page.bringToFront();
+    await page.waitForFunction(() => document.hasFocus() && !document.hidden && window.game.renderer.state === 'ready');
+    await page.evaluate(() => {
+      const game = window.game, instance = game.renderer.instance, bridge = window.MahjongUnityBridge;
+      if (typeof instance.GetMetricsInfo !== 'function' || !instance.Module.HEAPU8)
+        throw new Error('Actual generated Unity memory diagnostics are unavailable');
+      const pending = new Set();
+      if (game.renderer.inFlight) pending.add(`${game.renderer.inFlight.session}:${game.renderer.inFlight.frame}`);
+      const evidence = window.__playerProbe.idleMemory = { framesSent: 0, maxInFlight: pending.size, lifecycle: [] };
+      const send = instance.SendMessage.bind(instance);
+      instance.SendMessage = (receiver, method, json) => {
+        if (method === 'Clear') pending.clear();
+        if (method === 'ApplyFrame') {
+          const frame = JSON.parse(json);
+          pending.add(`${frame.sessionId}:${frame.frameId}`);
+          evidence.framesSent++;
+          evidence.maxInFlight = Math.max(evidence.maxInFlight, pending.size);
+        }
+        return send(receiver, method, json);
+      };
+      const emit = bridge.emit.bind(bridge);
+      bridge.emit = json => {
+        const message = JSON.parse(json);
+        if (message.type === 'frameRendered') pending.delete(`${message.sessionId}:${message.frameId}`);
+        return emit(json);
+      };
+      for (const type of ['blur', 'focus']) window.addEventListener(type, event => evidence.lifecycle.push({
+        type, trusted: event.isTrusted, focused: document.hasFocus(), visible: !document.hidden,
+        suspended: game.renderer.suspended,
+      }));
+    });
+    const measure = () => page.evaluate(() => {
+      const game = window.game, instance = game.renderer.instance;
+      const metrics = instance.GetMetricsInfo();
+      return {
+        timeMs: performance.now(), focused: document.hasFocus(), visible: !document.hidden,
+        suspended: game.renderer.suspended, frameId: game.renderer.lastRendered,
+        sessionId: game.adapter.latest.sessionId,
+        queuedFrameId: game.renderer.queue?.frame.frameId ?? null,
+        framesSent: window.__playerProbe.idleMemory.framesSent,
+        usedWasmBytes: metrics.usedWASMHeapSize, linearMemoryBytes: instance.Module.HEAPU8.byteLength,
+      };
+    });
+    const before = await requirePrivacy(page, 0);
+    const counts = commandCounts(room), initial = await measure();
+    assert(initial.focused && initial.visible && !initial.suspended);
+    let focusWindow = null, resumed, resumedReceipt, retiredContext, after;
+    const paused = [];
+    try {
+      focusWindow = nativeWindowFocus();
+      await page.waitForFunction(() => !document.hasFocus() && !document.hidden);
+      paused.push(await measure());
+      assert.equal(paused[0].suspended, true);
+      await page.evaluate(() => {
+        for (let n = 0; n < 300; n++) window.game.adapter.refresh();
+      });
+      for (let n = 0; n < 24; n++) {
+        await page.waitForTimeout(2000);
+        const sample = await measure();
+        paused.push(sample);
+        assert(sample.visible && !sample.focused && sample.suspended);
+        assert.equal(sample.framesSent, paused[0].framesSent, 'An unfocused native player must not receive full snapshots');
+        assert(sample.usedWasmBytes - paused[0].usedWasmBytes <= 32 * 1048576
+          && sample.linearMemoryBytes - paused[0].linearMemoryBytes <= 32 * 1048576,
+        'Stop at bounded growth rather than exhaust the shared host reproducing an OOM');
+      }
+      assert(paused.at(-1).timeMs - paused[0].timeMs >= 45000);
+      retiredContext = await page.evaluate(frameId => !window.game.adapter.contextKnown(frameId), before.lastRendered);
+      assert(retiredContext, 'The pause must outlast the old rendered frame action-context retention');
+      assert.equal(paused.at(-1).frameId, paused[0].frameId);
+      assert.deepEqual(commandCounts(room), counts);
+      nativeWindowFocus(focusWindow);
+      focusWindow = null;
+      await page.waitForFunction(previous => document.hasFocus() && !document.hidden
+        && window.game.renderer.state === 'ready'
+        && window.game.renderer.lastRendered > previous, paused.at(-1).queuedFrameId);
+      resumed = await measure();
+      assert(resumed.focused && resumed.visible && !resumed.suspended);
+      resumedReceipt = await page.evaluate(({ frameId, sessionId }) => window.__playerProbe.bridge.find(message =>
+        message.type === 'frameRendered' && message.frameId === frameId && message.sessionId === sessionId), resumed);
+      assert(resumedReceipt, 'Resume must link to an actual matching C# frameRendered envelope');
+      assert.deepEqual(sourceState(await requirePrivacy(page, 0)), sourceState(before));
+      after = await actualDiscard(page, room, { touch: true });
+      assert(after.nativeActions.every(action => action.contextFrameId > paused.at(-1).queuedFrameId));
+      await page.waitForTimeout(3000);
+    } finally {
+      if (focusWindow !== null) nativeWindowFocus(focusWindow);
+      await cdp.detach();
+    }
+    const controls = await page.evaluate(() => window.__playerProbe.idleMemory);
+    assert(controls.maxInFlight <= 1);
+    assert(controls.lifecycle.some(event => event.type === 'blur' && event.trusted && !event.focused
+      && event.visible && event.suspended));
+    assert(controls.lifecycle.some(event => event.type === 'focus' && event.trusted && event.focused
+      && event.visible && !event.suspended));
+    await record('actual-idle-visible-unfocused-memory', page, {
+      nativeActions: after.nativeActions, serverOutcomeVerified: true, nativeWireVerified: true,
+      idleMemory: {
+        headful: true, focusEmulationDisabled: true, nativeMetrics: true, initial, paused, resumed, resumedReceipt,
+        pauseDurationMs: paused.at(-1).timeMs - paused[0].timeMs,
+        maxInFlight: controls.maxInFlight, lifecycle: controls.lifecycle,
+        oldContextRetired: retiredContext, sourceStatePreserved: true, nativeInputRestored: true,
+      },
+    });
+    await page.context().close();
+  });
   await caseRun('actual-camera-touch-orbit-zoom', async () => {
     const { page, room } = await newTable({ mobile: true, dpr: 2 });
     await page.waitForFunction(() => window.game.adapter.latest?.entities.some(entity => entity.interaction.canDiscard));

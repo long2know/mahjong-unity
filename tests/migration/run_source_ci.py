@@ -84,7 +84,7 @@ def plans():
             command("player-packaging", ["python3", "tests/migration/test_player_packaging.py", "-v"],
                     kind="unittest", expected=1),
             command("player-evidence", ["python3", "tests/migration/test_browser_evidence.py", "-v"],
-                    kind="unittest", expected=20),
+                    kind="unittest", expected=23),
             command("missing-unity-artifact", [
                 "docker", "build", "--target", "unity-artifacts-check", "--progress", "plain", ".",
             ], kind="missing-unity"),
@@ -113,7 +113,7 @@ def plans():
                 "node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs",
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
-                    cwd=FRONTEND, kind="node", expected=103),
+                    cwd=FRONTEND, kind="node", expected=107),
             command("renderer-regressions", [
                 "node", "--test", "--test-reporter=tap",
                 "tests/migration/renderer-backend-shape.test.mjs",

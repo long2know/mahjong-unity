@@ -74,6 +74,12 @@ settings drawers also expose camera sliders and **Reset view**. Camera preferenc
 are saved locally. Manual zoom can intentionally crop/enlarge the table; reset
 restores automatic fitting. The separate hand stays upright and fixed.
 
+Switching away from the window pauses native visual updates, even if the tab
+remains visible. Returning resumes the latest state rather than replaying an
+idle backlog; lobby/chat networking continues. The bridge allows only one
+unacknowledged full frame, and an unresponsive active renderer shows **Reload
+table** instead of continuing to allocate snapshots indefinitely.
+
 ## Source delivered
 
 | Surface | Location and boundary |

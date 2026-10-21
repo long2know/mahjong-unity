@@ -75,9 +75,10 @@ export class UnityHost {
   private sentViewport = 0;
   private lastSentAt = 0;
   private lastRendered = 0;
-  private sentFrames = new Map<number, { session: string; layout: number }>();
+  private inFlight: { frame: number; session: string; layout: number } | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private startupTimer: ReturnType<typeof setTimeout> | null = null;
+  private frameTimer: ReturnType<typeof setTimeout> | null = null;
   private observer: ResizeObserver | null = null;
   private chromeObserver: MutationObserver | null = null;
   private media: MediaQueryList | null = null;
@@ -131,12 +132,15 @@ export class UnityHost {
     this.previousBridge = win.MahjongUnityBridge;
     this.bridge = { emit: json => this.callback(json) };
     win.MahjongUnityBridge = this.bridge;
-    this.suspended = document.hidden;
+    // The native player also pauses in a visible window that has lost focus.
+    this.suspended = document.hidden || !document.hasFocus();
     window.addEventListener('resize', this.resize, { signal: this.events.signal });
     window.addEventListener('orientationchange', this.resize, { signal: this.events.signal });
     window.visualViewport?.addEventListener('resize', this.resize, { signal: this.events.signal });
     window.visualViewport?.addEventListener('scroll', this.resize, { signal: this.events.signal });
     document.addEventListener('visibilitychange', this.visibility, { signal: this.events.signal });
+    window.addEventListener('blur', this.visibility, { signal: this.events.signal });
+    window.addEventListener('focus', this.visibility, { signal: this.events.signal });
     document.addEventListener('securitypolicyviolation', this.csp, { signal: this.events.signal });
     this.chat = document.getElementById('chat-panel');
     if (typeof ResizeObserver !== 'undefined') {
@@ -216,9 +220,7 @@ export class UnityHost {
       }
       this.instance = instance;
       this.status('awaiting-ready', 'Starting Unity renderer', 'Waiting for the matching C# bridge handshake and rendered-frame receipt…');
-      this.startupTimer = setTimeout(() => {
-        this.unavailable('Unity did not complete its C# handshake/rendered-frame receipt. Reload the table or inspect the legitimate build.');
-      }, 30000);
+      this.watchStartup();
       this.send('Configure', {
         contractVersion: CONTRACT_VERSION, instanceId: this.instanceId, type: 'configure', buildId: manifest.buildId,
       });
@@ -270,7 +272,8 @@ export class UnityHost {
     this.clearReason = reason;
     this.queue = null;
     this.sentLayout = 0;
-    this.sentFrames.clear();
+    this.inFlight = null;
+    this.watchRender();
     this.lastRendered = 0;
     this.removeMarkers();
     if (this.timer) clearTimeout(this.timer);
@@ -312,7 +315,7 @@ export class UnityHost {
   }
 
   private schedule(): void {
-    if (!this.handshake || this.suspended || this.timer || !this.queue || !this.viewport) return;
+    if (!this.handshake || this.suspended || this.inFlight || this.timer || !this.queue || !this.viewport) return;
     this.timer = setTimeout(() => {
       this.timer = null;
       this.flush();
@@ -320,7 +323,7 @@ export class UnityHost {
   }
 
   private flush(): void {
-    if (!this.handshake || this.disposed || this.suspended || !this.queue || !this.viewport) return;
+    if (!this.handshake || this.disposed || this.suspended || this.inFlight || !this.queue || !this.viewport) return;
     const { layout, frame } = this.queue;
     this.queue = null;
     if (this.viewport.resizeRevision !== this.sentViewport) {
@@ -331,10 +334,27 @@ export class UnityHost {
       this.send('ApplyLayout', layout);
       this.sentLayout = layout.layoutRevision;
     }
-    this.sentFrames.set(frame.frameId, { session: frame.sessionId, layout: frame.layoutRevision });
+    if (!this.handshake) return;
+    this.inFlight = { frame: frame.frameId, session: frame.sessionId, layout: frame.layoutRevision };
+    this.watchRender();
     this.send('ApplyFrame', frame);
     this.lastSentAt = performance.now();
-    if (this.sentFrames.size > 240) this.sentFrames.delete(this.sentFrames.keys().next().value!);
+  }
+
+  private watchStartup(): void {
+    if (this.startupTimer) clearTimeout(this.startupTimer);
+    this.startupTimer = null;
+    if (this.state === 'awaiting-ready' && !this.handshake && !this.suspended) this.startupTimer = setTimeout(() => {
+      this.unavailable('Unity did not complete its C# handshake. Reload the table or inspect the legitimate build.');
+    }, 30000);
+  }
+
+  private watchRender(): void {
+    if (this.frameTimer) clearTimeout(this.frameTimer);
+    this.frameTimer = null;
+    if (this.inFlight && !this.suspended) this.frameTimer = setTimeout(() => {
+      this.unavailable('Unity stopped completing rendered frames. Reload the table; lobby/chat remain available.');
+    }, 30000);
   }
 
   private send(method: ReceiverMethod, value: unknown): void {
@@ -366,10 +386,11 @@ export class UnityHost {
             throw new Error('Incompatible Unity handshake.');
           }
           this.handshake = true;
+          this.watchStartup();
           if (this.sessionId) this.send('Clear', {
             contractVersion: CONTRACT_VERSION, instanceId: this.instanceId, sessionId: this.sessionId, type: 'clear', reason: this.clearReason,
           });
-          if (this.viewport) {
+          if (this.viewport && !this.suspended) {
             this.send('SetViewport', this.viewport);
             this.sentViewport = this.viewport.resizeRevision;
           }
@@ -381,9 +402,11 @@ export class UnityHost {
         }
         case 'frameRendered': {
           const receipt = value as FrameRendered;
-          const sent = this.sentFrames.get(receipt.frameId);
-          if (!this.handshake || !sent || sent.session !== receipt.sessionId || sent.layout !== receipt.layoutRevision
+          const sent = this.inFlight;
+          if (!this.handshake || !sent || sent.frame !== receipt.frameId || sent.session !== receipt.sessionId || sent.layout !== receipt.layoutRevision
             || receipt.frameId <= this.lastRendered) throw new Error('Invalid rendered-frame receipt.');
+          this.inFlight = null;
+          this.watchRender();
           this.lastRendered = receipt.frameId;
           if (this.startupTimer) clearTimeout(this.startupTimer);
           this.startupTimer = null;
@@ -392,6 +415,7 @@ export class UnityHost {
           this.panel.hidden = true;
           for (const name of ['unity-renderer-ready', 'scene-shell-ready']) this.mark(name);
           if (this.manifest?.sourceDirty || this.manifest?.developmentBuild) this.hooks.notice('Local Unity build rendered; dirty/development source remains unqualified for release.');
+          this.schedule();
           break;
         }
         case 'action':
@@ -484,7 +508,7 @@ export class UnityHost {
     if (this.disposed || this.viewport !== next) return;
     this.canvas.width = next.widthPx;
     this.canvas.height = next.heightPx;
-    if (this.handshake) {
+    if (this.handshake && !this.suspended) {
       this.send('SetViewport', next);
       this.sentViewport = next.resizeRevision;
     }
@@ -499,10 +523,14 @@ export class UnityHost {
   }
   private readonly dprChanged = (): void => { this.measure(); this.watchDpr(); };
   private readonly visibility = (): void => {
-    this.suspended = document.hidden;
+    const suspended = document.hidden || !document.hasFocus();
+    if (suspended === this.suspended) return;
+    this.suspended = suspended;
     this.send('SetPlayback', {
       contractVersion: CONTRACT_VERSION, instanceId: this.instanceId, type: 'playback', suspended: this.suspended,
     });
+    this.watchStartup();
+    this.watchRender();
     if (!this.suspended) { this.measure(true); this.hooks.resumed(); this.schedule(); }
   };
   private readonly csp = (event: SecurityPolicyViolationEvent): void => {
@@ -520,6 +548,8 @@ export class UnityHost {
     if (this.timer) clearTimeout(this.timer);
     if (this.startupTimer) clearTimeout(this.startupTimer);
     this.timer = this.startupTimer = null;
+    this.inFlight = null;
+    this.watchRender();
     this.hooks.failure();
     this.requests.abort();
     this.canvas.hidden = true;
@@ -543,7 +573,8 @@ export class UnityHost {
     if (this.startupTimer) clearTimeout(this.startupTimer);
     this.timer = this.startupTimer = null;
     this.queue = null;
-    this.sentFrames.clear();
+    this.inFlight = null;
+    this.watchRender();
     this.removeMarkers();
     const win = window as BridgeWindow;
     if (win.MahjongUnityBridge === this.bridge) {

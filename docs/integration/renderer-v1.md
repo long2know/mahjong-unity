@@ -77,6 +77,23 @@ must match. These are adapter identities/counters, **not** server versions.
 Complete frames replace all entities; absence removes an entity. Mismatched,
 stale, malformed, or unsupported messages fail closed. Visual publication is
 coalesced at at most 30 Hz; existing input/network processing is not throttled.
+Only one full frame may be awaiting its matching `frameRendered` receipt.
+Newer complete frames and layouts replace the browser's pending publication
+instead of filling the native player's message queue.
+
+The pinned native player pauses when its window loses focus. The browser
+therefore suspends visual publication for both hidden documents and visible
+but unfocused windows. Networking and authoritative model updates continue;
+focus/visibility restoration sends the newest viewport and snapshot, not an
+idle backlog. Startup and rendered-frame response deadlines count only active
+visible/focused playback. An active player that stops acknowledging frames for
+30 seconds fails visibly and revokes input, with **Reload table** available.
+
+The actual-player `actual-idle-visible-unfocused-memory` case uses a private
+Xvfb display and disables Playwright's always-focused override before changing
+OS focus. It checks native heap bounds, no full-frame publication during the
+pause, the newest rendered frame on resume, and a real tile action after the
+old action contexts expire. This is not physical-device evidence.
 
 ## Privacy and actions
 
