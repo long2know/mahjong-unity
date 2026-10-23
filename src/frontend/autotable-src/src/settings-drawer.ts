@@ -48,6 +48,7 @@ import {
   type LanguagePreference,
 } from './i18n';
 import { hideEl } from './dom-utils';
+import { handleDrawerKey, setDrawerAccessibility } from './ui/drawer-accessibility';
 import { handSortMode, type HandSortMode } from './hand-sort';
 import { COMPACT_VIEW_QUERY, mobileInfoPanel, type MobileInfoPanel } from './mobile-overlay-policy';
 import type { CameraView } from './renderer/renderer-contract';
@@ -397,6 +398,7 @@ export function installSettingsDrawerV2(): void {
   emit();
 
   const btn = document.getElementById('settings-button') as HTMLButtonElement | null;
+  setDrawerAccessibility(drawer, btn, false);
   const localizeButton = (): void => {
     btn?.setAttribute('title', t('settings.open_display'));
     btn?.setAttribute('aria-label', t('settings.open_display'));
@@ -467,13 +469,8 @@ export function installSettingsDrawerV2(): void {
     });
   }
 
-  // Escape closes the drawer when open.
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key !== 'Escape') return;
-    if (drawer.classList.contains('settings-drawer-v2-open')) {
-      closeDrawer();
-      btn?.focus();
-    }
+    handleDrawerKey(e, drawer, closeDrawer);
   });
   // Click outside closes.
   document.addEventListener('mousedown', (e: MouseEvent) => {
@@ -515,13 +512,8 @@ function openDrawer(): void {
   }
   drawerOpened = true;
   drawer.classList.add('settings-drawer-v2-open');
-  drawer.setAttribute('aria-hidden', 'false');
-  if (btn !== null) btn.setAttribute('aria-expanded', 'true');
-  // Focus the active tab so keyboard users land in the drawer.
-  window.setTimeout(() => {
-    const tab = document.getElementById(`settings-tab-${activeTab}`);
-    tab?.focus();
-  }, 50);
+  setDrawerAccessibility(drawer, btn, true);
+  document.getElementById(`settings-tab-${activeTab}`)?.focus();
 }
 
 function closeDrawer(): void {
@@ -529,8 +521,7 @@ function closeDrawer(): void {
   const btn = document.getElementById('settings-button') as HTMLButtonElement | null;
   if (drawer === null) return;
   drawer.classList.remove('settings-drawer-v2-open');
-  drawer.setAttribute('aria-hidden', 'true');
-  if (btn !== null) btn.setAttribute('aria-expanded', 'false');
+  setDrawerAccessibility(drawer, btn, false);
 }
 
 function activateTab(id: SettingsTab): void {

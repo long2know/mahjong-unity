@@ -1,0 +1,355 @@
+body.browser-shell-active {
+    --shell-surface: #152922;
+    --shell-control: #203b31;
+    --shell-hover: #2d5042;
+    --shell-border: #486658;
+    --shell-text: #edf5ef;
+    --shell-muted: #bdd0c4;
+    --shell-focus: #8dd9ed;
+}
+body.browser-shell-active.theme-light {
+    --shell-surface: #f2f6f2;
+    --shell-control: #e3ece5;
+    --shell-hover: #cfdfd3;
+    --shell-border: #788f80;
+    --shell-text: #183c2b;
+    --shell-muted: #395845;
+    --shell-focus: #006b86;
+}
+/* The inherited reduced-motion rule gives every element a tiny transition.
+   Never measure a halfway-positioned canvas/header as the native safe area. */
+body.browser-shell-active :is(#main.unity-table, #browser-shell, .browser-panels) {
+    transition: none !important;
+}
+#browser-shell {
+    position: fixed;
+    top: var(--game-viewport-top, 0px);
+    left: 0;
+    right: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: max(8px, env(safe-area-inset-top)) max(80px, env(safe-area-inset-right))
+        8px max(8px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--shell-border);
+    background: var(--shell-surface);
+    color: var(--shell-text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    pointer-events: none;
+}
+#browser-shell .browser-toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 6px;
+    min-width: 0;
+}
+#browser-shell .browser-toolbar > button,
+#browser-shell .chat-toggle,
+#browser-shell .chat-collapse {
+    position: static;
+    inset: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--shell-border);
+    border-radius: 8px;
+    background: var(--shell-control);
+    color: var(--shell-text);
+    box-shadow: none;
+    font: 600 13px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: normal;
+    text-align: center;
+    cursor: pointer;
+    transform: none;
+    transition: background-color 120ms ease, border-color 120ms ease;
+    pointer-events: auto;
+}
+#browser-shell .browser-toolbar > button:hover,
+#browser-shell .chat-toggle:hover,
+#browser-shell .chat-collapse:hover {
+    background: var(--shell-hover);
+    transform: none;
+}
+#browser-shell .browser-toolbar > button:active,
+#browser-shell .chat-toggle:active,
+#browser-shell .chat-collapse:active {
+    background: var(--shell-surface);
+    border-color: var(--shell-focus);
+}
+#browser-shell button:focus-visible,
+body.browser-shell-active :is(#settings-drawer, #settings-drawer-v2, #lobby-panel) :is(button, input, select, a):focus-visible {
+    outline: 3px solid var(--shell-focus);
+    outline-offset: 2px;
+}
+#browser-shell .browser-toolbar > button[aria-expanded="true"] {
+    border-color: var(--shell-focus);
+    background: var(--shell-hover);
+}
+#browser-shell #new-game {
+    background: #146c43;
+    border-color: #4f9270;
+    color: #fff;
+}
+#browser-shell #new-game:hover { background: #0f5132; }
+#browser-shell #new-game:active { background: #0b4228; }
+#browser-shell #new-game:disabled,
+#browser-shell #new-game[aria-busy="true"] { opacity: .6; cursor: default; }
+#browser-shell .browser-label-short { display: none; }
+#browser-shell #move-log-toggle { display: none; }
+body.lobby-active #browser-shell #new-game,
+body.lobby-active #browser-shell #lobby-toggle,
+body.variant-riichi #browser-shell #new-game { display: none; }
+body.lobby-active #browser-shell { z-index: 80; }
+body.lobby-active #browser-shell .browser-toolbar { margin-left: auto; }
+
+#browser-shell .browser-context {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+#browser-shell #variant-badge {
+    position: static;
+    flex: 0 0 auto;
+    max-width: none;
+    padding: 4px 0;
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    color: var(--shell-muted);
+    box-shadow: none;
+    font: 600 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: normal;
+    text-overflow: clip;
+}
+#browser-shell #turn-banner,
+#browser-shell #turn-banner.visible {
+    position: static;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 4px 0 4px 10px;
+    border: 0;
+    border-left: 3px solid #d9b957;
+    border-radius: 0;
+    background: transparent;
+    color: var(--shell-text);
+    box-shadow: none;
+    font: 500 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: normal;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    transform: none;
+    transition: none;
+}
+#browser-shell #turn-banner[role="button"] { min-height: 44px; }
+#browser-shell #turn-banner .turn-banner-countdown { color: inherit; white-space: nowrap; }
+
+#browser-shell .browser-panels {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: max(8px, env(safe-area-inset-right));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(340px, calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    max-height: calc(100dvh - var(--browser-shell-height, 61px) - 124px - var(--game-viewport-bottom, 0px));
+}
+#browser-action-slot {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-width: 0;
+    gap: 8px;
+}
+#browser-action-slot:not(:has(> :not([hidden]))) { display: none; }
+#browser-shell #own-turn-actions,
+#browser-shell #pickup-hud,
+#browser-shell #bot-banner,
+#browser-shell .ferro-claim-overlay {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 10px;
+    transform: none;
+}
+#browser-shell #own-turn-actions,
+#browser-shell #pickup-hud,
+#browser-shell #bot-banner {
+    background: var(--shell-surface);
+    color: var(--shell-text);
+    border-color: var(--shell-border);
+    pointer-events: auto;
+}
+#browser-shell #bot-banner { height: auto; }
+#browser-shell #pickup-hud #pickup-take-btn { min-height: 44px; }
+#browser-shell #move-log,
+#browser-shell #chat-panel:not(.chat-panel-collapsed) {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    border: 1px solid var(--shell-border);
+    border-radius: 10px;
+    background: var(--shell-surface);
+    color: var(--shell-text);
+    box-shadow: 0 6px 20px #0004;
+    transform: none;
+    pointer-events: auto;
+}
+#browser-shell #move-log {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 200px;
+    max-height: 240px;
+    font-size: 12px;
+}
+#browser-shell #move-log .move-log-header {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 8px;
+    color: var(--shell-text);
+    border-bottom-color: var(--shell-border);
+}
+#browser-shell #move-log .move-log-clear {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    color: var(--shell-muted);
+    font-size: 12px;
+}
+#browser-shell #move-log .move-log-clear:hover { background: var(--shell-hover); color: var(--shell-text); }
+#browser-shell #move-log .move-log-entries { min-height: 0; scroll-behavior: auto; }
+#browser-shell #move-log .move-log-action { color: var(--shell-text); }
+#browser-shell #move-log .move-log-title { color: var(--shell-text); }
+body.theme-light #browser-shell #move-log .move-log-seat { color: #735314; }
+body.theme-light #browser-shell #move-log .move-log-ts { color: #365e49; }
+body.lobby-active #browser-shell #move-log { display: none; }
+
+#browser-shell #chat-panel:not(.chat-panel-collapsed) {
+    display: flex;
+    flex: 0 1 320px;
+    max-height: 360px;
+    overflow: hidden;
+}
+#browser-shell #chat-panel.chat-panel-collapsed {
+    position: fixed;
+    top: calc(max(8px, env(safe-area-inset-top)) + var(--game-viewport-top, 0px));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: auto;
+    width: 64px;
+    min-height: 44px;
+    max-height: none;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+    pointer-events: auto;
+}
+#browser-shell #chat-panel.chat-panel-collapsed .chat-header { padding: 0; border: 0; background: transparent; }
+#browser-shell .chat-toggle { flex: 1 1 auto; gap: 3px; }
+#browser-shell .chat-toggle::after { content: none; }
+#browser-shell .chat-header { gap: 4px; padding: 4px; }
+#browser-shell .chat-header-selectors { order: 1; flex-basis: 100%; }
+#browser-shell .chat-collapse:not([hidden]) { display: inline-flex; flex: 0 0 44px; padding: 0; font-size: 24px; }
+#browser-shell .chat-invite-unread { position: absolute; top: -5px; right: -5px; margin: 0; font-size: 11px; }
+#browser-shell .chat-panel-body { overscroll-behavior: contain; }
+#browser-shell .chat-header-selectors .dark-listbox-trigger,
+#browser-shell .chat-panel :is(button, textarea, select) { min-height: 44px; }
+
+body.browser-shell-active :is(#settings-close, #settings-close-v2, #settings-save, #settings-reset, #settings-apply) {
+    min-width: 44px;
+    min-height: 44px;
+}
+body.browser-shell-active :is(#settings-drawer, #settings-drawer-v2)[aria-hidden="true"] { visibility: hidden; }
+body.browser-shell-active :is(#settings-drawer, #settings-drawer-v2) {
+    max-height: calc(100dvh - 16px - var(--game-viewport-bottom, 0px) - env(safe-area-inset-top));
+    overscroll-behavior: contain;
+}
+body.browser-shell-active :is(.settings-drawer-body, .settings-drawer-v2-panels) { min-height: 0; }
+body.browser-shell-active .settings-drawer-v2-tabs { flex-wrap: wrap; }
+body.browser-shell-active .settings-v2-tab { min-height: 44px; }
+
+@media (max-width: 900px), (max-height: 520px) {
+    #browser-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+        padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right))
+            6px max(6px, env(safe-area-inset-left));
+    }
+    #browser-shell .browser-toolbar {
+        display: grid;
+        grid-template-columns: minmax(78px, 1.5fr) minmax(44px, 1fr) minmax(44px, 1fr) minmax(56px, 1.2fr) minmax(48px, 1fr);
+        gap: 4px;
+        padding-right: 52px;
+    }
+    #browser-shell .browser-toolbar > button {
+        min-width: 0;
+        min-height: 44px;
+        padding: 4px;
+        font-size: 12px;
+        white-space: normal;
+    }
+    #browser-shell .browser-label-full { display: none; }
+    #browser-shell .browser-label-short { display: inline; }
+    #browser-shell #move-log-toggle { display: inline-flex; }
+    #browser-shell .browser-context { gap: 10px; min-height: 26px; }
+    #browser-shell #variant-badge { font-size: 12px; }
+    #browser-shell #turn-banner,
+    #browser-shell #turn-banner.visible { padding-block: 2px; font-size: 12px; }
+    #browser-shell #chat-panel.chat-panel-collapsed {
+        top: calc(max(6px, env(safe-area-inset-top)) + var(--game-viewport-top, 0px));
+        right: max(6px, env(safe-area-inset-right));
+        width: 48px;
+    }
+    #browser-shell .chat-panel-collapsed .chat-toggle { padding: 4px; font-size: 12px; }
+    #browser-shell .browser-panels { max-height: calc(100dvh - var(--browser-shell-height, 88px) - 164px - var(--game-viewport-bottom, 0px)); }
+    #browser-shell #move-log,
+    #browser-shell #chat-panel:not(.chat-panel-collapsed) {
+        height: clamp(180px, 26dvh, 248px);
+        max-height: inherit;
+        flex-basis: auto;
+    }
+    body:not(.move-log-open) #browser-shell #move-log { display: none; }
+    body.move-log-open #browser-shell #move-log { visibility: visible; }
+    #browser-shell #own-turn-actions { padding: 6px; }
+    #browser-shell #own-turn-actions h2 { margin-bottom: 4px; font-size: 12px; }
+    #browser-shell #own-turn-actions .rule-action-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+    #browser-shell #own-turn-actions button { padding: 4px; font-size: 12px; }
+}
+@media (min-width: 901px) and (min-height: 521px) {
+    body.browser-shell-active:not(.variant-riichi) #sidebar { right: 8px; bottom: 8px; }
+}
+@media (max-height: 520px) and (min-width: 601px) {
+    #browser-shell { display: flex; gap: 12px; padding-right: max(64px, env(safe-area-inset-right)); }
+    #browser-shell .browser-toolbar { display: flex; padding-right: 0; }
+    #browser-shell .browser-toolbar > button { padding-inline: 8px; min-width: 44px; }
+    #browser-shell .browser-context { flex-wrap: wrap; gap: 0 10px; }
+    #browser-shell .browser-panels {
+        width: 320px;
+        max-height: calc(100dvh - var(--browser-shell-height, 61px) - 16px);
+    }
+    #browser-shell #move-log,
+    #browser-shell #chat-panel:not(.chat-panel-collapsed) { height: min(248px, calc(100dvh - var(--browser-shell-height, 61px) - 16px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    #browser-shell *, #browser-shell *::before, #browser-shell *::after { transition: none; animation: none; }
+}
+body.reduced-motion #browser-shell * { transition: none; animation: none; }

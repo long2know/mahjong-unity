@@ -110,7 +110,7 @@ export class ClaimWindowOverlay {
     if (client === undefined) return;
 
     this.root = this.buildDom();
-    document.body.appendChild(this.root);
+    (document.getElementById('browser-action-slot') ?? document.body).appendChild(this.root);
 
     this.actions = getRuleActionControls(client);
     this.unsubscribeActions = this.actions.onChange(() => this.syncFromCollection());

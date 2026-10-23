@@ -8,6 +8,7 @@ import { Replay } from './replay';
 import { openReplayForGame } from './replay-launcher';
 import { World } from "./world";
 import './mobile-table.css';
+import { handleDrawerKey, setDrawerAccessibility } from './ui/drawer-accessibility';
 import { getSettings as getAppSettings, installLegacyDisplaySettings, installPerspectiveSetting, onSettingsChange as onAppSettingsChange, setSettings as setAppSettings } from './settings-drawer';
 import { COMPACT_VIEW_QUERY, toggleMobilePanel } from './mobile-overlay-policy';
 import { HandResultState, type ResultPresentation } from './hand-result-state';
@@ -2602,6 +2603,9 @@ export class GameUi {
   // ---------------------------------------------------------------------
   private setupSettingsDrawer(): void {
     installLegacyDisplaySettings();
+    this.elements.settingsToggle.setAttribute('aria-controls', 'settings-drawer');
+    this.elements.settingsToggle.setAttribute('aria-haspopup', 'dialog');
+    setDrawerAccessibility(this.elements.settingsDrawer, this.elements.settingsToggle, false);
     // Re-hydrate from localStorage on boot (gameId-keyed; falls back to
     // a global default key when gameId isn't on the URL yet).
     const state = readSettingsState();
@@ -2649,16 +2653,20 @@ export class GameUi {
       )) return;
       this.closeSettingsDrawer();
     });
+    document.addEventListener('keydown', (event: KeyboardEvent) => {
+      handleDrawerKey(event, this.elements.settingsDrawer, () => this.closeSettingsDrawer());
+    });
   }
 
   private openSettingsDrawer(): void {
     this.elements.settingsDrawer.classList.add('settings-open');
-    this.elements.settingsDrawer.setAttribute('aria-hidden', 'false');
+    setDrawerAccessibility(this.elements.settingsDrawer, this.elements.settingsToggle, true);
+    this.elements.settingsClose.focus();
   }
 
   private closeSettingsDrawer(): void {
     this.elements.settingsDrawer.classList.remove('settings-open');
-    this.elements.settingsDrawer.setAttribute('aria-hidden', 'true');
+    setDrawerAccessibility(this.elements.settingsDrawer, this.elements.settingsToggle, false);
   }
 
   private persistSettings(): void {
