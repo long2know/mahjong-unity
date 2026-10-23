@@ -256,7 +256,10 @@ namespace Mahjong.Renderer.Rendering
         private string currentText;
         private float currentHeight;
         private Mesh ownedMesh;
-        public LabelView(Transform parent, ProceduralArt art) { surface = new SurfaceView(parent, "Public vector label", art.Quad, art); }
+        public LabelView(Transform parent, ProceduralArt art, string name = "Public vector label")
+        {
+            surface = new SurfaceView(parent, name, art.Quad, art);
+        }
 
         public void Apply(string text, float height, Vector3 position, Quaternion rotation, int layer, Color color)
         {

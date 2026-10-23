@@ -16,6 +16,7 @@ namespace Mahjong.Renderer.Art
         public readonly Mesh TableBox;
         public readonly Mesh TableRail;
         public readonly Mesh Quad;
+        public readonly Mesh InsetOutline;
         public readonly Texture2D Faces;
         public readonly Texture2D FacesWithoutLabels;
         public readonly Texture2D[] Backs = new Texture2D[2];
@@ -56,6 +57,7 @@ namespace Mahjong.Renderer.Art
             TableBox = MakeRoundedBox(0.018f, "Original softly rounded table");
             TableRail = MakeRoundedBox(0.018f, "Original rounded rail shell", true);
             Quad = MakeQuad();
+            InsetOutline = MakeInsetOutline();
             Faces = Load("FacesLabelled", AtlasSize, AtlasSize);
             FacesWithoutLabels = Load("Faces", AtlasSize, AtlasSize);
             Backs[0] = Load("Back0", CellWidth, CellHeight);
@@ -188,6 +190,34 @@ namespace Mahjong.Renderer.Art
                 triangles[start + 3] = n; triangles[start + 4] = n + 3; triangles[start + 5] = n + 2;
             }
             var mesh = new Mesh { name = "Original box", vertices = vertices, normals = normals, uv = uv, triangles = triangles };
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        private static Mesh MakeInsetOutline()
+        {
+            const float radius = 0.025f, stroke = 0.006f;
+            var vertices = new Vector3[40];
+            var normals = new Vector3[40];
+            var triangles = new int[120];
+            for (int corner = 0; corner < 4; corner++)
+                for (int step = 0; step < 5; step++)
+                {
+                    float angle = (corner + step / 4f) * Mathf.PI / 2;
+                    Vector3 center = new Vector3(corner == 0 || corner == 3 ? 0.5f - radius : radius - 0.5f,
+                        0, corner < 2 ? 0.5f - radius : radius - 0.5f);
+                    Vector3 direction = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+                    int n = (corner * 5 + step) * 2;
+                    vertices[n] = center + direction * radius;
+                    vertices[n + 1] = center + direction * (radius - stroke);
+                    normals[n] = normals[n + 1] = Vector3.up;
+                    int next = (n + 2) % vertices.Length;
+                    int at = n * 3;
+                    triangles[at] = n; triangles[at + 1] = n + 1; triangles[at + 2] = next;
+                    triangles[at + 3] = next; triangles[at + 4] = n + 1; triangles[at + 5] = next + 1;
+                }
+            var mesh = new Mesh { name = "Original fine inset outline", vertices = vertices,
+                normals = normals, triangles = triangles };
             mesh.RecalculateBounds();
             return mesh;
         }
@@ -335,6 +365,7 @@ namespace Mahjong.Renderer.Art
             EngineObjects.Release(TableBox);
             EngineObjects.Release(TableRail);
             EngineObjects.Release(Quad);
+            EngineObjects.Release(InsetOutline);
             foreach (Texture2D texture in Sticks) EngineObjects.Release(texture);
             foreach (Texture2D texture in Dice) EngineObjects.Release(texture);
             EngineObjects.Release(Marker);
