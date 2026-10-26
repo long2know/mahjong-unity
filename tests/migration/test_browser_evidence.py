@@ -291,17 +291,24 @@ class BrowserEvidenceTests(unittest.TestCase):
 
 
 class PlayerEvidenceTests(unittest.TestCase):
-    def test_headful_temporary_files_use_private_tmpfs_not_the_evidence_bind_mount(self):
-        for headful, temporary in ((True, "/tmp"), (False, "/probe/temp")):
+    def test_headful_files_and_authenticated_x11_stay_in_owned_evidence_mount(self):
+        for headful in (True, False):
             with self.subTest(headful=headful):
                 environment = player_runner.browser_environment("gameplay", player_runner.IDLE_FOCUS_CASE, headful)
                 self.assertEqual({
                     "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
                     "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
-                    "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+                    "TMPDIR": "/probe/temp", "TMP": "/probe/temp", "TEMP": "/probe/temp",
                     "MAHJONG_PLAYER_SCOPE": "gameplay", "MAHJONG_PLAYER_CASE": player_runner.IDLE_FOCUS_CASE,
                     "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
                 }, environment)
+        wrapper = (ROOT / "tests/migration/player-headful.mjs").read_text()
+        self.assertIn("'-nolock', '-nolisten', 'unix'", wrapper)
+        self.assertIn("'-listen', 'tcp', '-auth', authority", wrapper)
+        self.assertIn("MIT-MAGIC-COOKIE-1", wrapper)
+        self.assertIn("mode: 0o600", wrapper)
+        self.assertNotIn("'/tmp", wrapper)
+        self.assertNotIn("'-ac'", wrapper)
 
     def setUp(self):
         self.manifest = {"buildId": "unit-player", "unityVersion": "unit-version", "contractVersion": "1.0.0"}
@@ -353,6 +360,101 @@ class PlayerEvidenceTests(unittest.TestCase):
 
     def validate(self, evidence):
         return player_runner.validate_player_evidence(evidence, self.manifest, "mobile-playability")
+
+    def polish_evidence(self):
+        measurements = []
+        for width, height in ((1280, 800), (360, 800), (390, 844), (500, 900), (844, 390)):
+            for chat in (False, True):
+                measurements.append({
+                    "width": width, "height": height, "chatOpen": chat, "documentWidth": width,
+                    "shell": {"height": 87, "bottom": 87},
+                    "variant": {"text": "Changsha", "scrollWidth": 72, "clientWidth": 72},
+                    "turn": {"left": 90, "right": width - 8},
+                    "viewport": {"insetsCssPx": {"top": 87}},
+                    "buildId": self.manifest["buildId"], "renderedFrameId": 1, "realFrameRendered": True,
+                    "screenshot": "unit-only-not-browser-evidence.png", "screenshotSha256": "0" * 64,
+                    "toolbar": [{"id": f"button-{index}", "text": "Settings", "hit": f"button-{index}",
+                                 "width": 48, "height": 44, "left": index * 52, "right": index * 52 + 48}
+                                for index in range(4)],
+                    "handCenters": [{"entityId": f"tile-{index}", "canvasReceivesInput": True, "chatCovered": False}
+                                    for index in range(14)],
+                })
+        next(item for item in measurements if (item["width"], item["chatOpen"]) == (390, True))["reducedMotion"] = {
+            "matches": True, "transitionDurations": [0.00001], "animationNames": ["none"],
+        }
+        return {"sourceStatePreserved": True, "lobbyOpenedAndClosed": True, "measurements": measurements,
+                "drawers": [
+                    {"drawerId": drawer, "toggleId": toggle, "first": "close", "last": "save",
+                     "enteredInside": True, "inert": False, "backwardWrap": True, "forwardWrap": True,
+                     "closed": {"inert": True, "hidden": "true", "focused": toggle}}
+                    for drawer, toggle in (("settings-drawer", "settings-toggle"),
+                                           ("settings-drawer-v2", "settings-button"))
+                ]}
+
+    def test_polish_requires_actual_production_layout_native_frame_and_accessible_drawer_inventory(self):
+        polish = self.polish_evidence()
+        player_runner.validate_browser_polish(polish, self.manifest)
+        sources = player_runner.browser_source_evidence()
+        for path in ("src/frontend/autotable-src/src/browser-shell.ts",
+                     "src/frontend/autotable-src/src/browser-shell.css",
+                     "src/frontend/autotable-src/src/ui/drawer-accessibility.ts",
+                     "tests/migration/browser-gameplay.mjs", "tests/migration/player-headful.mjs"):
+            self.assertEqual(hashlib.sha256((ROOT / path).read_bytes()).hexdigest(), sources[path])
+
+    def test_polish_rejects_overflow_clipped_labels_small_or_occluded_targets_fake_frames_and_focus_labels(self):
+        for mutation in ("missing-layout", "duplicate-layout", "overflow", "tall-header", "unreserved-header",
+                         "clipped-variant", "clipped-turn", "icon-only", "small-target", "occluded",
+                         "covered-hand", "duplicate-hand", "wrong-build", "fake-frame", "missing-screenshot",
+                         "missing-drawer", "focus-outside", "missing-tab-wrap", "focus-not-returned",
+                         "hidden-not-inert", "animation", "missing-lobby"):
+            polish = self.polish_evidence()
+            item = polish["measurements"][0]
+            if mutation == "missing-layout":
+                polish["measurements"].pop()
+            elif mutation == "duplicate-layout":
+                polish["measurements"][1] = copy.deepcopy(item)
+            elif mutation == "overflow":
+                item["documentWidth"] += 1
+            elif mutation == "tall-header":
+                item["shell"]["height"] = 200
+            elif mutation == "unreserved-header":
+                item["viewport"]["insetsCssPx"]["top"] = 0
+            elif mutation == "clipped-variant":
+                item["variant"]["scrollWidth"] = 120
+            elif mutation == "clipped-turn":
+                item["turn"]["right"] += 100
+            elif mutation == "icon-only":
+                item["toolbar"][0]["text"] = ""
+            elif mutation == "small-target":
+                item["toolbar"][0]["width"] = 43
+            elif mutation == "occluded":
+                item["toolbar"][0]["hit"] = "chat-panel"
+            elif mutation == "covered-hand":
+                item["handCenters"][0]["canvasReceivesInput"] = False
+            elif mutation == "duplicate-hand":
+                item["handCenters"][1] = copy.deepcopy(item["handCenters"][0])
+            elif mutation == "wrong-build":
+                item["buildId"] = "not-the-genuine-player"
+            elif mutation == "fake-frame":
+                item["realFrameRendered"] = False
+            elif mutation == "missing-screenshot":
+                item["screenshotSha256"] = ""
+            elif mutation == "missing-drawer":
+                polish["drawers"].pop()
+            elif mutation == "focus-outside":
+                polish["drawers"][0]["enteredInside"] = False
+            elif mutation == "missing-tab-wrap":
+                polish["drawers"][0]["forwardWrap"] = False
+            elif mutation == "focus-not-returned":
+                polish["drawers"][0]["closed"]["focused"] = "unity-canvas"
+            elif mutation == "hidden-not-inert":
+                polish["drawers"][0]["closed"]["inert"] = False
+            elif mutation == "animation":
+                next(entry for entry in polish["measurements"] if "reducedMotion" in entry)["reducedMotion"]["transitionDurations"] = [0.12]
+            else:
+                polish["lobbyOpenedAndClosed"] = False
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                player_runner.validate_browser_polish(polish, self.manifest)
 
     def idle_evidence(self):
         case = copy.deepcopy(self.evidence["cases"][0])

@@ -74,6 +74,15 @@ settings drawers also expose camera sliders and **Reset view**. Camera preferenc
 are saved locally. Manual zoom can intentionally crop/enlarge the table; reset
 restores automatic fitting. The separate hand stays upright and fixed.
 
+The game shell groups labeled **New Game**, **Lobby**, **Game**, **Settings**
+and **Moves** controls into a compact phone toolbar, with readable variant/turn
+cues and stacked chat/action panels. Both settings drawers support keyboard
+focus wrapping, Escape and focus return. The native table uses quieter felt
+zones, fine seams, distinct seat/score typography and authoritative turn marks.
+These presentation changes do not change rules or private-hand entitlement.
+Combined-image qualification is separate from deployment; see the
+[polish evidence procedure](docs/integration/docker-build-and-run.md#issue-20-combined-polish-qualification).
+
 Switching away from the window pauses native visual updates, even if the tab
 remains visible. Returning resumes the latest state rather than replaying an
 idle backlog; lobby/chat networking continues. The bridge allows only one
