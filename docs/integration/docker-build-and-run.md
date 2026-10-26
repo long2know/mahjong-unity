@@ -567,7 +567,8 @@ focus wrapping/Escape/inert closure, reduced-motion computed styles, lobby
 reachability and all fourteen hand centers. These checks require the real
 matching C# player and save full-page screenshots; they do not fabricate native
 readiness. Headful focus uses a private cookie-authenticated Xvfb TCP display,
-with owned files below the project evidence mount and no external X11 sockets
+its supported display-FD readiness, and a private keymap RAM mount. Browser
+files stay below the project evidence mount; there are no external X11 sockets
 or lock files.
 
 The final derived receipt belongs in

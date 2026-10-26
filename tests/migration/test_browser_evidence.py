@@ -303,12 +303,16 @@ class PlayerEvidenceTests(unittest.TestCase):
                     "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
                 }, environment)
         wrapper = (ROOT / "tests/migration/player-headful.mjs").read_text()
-        self.assertIn("'-nolock', '-nolisten', 'unix'", wrapper)
+        self.assertIn("'-displayfd', '3'", wrapper)
+        self.assertIn("'-nolisten', 'unix'", wrapper)
+        self.assertNotIn("'-nolock'", wrapper)
         self.assertIn("'-listen', 'tcp', '-auth', authority", wrapper)
         self.assertIn("MIT-MAGIC-COOKIE-1", wrapper)
         self.assertIn("mode: 0o600", wrapper)
         self.assertNotIn("'/tmp", wrapper)
         self.assertNotIn("'-ac'", wrapper)
+        implementation = (ROOT / "tests/migration/run_player_integration.py").read_text()
+        self.assertIn('"/var/lib/xkb:rw,nosuid,nodev,size=16m,mode=1777"', implementation)
 
     def setUp(self):
         self.manifest = {"buildId": "unit-player", "unityVersion": "unit-version", "contractVersion": "1.0.0"}

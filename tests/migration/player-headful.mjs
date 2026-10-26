@@ -22,10 +22,12 @@ fs.writeFileSync(authority, Buffer.concat([
   field(Buffer.from('MIT-MAGIC-COOKIE-1')), field(randomBytes(16)),
 ]), { mode: 0o600, flag: 'wx' });
 const server = spawn('Xvfb', [
-  `:${display}`, '-screen', '0', '1280x1024x24', '-nolock', '-nolisten', 'unix',
+  `:${display}`, '-displayfd', '3', '-screen', '0', '1280x1024x24', '-nolisten', 'unix',
   '-listen', 'tcp', '-auth', authority, '-noreset',
-], { stdio: ['ignore', 'ignore', 'inherit'] });
+], { stdio: ['ignore', 'ignore', 'inherit', 'pipe'] });
 const serverExited = once(server, 'exit');
+let readyDisplay = '';
+server.stdio[3].setEncoding('utf8').on('data', data => { readyDisplay += data; });
 let child;
 try {
   const deadline = Date.now() + 10000;
@@ -36,7 +38,7 @@ try {
       socket.once('connect', () => { socket.destroy(); resolve(true); });
       socket.once('error', () => { socket.destroy(); resolve(false); });
     });
-    if (listening) break;
+    if (listening && readyDisplay.trim() === String(display)) break;
     assert(Date.now() < deadline, 'Private Xvfb did not become responsive');
     await new Promise(resolve => setTimeout(resolve, 100));
   }

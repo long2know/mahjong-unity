@@ -584,6 +584,7 @@ def main():
         ]
         if headful:
             command.extend(("--tmpfs", "/probe/temp:rw,nosuid,nodev,size=256m",
+                            "--tmpfs", "/var/lib/xkb:rw,nosuid,nodev,size=16m,mode=1777",
                             "--memory=1536m", "--pids-limit=512"))
         for key, value in browser_environment(args.scope, args.cases, headful).items():
             command.extend(("--env", key + "=" + value))
