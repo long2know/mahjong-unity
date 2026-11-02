@@ -267,6 +267,7 @@ class PublishingTests(unittest.TestCase):
             self.assertIn("github.ref == 'refs/heads/main'", workflow)
             self.assertIn("github.repository == 'long2know/mahjong-unity'", workflow)
             self.assertIn("cancel-in-progress: false", workflow)
+            self.assertIn("pull-requests: read", workflow)
             for line in workflow.splitlines():
                 if "uses:" in line:
                     self.assertRegex(line, r"@[0-9a-f]{40} #")
