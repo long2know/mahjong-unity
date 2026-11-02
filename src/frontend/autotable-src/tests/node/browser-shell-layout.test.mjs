@@ -248,4 +248,37 @@ test('production shell + UnityHost reserve unobstructed controls, panels and han
       }
     });
   }
+  for (const [width, height] of [[390, 844], [844, 390], [1280, 800]]) {
+    await t.test(`relay Deal remains reachable below the ${width}×${height} header`, async () => {
+      const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' });
+      const page = await context.newPage();
+      try {
+        await page.route('**/*', route => route.abort());
+        await page.setContent(markup.replace('</head>', `<style>${styles}</style></head>`));
+        await page.addScriptTag({ content: bundle });
+        await page.evaluate(() => {
+          document.body.className = 'variant-riichi theme-light';
+          new window.shellSource['move-log.ts'].MoveLog({});
+          window.shellSource['browser-shell.ts'].installBrowserShell();
+          window.dealClicks = 0;
+          document.getElementById('deal').addEventListener('click', () => window.dealClicks++);
+        });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        const bounds = await page.locator('#deal').evaluate(button => {
+          const box = button.getBoundingClientRect();
+          const header = document.getElementById('browser-shell').getBoundingClientRect();
+          const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return { top: box.top, bottom: box.bottom, headerBottom: header.bottom,
+            unobstructed: hit === button || button.contains(hit) };
+        });
+        assert(bounds.top >= bounds.headerBottom && bounds.bottom <= height,
+          `The real relay Deal control must be below, not underneath, the fixed header: ${JSON.stringify(bounds)}`);
+        assert(bounds.unobstructed, 'The real relay Deal control must receive ordinary pointer input');
+        await page.locator('#deal').click({ timeout: 1500 });
+        assert.equal(await page.evaluate(() => window.dealClicks), 1);
+      } finally {
+        await context.close();
+      }
+    });
+  }
 });

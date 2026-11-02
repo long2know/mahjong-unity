@@ -285,6 +285,11 @@ body.browser-shell-active :is(#settings-drawer, #settings-drawer-v2) {
 body.browser-shell-active :is(.settings-drawer-body, .settings-drawer-v2-panels) { min-height: 0; }
 body.browser-shell-active .settings-drawer-v2-tabs { flex-wrap: wrap; }
 body.browser-shell-active .settings-v2-tab { min-height: 44px; }
+body.browser-shell-active.variant-riichi #sidebar {
+    top: calc(var(--browser-shell-height, 61px) + 8px);
+    max-height: calc(100% - var(--browser-shell-height, 61px) - 16px);
+    overflow-y: auto;
+}
 
 @media (max-width: 900px), (max-height: 520px) {
     #browser-shell {
