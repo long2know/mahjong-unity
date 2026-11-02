@@ -13,22 +13,22 @@ import tarfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = "0dae531a58d87548488d76a55297700d5ff3589c"
-IMAGE = "ghcr.io/long2know/mahjong-unity@sha256:f9c6420c81206d250b79ab37c32a60045696b61a4dca56bc6f6a701168764f49"
-CONFIG = "sha256:b0d050bea10783403714e9065c1360716e2a60d4e011c1ee43b0f1bdd05e3027"
-RELEASE = "430946697"
-ASSET = "700020559"
-BUNDLE_SHA = "86468491b6de1dda82e7568825caf213d2a0e57305acb5e59bc40969d1127dfa"
-EDITOR = "artifacts/test-results/polish/editor-0dae531/receipt.json"
-XML = "artifacts/test-results/polish/editor-0dae531/unity-editmode.xml"
-PLAN = "artifacts/test-results/polish/runtime-final/case-plan-0dae531.json"
+SOURCE = "ee58678676bc3f99ac141a27111922dc3110ab2e"
+IMAGE = "ghcr.io/long2know/mahjong-unity@sha256:57fb86eb080d4ccda38edbd695eff451e92bfcb8ec4595c53ca0bbef0a192c02"
+CONFIG = "sha256:98127da019eee62ddb83e0536149a8e1970e5a2499c5dd4e7d4e837d8caef674"
+RELEASE = "431007157"
+ASSET = "700226139"
+BUNDLE_SHA = "1a3405a9cb9e6f590da34dd42db5bbddbf8fc03c117119c6739544af8c6b7a65"
+EDITOR = "artifacts/test-results/polish/editor-ee58678/receipt.json"
+XML = "artifacts/test-results/polish/editor-ee58678/unity-editmode.xml"
+PLAN = "artifacts/test-results/polish/runtime-final/case-plan-ee58678.json"
 GROUPS = ("general", "focus", "camera", "relay", "mobile")
 BROWSER = ("mcr.microsoft.com/playwright:v1.60.0-noble@"
            "sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9")
 HASHES = {
-    EDITOR: "64e15e456e539f9669dec52ab69751be0174187972b3bf7be7e743cd80831d64",
-    XML: "b79fc58760df11693af00be30a4783ff0445a9178d1c47dd271abcafd399ffcb",
-    PLAN: "a7c1b77b219a49d9e5163d68029540e4068f34dad976be4b9d183f541a4ed4be",
+    EDITOR: "cbae8f937c2bd7fa27936d10bfcd8c2a3a34033f6047aff469f790f78ab1b780",
+    XML: "f17e0b655bfc99baf7f0c39636995ec91409d4c88c9a20a1a0edc9f80e4c64d8",
+    PLAN: "73a6cb057a13a6032ebb93122a8fddaccbe4f754e3fc65824b3e8030f77c7190",
 }
 
 
@@ -101,7 +101,7 @@ def validate_image(image):
 
 def player_command(group, plan, run_id, attempt):
     require(group in GROUPS and run_id.isdecimal() and attempt.isdecimal(), "Invalid fixed partition/run")
-    name = f"migration-player-polish-hosted-0dae531-{group}-run{run_id}-{attempt}"
+    name = f"migration-player-polish-hosted-ee58678-{group}-run{run_id}-{attempt}"
     args = ["python3", "tests/migration/run_runtime_player_integration.py", "--image", CONFIG,
             "--editor-receipt", EDITOR, "--port", str(plan["ports"][group]), "--output-name", name]
     args.extend(["--mobile-playability"] if group == "mobile"

@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: polish-runtime-0dae531
+  group: polish-runtime-ee58678
   cancel-in-progress: false
 
 jobs:
@@ -31,18 +31,18 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 0dae531a58d87548488d76a55297700d5ff3589c
+          ref: ee58678676bc3f99ac141a27111922dc3110ab2e
           path: source
           persist-credentials: false
       - name: Restore genuine WebGL inputs and original Editor receipt/XML and case plan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_ROOT: ${{ github.workspace }}/source
-          SOURCE_SHA: 0dae531a58d87548488d76a55297700d5ff3589c
+          SOURCE_SHA: ee58678676bc3f99ac141a27111922dc3110ab2e
           SOURCE_PR: "21"
-          RELEASE_ID: "430946697"
-          ASSET_ID: "699921814"
-          BUNDLE_SHA256: ff7b561d4067e31937162b193c414aaa614fd94a083391151cc52b13d97c6eb2
+          RELEASE_ID: "431007157"
+          ASSET_ID: "700226136"
+          BUNDLE_SHA256: bdec288a7ab1b8c5346ca8e38e93dcf17a3fac66ccd65d7a1c6af8967c007172
         run: |
           python3 -B publisher/scripts/ghcr_publish.py prepare
           python3 -B publisher/scripts/qualify-polish-candidate.py prepare
@@ -53,7 +53,7 @@ jobs:
       - name: Build exact-source Vite reference and stage unchanged genuine Unity files
         working-directory: source
         env:
-          BUILD_SHA: 0dae531a58d87548488d76a55297700d5ff3589c
+          BUILD_SHA: ee58678676bc3f99ac141a27111922dc3110ab2e
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
           NPM_CONFIG_CACHE: ${{ github.workspace }}/source/artifacts/hosted-npm-cache
         run: |
@@ -75,7 +75,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: polish-runtime-0dae531-${{ matrix.group }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: polish-runtime-ee58678-${{ matrix.group }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: source/artifacts/test-results/
           if-no-files-found: error
           retention-days: 30
