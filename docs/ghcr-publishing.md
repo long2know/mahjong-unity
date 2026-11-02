@@ -12,6 +12,15 @@ Only same-repository manual dispatches on `main` publish. Actions are SHA-pinned
 the repository `GITHUB_TOKEN` stays inside the hosted job. No PAT, license,
 runtime JWT, database or `.env` belongs in the build input.
 
+The manual packaging job alone needs `contents: write`: GitHub restricts
+unpublished draft-release reads to push-capable identities. `contents: read`
+returns HTTP 403 even for the same repository's `GITHUB_TOKEN` (observed run
+41366872573). This is used only for authenticated GET/download; the workflow
+does not create/update releases, Git tags or source. Checkout credentials are not
+persisted, the token is not passed into the Docker build, and the separate
+promotion workflow retains read-only contents access. No repository-wide
+permission default, secret or PAT is changed.
+
 ## 1. Stage the genuine build input privately
 
 Use the exact clean source checkout that produced the artifacts. The manifest's

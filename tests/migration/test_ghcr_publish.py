@@ -284,6 +284,8 @@ class PublishingTests(unittest.TestCase):
                 if "run:" in line:
                     self.assertNotIn("${{ inputs.", line)
         self.assertIn("platforms: linux/amd64", build)
+        self.assertEqual(build.count("contents: write"), 1)
+        self.assertNotIn("contents: write", promote)
         self.assertNotIn(":latest", build)
         self.assertIn("ALLOW_SOURCE_DIRTY=0", build)
         self.assertIn("BUILD_SHA=${{ inputs.source_sha }}", build)
