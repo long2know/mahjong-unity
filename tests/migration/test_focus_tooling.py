@@ -59,6 +59,14 @@ class FocusToolingTests(unittest.TestCase):
             self.staged()
         self.assertFalse((self.work / "tools").exists())
 
+    def test_tool_checkout_changes_outside_owned_work_still_fail_closed(self):
+        for status in (b" M scripts/focus_probe_tooling.py\n", b"?? foreign-probe.mjs\n"):
+            with self.subTest(status=status), patch.object(tools.subprocess, "check_output",
+                    side_effect=[tools.APPLICATION_SOURCE + "\n", b"", "probe-revision\n", status]), \
+                    self.assertRaisesRegex(ValueError, "tooling checkout must be clean"):
+                self.staged()
+        self.assertFalse((self.work / "tools").exists())
+
     def test_actual_consumer_guard_rejects_remote_display_formats(self):
         record, _ = self.staged()
         result = subprocess.run([
