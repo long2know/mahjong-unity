@@ -1,0 +1,23 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "descriptive",
+      "used_at": "2026-10-09T19:15:33-0700"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "mahjong-unity-20261009-initial-team": {
+      "created_at": "2026-10-09T19:15:33-0700",
+      "agents": [
+        "lead",
+        "unity",
+        "frontend",
+        "backend",
+        "tester"
+      ],
+      "universe": "descriptive"
+    }
+  },
+  "transaction_id": "eb6e0a95-e8c1-497f-8e52-87bc4b3aa850",
+  "registry_revision": 2
+}

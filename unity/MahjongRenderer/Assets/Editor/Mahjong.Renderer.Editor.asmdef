@@ -1,0 +1,14 @@
+{
+  "name": "Mahjong.Renderer.Editor",
+  "rootNamespace": "Mahjong.Renderer.Editor",
+  "references": ["Mahjong.Renderer", "Unity.Newtonsoft.Json"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

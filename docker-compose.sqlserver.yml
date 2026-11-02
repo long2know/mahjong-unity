@@ -1,0 +1,57 @@
+# WP-C / #118 — Frost (Backend Dev, persistence).
+#
+# Compose overlay that runs the autotable + a dedicated SQL Server 2022
+# sidecar. Twin of docker-compose.postgres.yml. Use with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.sqlserver.yml up -d --build
+#
+# `Persistence__Provider=SqlServer` flips the API to the
+# Microsoft.EntityFrameworkCore.SqlServer-backed AppDbContext (see
+# Persistence/ServiceCollectionExtensions.cs). The API runs the canonical
+# EF Core MigrateAsync at startup, so the SqlServer migration set under
+# Persistence/Migrations/SqlServer/ is applied and recorded in
+# __EFMigrationsHistory. The `depends_on: condition: service_healthy`
+# block makes the API wait for SQL Server to accept logins before booting
+# so that startup migration doesn't race the engine's recovery phase.
+#
+# SA password: SQL Server enforces a complexity policy (>= 8 chars, 3 of
+# {upper, lower, digit, symbol}). The default below is DEV-ONLY — override
+# `MSSQL_SA_PASSWORD` (and the matching connection-string password) for any
+# environment that touches real users. The data volume is separate so
+# `docker compose down` keeps rows; `docker compose down -v` wipes them.
+#
+# NOTE: the base docker-compose.yml sets ASPNETCORE_ENVIRONMENT=Production,
+# which requires a JWT signing key — supply `Authentication__JwtSigningKeys__0`
+# (base64, ~48 bytes) in your environment exactly as with the Postgres overlay.
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Mahjong!Passw0rd}
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+    volumes:
+      - mahjong-sqlserver-data:/var/opt/mssql
+    ports:
+      - "127.0.0.1:${MSSQL_HOST_PORT:-1433}:1433"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${MSSQL_SA_PASSWORD:-Mahjong!Passw0rd}" -C -Q "SELECT 1" -b
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  mahjong:
+    environment:
+      Persistence__Provider: SqlServer
+      ConnectionStrings__SqlServer: >-
+        Server=sqlserver,1433;Database=${MSSQL_DB:-mahjong_autotable};User Id=sa;Password=${MSSQL_SA_PASSWORD:-Mahjong!Passw0rd};TrustServerCertificate=true
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+volumes:
+  mahjong-sqlserver-data:

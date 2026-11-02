@@ -1,0 +1,53 @@
+# Mahjong Autotable — local-dev compose file.
+#
+# Builds the single image defined in ./Dockerfile and exposes it on host
+# loopback port 8950 by default (container port 8080 stays fixed). SQLite
+# persistence lives on a project-scoped `mahjong-data` named volume so
+# data survives `docker compose down` (use `docker compose down -v` to wipe).
+#
+# Quickstart (first run provisions a stable JWT key into a gitignored .env):
+#   ./scripts/compose-bootstrap.sh        # idempotent — safe to re-run
+#   docker compose up -d --build
+#   open http://127.0.0.1:8950/autotable/
+#
+# WHY the bootstrap step: the image bakes ASPNETCORE_ENVIRONMENT=Production, and
+# the API refuses to boot without a stable HMAC signing key (a per-process
+# random key would silently invalidate every JWT on restart — see
+# JwtSigningKeyProvider.cs / docs/jwt-rotation.md §7). `JWT_SIGNING_KEY` is
+# injected below as `Authentication__JwtSigningKeys__0`. It is REQUIRED — if
+# unset/empty, `docker compose up` fails fast with an actionable message
+# instead of crash-looping under `restart: unless-stopped`. scripts/compose-
+# bootstrap.sh writes/keeps the key in your local `.env` (gitignored +
+# .dockerignored); no secret is ever committed, and the key stays stable across
+# restarts. Manual alternative:
+#   cp .env.example .env && echo "JWT_SIGNING_KEY=$(openssl rand -base64 48)" >> .env
+#
+# Phase J Wave 3 — Apone (DevOps). Phase L WP-G (#121) — .env JWT wiring.
+services:
+  mahjong:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_SHA: ${BUILD_SHA:-local}
+        ALLOW_SOURCE_DIRTY: ${ALLOW_SOURCE_DIRTY:-0}
+    image: ${MAHJONG_IMAGE:-mahjong-unity:local}
+    platform: ${MAHJONG_PLATFORM:-linux/amd64}
+    ports:
+      - target: 8080
+        published: "${MAHJONG_HOST_PORT:-8950}"
+        host_ip: "${MAHJONG_BIND_ADDRESS:-127.0.0.1}"
+        protocol: tcp
+    volumes:
+      - mahjong-data:/data
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      BUILD_SHA: ${BUILD_SHA:-local}
+      # Required base64 HMAC signing key — sourced from your local .env.
+      # `:?` makes compose abort with this message when it is unset/empty,
+      # converting a silent Production crash-loop into a one-time setup fix.
+      Authentication__JwtSigningKeys__0: "${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env before compose up - copy .env.example then append a key from openssl rand -base64 48}"
+    restart: unless-stopped
+
+volumes:
+  mahjong-data:

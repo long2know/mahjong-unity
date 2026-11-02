@@ -1,0 +1,97 @@
+/* Ferro — dark-listbox styling (UAT G5 platform-independent readable popup).
+   The popup is ordinary DOM, so these colours render identically on every
+   platform (unlike the native <option> popup). Light text on a dark surface,
+   WCAG-AA contrast, visible focus + active-option highlight, touch-sized rows. */
+
+.dark-listbox {
+    position: relative;
+    display: block;
+}
+
+/* Native <select> kept for value/change compatibility, removed from view. */
+.dark-listbox-native {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    border: 0;
+}
+
+.dark-listbox-trigger {
+    display: block;
+    width: 100%;
+    min-height: 40px;              /* touch target */
+    text-align: left;
+    padding: 8px 34px 8px 12px;
+    border-radius: 6px;
+    background-color: #343a40;      /* dark surface */
+    color: #ffffff;                 /* light text — ~11.5:1 on #343a40 */
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 0.95rem;
+    cursor: pointer;
+    /* inline gold chevron, no asset dependency */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' fill='none' stroke='%23ffd75e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 8px;
+}
+.dark-listbox-trigger:focus-visible {
+    outline: 2px solid #ffd75e;
+    outline-offset: 1px;
+}
+
+.dark-listbox-popup {
+    position: absolute;
+    z-index: 2000;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 4px;
+    background-color: #262b30;      /* dark popup surface */
+    border: 1px solid rgba(255, 215, 94, 0.35);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    color: #f2f2f2;
+}
+.dark-listbox-popup[hidden] { display: none; }
+
+.dark-listbox-group {
+    padding: 6px 10px 2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: #ffd75e;                 /* gold group header, readable on #262b30 */
+    text-transform: uppercase;
+}
+
+.dark-listbox-option {
+    padding: 9px 12px;              /* touch-sized rows */
+    border-radius: 5px;
+    color: #f2f2f2;                 /* light-on-dark ~13:1 */
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+}
+.dark-listbox-option:hover,
+.dark-listbox-option.active {
+    background-color: #3d6899;      /* highlight — white text ~4.9:1 */
+    color: #ffffff;
+}
+.dark-listbox-option[aria-selected="true"] {
+    font-weight: 700;
+}
+.dark-listbox-option[aria-selected="true"]::after {
+    content: " ✓";
+    color: #ffd75e;
+}
+.dark-listbox-option[aria-disabled="true"] {
+    color: rgba(242, 242, 242, 0.4);
+    cursor: not-allowed;
+    font-style: italic;
+}

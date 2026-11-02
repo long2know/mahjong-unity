@@ -1,0 +1,52 @@
+# Phase J Wave 7 — Apone (DevOps).
+#
+# Compose overlay that runs the autotable + a dedicated Postgres 16 sidecar.
+# The `mahjong` service inherits the base file's Production posture, so it
+# still needs a JWT key — run the same one-time bootstrap first:
+#
+#   ./scripts/compose-bootstrap.sh        # ensures a stable JWT_SIGNING_KEY in .env
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d --build
+#
+# `Persistence__Provider=Postgres` flips the API to the Npgsql-backed
+# AppDbContext (see Persistence/ServiceCollectionExtensions.cs). The
+# `depends_on: condition: service_healthy` block makes the API wait for
+# Postgres to pass its `pg_isready` healthcheck before booting — without
+# that, the EF Core MigrateAsync call at startup races the DB.
+#
+# Default credentials are dev-only — override `POSTGRES_PASSWORD` (and
+# the matching connection-string password) for any environment that
+# touches real users. The Postgres data volume is a separate named
+# volume so `docker compose down` keeps the rows; `docker compose down -v`
+# wipes everything.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mahjong_autotable}
+      POSTGRES_USER: ${POSTGRES_USER:-mahjong}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mahjong}
+    volumes:
+      - mahjong-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-mahjong} -d ${POSTGRES_DB:-mahjong_autotable}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  mahjong:
+    environment:
+      Persistence__Provider: Postgres
+      ConnectionStrings__PostgreSql: >-
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-mahjong_autotable};Username=${POSTGRES_USER:-mahjong};Password=${POSTGRES_PASSWORD:-mahjong}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  mahjong-postgres-data:

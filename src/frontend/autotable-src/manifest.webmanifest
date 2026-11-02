@@ -1,0 +1,38 @@
+{
+  "id": "/?source=pwa",
+  "name": "Mahjong Unity",
+  "short_name": "Mahjong",
+  "description": "Browser mahjong: Changsha and the four established tabletop variants",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1e2a36",
+  "background_color": "#0d161e",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New game",
+      "short_name": "New",
+      "description": "Start a new mahjong table with bots or open seats",
+      "url": "/?action=new-game"
+    },
+    {
+      "name": "Spectate",
+      "short_name": "Spectate",
+      "description": "Join an active game as a spectator",
+      "url": "/?action=spectate"
+    },
+    {
+      "name": "Tournament dashboard",
+      "short_name": "Tournaments",
+      "description": "Browse and join the tournament bracket dashboard",
+      "url": "/?action=tournament"
+    }
+  ]
+}

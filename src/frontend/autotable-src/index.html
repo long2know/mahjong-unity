@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Autotable</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <!-- Phase J Wave 8 — Sentry DSN injection point.  Empty content
+         keeps Sentry as a no-op; ops can swap the value in via
+         envsubst / k8s ConfigMap mount without rebuilding the bundle. -->
+    <meta name="sentry-dsn" content="">
+    <meta name="sentry-environment" content="production">
+    <!-- Phase K Wave 2 — PWA manifest + theme.  Service worker is
+         registered at boot by `pwa.ts`; the meta tags are picked up
+         by Chrome's install affordance even before the SW lands. -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1e2a36">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Mahjong">
+    <link href="./app-icon.svg" rel="icon" type="image/svg+xml">
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="./src/style.css">
+    <!-- Phase J Wave 5 — public matchmaking lobby, profile drawer,
+         stats panel.  Layered after style.css so its overrides win. -->
+    <link rel="stylesheet" href="./src/main.css">
+    </head>
+<body>
+    <div id="full">
+        <div id="loading" class="centered text-white-50">Loading...</div>
+        <div id="main" class="centered">
+        </div>
+        <div class="seat-buttons">
+            <div class="seat-button seat-button-0">
+                <button class="take-seat btn btn-primary">Take seat</button>
+                <button class="kick btn btn-dark btn-progress-main" hidden
+                        data-toggle="tooltip" data-placement="top"
+                        title="Click and hold to unseat">
+                    <div class="btn-progress"></div>
+                    <span class="btn-progress-text"></span>
+                </button>
+            </div>
+            <div class="seat-button seat-button-1">
+                <button class="take-seat btn btn-primary">Take seat</button>
+                <button class="kick btn btn-dark btn-progress-main" hidden
+                        data-toggle="tooltip" data-placement="top"
+                        title="Click and hold to unseat">
+                    <div class="btn-progress"></div>
+                    <span class="btn-progress-text"></span>
+                </button>
+            </div>
+            <div class="seat-button seat-button-2">
+                <button class="take-seat btn btn-primary">Take seat</button>
+                <button class="kick btn btn-dark btn-progress-main" hidden
+                        data-toggle="tooltip" data-placement="top"
+                        title="Click and hold to unseat">
+                    <div class="btn-progress"></div>
+                    <span class="btn-progress-text"></span>
+                </button>
+            </div>
+            <div class="seat-button seat-button-3">
+                <button class="take-seat btn btn-primary">Take seat</button>
+                <button class="kick btn btn-dark btn-progress-main" hidden
+                        data-toggle="tooltip" data-placement="top"
+                        title="Click and hold to unseat">
+                    <div class="btn-progress"></div>
+                    <span class="btn-progress-text"></span>
+                </button>
+            </div>
+        </div>
+
+        <div id="sidebar" class="collapsed container text-light">
+            <div class="d-flex relay-only">
+                <button class="btn btn-warning btn-sm w-100 btn-progress-main" id="deal">
+                    <div class="btn-progress"></div>
+                    <span class="btn-progress-text">Deal</span>
+                </button>
+            </div>
+
+            <div class="mt-2 d-flex relay-only">
+                <button disabled class="btn btn-sm btn-outline-secondary text-white w-100 mr-2" id="setup-desc">
+                </button>
+                <button class="btn btn-dark btn-sm dropdown-toggle collapsed" id="toggle-setup"
+                    data-toggle="collapse" data-target="#setup-group">Setup</button>
+            </div>
+
+            <div id="setup-group" class="collapse relay-only" data-toggle="true">
+                <select class="dark-select form-control form-control-sm mt-2" id="deal-type">
+                    <option disabled value="">Deal:</option>
+                    <option value="HANDS" selected>Hands</option>
+                    <option value="INITIAL">Only walls</option>
+                    <option value="UNSHUFFLED">Only walls (not shuffled)</option>
+                </select>
+                <!-- Phase F — variant picker.  Changing this requires a reload
+                     (the page reads ?variant=... on boot to re-seed setup). -->
+                <select class="dark-select form-control form-control-sm mt-2" id="game-type">
+                    <option value="CHANGSHA" selected>Changsha (108)</option>
+                    <option value="FOUR_PLAYER">Riichi — 4 player</option>
+                    <option value="THREE_PLAYER">Riichi — 3 player</option>
+                    <option value="BAMBOO">Bamboo</option>
+                    <option value="MINEFIELD">Minefield</option>
+                </select>
+                <!-- Phase F — deal-mode toggle.  Changsha-only; Riichi variants
+                     are always classic auto-deal.  Takes effect on NEXT deal. -->
+                <select class="dark-select form-control form-control-sm mt-2 changsha-only" id="deal-mode">
+                    <option disabled value="">Deal mode:</option>
+                    <option value="manual" selected>Manual (click to pick)</option>
+                    <option value="auto">Auto (instant deal)</option>
+                </select>
+                <!-- Phase F — bot count + difficulty (informational; Bishop's
+                     bot engine fills empty seats server-side when this is >0). -->
+                <select class="dark-select form-control form-control-sm mt-2" id="bot-count">
+                    <option disabled value="">Bots:</option>
+                    <option value="0" selected>0 bots</option>
+                    <option value="1">1 bot</option>
+                    <option value="2">2 bots</option>
+                    <option value="3">3 bots</option>
+                    <option value="4">4 bots</option>
+                </select>
+                <select class="dark-select form-control form-control-sm mt-2" id="bot-difficulty">
+                    <option disabled value="">Difficulty:</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="master">Master</option>
+                </select>
+                <!-- Phase F — Riichi-only setup.  Hidden in Changsha. -->
+                <select class="dark-select form-control form-control-sm mt-2 riichi-only" id="fives">
+                    <option disabled value="">Red fives:</option>
+                    <option value="000">0 red fives</option>
+                    <option value="111" selected>3 red fives (1 each)</option>
+                    <option value="121">4 red fives (2 sou + 1 each)</option>
+                </select>
+                <select class="dark-select form-control form-control-sm mt-2 riichi-only" id="points">
+                    <option disabled value="">Starting points:</option>
+                    <option value="25" selected>25000</option>
+                    <option value="30">30000</option>
+                    <option value="35">35000</option>
+                    <option value="40">40000</option>
+                    <option value="100">100000 (tonpuu)</option>
+                </select>
+                <button class="btn btn-dark btn-sm w-100 mt-2 riichi-only" id="reset-points">
+                    Reset points
+                </button>
+                <br>
+            </div>
+
+            <div class="mt-2 d-flex relay-only">
+                <button class="btn btn-secondary btn-sm w-100" id="toggle-dealer">Dealer</button>
+                <button class="btn btn-secondary btn-sm w-100 ml-2 riichi-only" id="toggle-honba">
+                    Honba: 0
+                </button>
+            </div>
+
+            <div class="mt-3">
+                <small class="text-white-50">Claims</small>
+                <div class="d-flex mt-1">
+                    <button class="btn btn-dark btn-sm mr-1 w-100" id="claim-pung" disabled
+                            data-toggle="tooltip" data-placement="top"
+                            title="Claim a Pung (triplet).">
+                        碰 <small>Pung</small>
+                    </button>
+                    <button class="btn btn-dark btn-sm mr-1 w-100" id="claim-chow" disabled
+                            data-toggle="tooltip" data-placement="top"
+                            title="Claim a Chow (sequence).">
+                        吃 <small>Chow</small>
+                    </button>
+                    <button class="btn btn-dark btn-sm mr-1 w-100" id="claim-kong" disabled
+                            data-toggle="tooltip" data-placement="top"
+                            title="Claim a Kong (four-of-a-kind).">
+                        杠 <small>Kong</small>
+                    </button>
+                    <button class="btn btn-warning btn-sm w-100" id="claim-hu" disabled
+                            data-toggle="tooltip" data-placement="top"
+                            title="Declare Hu (win).">
+                        胡 <small>Hu</small>
+                    </button>
+                </div>
+                <div class="d-flex mt-1">
+                    <button class="btn btn-secondary btn-sm w-100" id="claim-pass" disabled
+                            data-toggle="tooltip" data-placement="top"
+                            title="Pass on this claim window.">
+                        跳过 <small>Pass</small>
+                    </button>
+                </div>
+                <div class="mt-1 text-warning claim-countdown" id="claim-countdown" hidden>
+                    Decide in <span id="claim-countdown-value">5.0</span>s
+                </div>
+            </div>
+
+            <!-- Phase I Wave 3 — Game ID input + URL persistence.  Read by
+                 client-ui.ts at connect time and appended to the WebSocket
+                 URL as ?gameId=X so the backend (post Bishop's DefaultGameId
+                 lift in AutotableWsEndpoint.cs:263/278) routes each gameId to
+                 a separate game state pool.  Hidden once connected, replaced
+                 by the small "Game: <id>" display below so the user always
+                 knows which game they're in. -->
+            <div class="lobby-row mt-4 relay-only" id="lobby-gameId-row">
+                <label for="lobby-gameId" class="server-disconnected">Game ID</label>
+                <input id="lobby-gameId" type="text" maxlength="64"
+                       class="server-disconnected"
+                       placeholder="changsha-default"
+                       pattern="[A-Za-z0-9_\-\.]+"
+                       title="Letters, digits, _, -, . only"
+                       autocomplete="off" spellcheck="false">
+                <div id="lobby-gameId-error" class="lobby-error server-disconnected" hidden>
+                    Game ID may only contain letters, digits, _, -, and . (max 64 chars).
+                </div>
+                <small class="current-game-display server-connected"
+                       id="current-game-display">
+                    Game: <span id="current-game-id">—</span>
+                    <!-- Phase I Wave 4 — Spectating pill, shown when the
+                         active connection is in spectator mode
+                         (?seat=-1).  Sibling of the game-id label so the
+                         two pills sit on the same row.  client-ui.ts
+                         toggles the .visible class. -->
+                    <span class="spectator-pill" id="spectator-pill" aria-live="polite">
+                        👁 Spectating
+                    </span>
+                </small>
+            </div>
+
+            <div class="mt-2 d-flex relay-only" id="server">
+                <button class="btn btn-warning btn-sm w-100 server-disconnected mr-2" id="connect">
+                    Connect
+                </button>
+                <button class="btn btn-secondary btn-sm w-100 server-connected mr-2" id="disconnect">
+                    Disconnect
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-secondary btn-sm btn-block dropdown-toggle" data-toggle="dropdown">
+                        Nick
+                    </button>
+                    <div class="dropdown-menu p-3 text-light">
+                        <input class="form-control form-control-sm" id="nick" type="text"></input>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase J Wave 1 — Hot-seat swap.  Move button is shown only when
+                 connected + no match in progress (i.e. Seating phase).  It opens
+                 a tiny inline picker that triggers a soft reconnect with the
+                 new ?seat= query param (see game-ui.ts:setupMoveSeatPicker).
+                 Initially hidden inline; game-ui.ts flips display based on
+                 connect/disconnect + match-update events. -->
+            <div class="lobby-row mt-2" id="move-seat-row" hidden>
+                <button class="btn btn-dark btn-sm w-100" id="move-seat-btn"
+                        type="button"
+                        aria-haspopup="true" aria-expanded="false"
+                        aria-controls="move-seat-panel">
+                    Move
+                </button>
+                <div id="move-seat-panel" class="move-seat-panel"
+                     role="menu" aria-labelledby="move-seat-btn"
+                     hidden>
+                    <button class="btn btn-primary btn-sm move-seat-option"
+                            type="button" data-seat="0" role="menuitem">Seat 0</button>
+                    <button class="btn btn-primary btn-sm move-seat-option"
+                            type="button" data-seat="1" role="menuitem">Seat 1</button>
+                    <button class="btn btn-primary btn-sm move-seat-option"
+                            type="button" data-seat="2" role="menuitem">Seat 2</button>
+                    <button class="btn btn-primary btn-sm move-seat-option"
+                            type="button" data-seat="3" role="menuitem">Seat 3</button>
+                    <button class="btn btn-secondary btn-sm move-seat-option"
+                            type="button" data-seat="-1" role="menuitem">Spectate</button>
+                </div>
+            </div>
+
+            <div class="d-flex mt-2">
+                <button class="btn btn-dark btn-sm mr-2 w-100" id="leave-seat">Leave seat</button>
+                <div class="dropdown">
+                    <button class="btn btn-dark btn-sm btn-block dropdown-toggle" data-toggle="dropdown">
+                        More
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-help p-3 text-light">
+                        <h4>Instructions</h4>
+                        <p>
+                        <b>Drag mouse</b> to move or select<br>
+                        Press <b>F</b> or <b>right-click</b> to flip or rotate<br>
+                        Press <b>R</b> to rotate backwards; for example hide your hand<br>
+                        Hold <b>SPACE</b> (or press <b>Q</b>) to look down<br>
+                        Hold <b>Z</b> to zoom in<br>
+                        Hold <b>X</b> to zoom out<br>
+                        Press <b>P</b> to toggle perspective mode
+                        Press <b>L</b> to toggle tile labels
+                        </p>
+                        <h4>Settings</h4>
+                        <label>
+                            <input type="checkbox" id="perspective" checked>
+                            Perspective mode
+                        </label>
+                        <label>
+                            <input type="checkbox" id="benchmark" disabled>
+                            Benchmark retired — Unity controls rendering
+                        </label>
+                        <label>
+                            <input type="checkbox" id="muted">
+                            Mute sound
+                        </label>
+                        <label>
+                            <input type="checkbox" id="sticky" disabled aria-describedby="sticky-unavailable">
+                            Sticky mouse (click to grab)
+                        </label>
+                        <p id="sticky-unavailable" class="small">Sticky drag is unavailable in renderer v1. Use press/drag/release; no hidden fallback is enabled.</p>
+                        <label>
+                            <input type="checkbox" id="tile-labels" checked>
+                            Tile labels
+                        </label>
+                        <label class="d-block" for="renderer-board-layout" data-i18n="settings.board_layout">Board layout</label>
+                        <select id="renderer-board-layout" class="dark-select form-control form-control-sm">
+                            <option value="auto" data-i18n="settings.layout_auto">Automatic (mobile fit)</option>
+                            <option value="classic" data-i18n="settings.layout_classic">Classic square</option>
+                            <option value="rectangular" data-i18n="settings.layout_rectangular">Rectangular</option>
+                        </select>
+                        <label class="d-block mt-2" for="renderer-hand-layout" data-i18n="settings.hand_layout">Local hand layout</label>
+                        <select id="renderer-hand-layout" class="dark-select form-control form-control-sm">
+                            <option value="auto" data-i18n="settings.layout_auto">Automatic (mobile fit)</option>
+                            <option value="in-table" data-i18n="settings.layout_in-table">In table</option>
+                            <option value="separate" data-i18n="settings.layout_separate">Separate local hand</option>
+                        </select>
+                        <p id="unity-notice" class="small mt-2" role="status" aria-live="polite"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-2 riichi-only">
+                <small>
+                    <a class="text-light" target="_blank" rel="noopener" href="./about.html">Table controls and source notices</a>
+                </small>
+            </div>
+
+            <div class="mt-2">
+                <small>
+                    <a class="text-white-50" target="_blank" href="about.html">About the project</a>
+                </small>
+            </div>
+
+            <div class="text-warning mt-2" id="status" hidden>
+                <small class="mt-2" id="status-text">
+                    Status text
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="viewer-modal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-body"></div>
+                <div class="modal-source-cite">
+                    (source: <a target="_blank" href="https://www.reddit.com/r/Mahjong/comments/l5b221/riichi_mahjong_cheat_sheet_1_page_pdf_or_images/">Aranlyde</a>)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase D — Hand result modal (rendered on `result.current` UPDATE). -->
+    <div class="modal" id="result-modal" tabindex="-1" aria-hidden="true" role="dialog"
+         aria-labelledby="result-headline" aria-describedby="result-dialog-status"
+         data-testid="hand-result-dialog"
+         data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content result-modal-content">
+                <div class="modal-body text-light text-center">
+                    <h2 id="result-headline" class="mb-1">胡!</h2>
+                    <div id="result-winner" class="mb-3 text-warning"></div>
+                    <table class="table table-sm table-dark mx-auto" id="result-score">
+                        <thead>
+                            <tr>
+                                <th>座位 Seat</th>
+                                <th>玩家 Player</th>
+                                <th>分 Score Δ</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="mt-3">
+                        <div class="text-white-50 mb-1">
+                            <small>胡牌 Winning hand</small>
+                        </div>
+                        <div id="result-hand" class="d-flex flex-wrap justify-content-center"></div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <div id="result-dialog-status" role="status" aria-live="polite" data-testid="hand-result-status"></div>
+                    <div id="result-dialog-error" role="alert" data-testid="hand-result-error" hidden></div>
+                    <button type="button" class="btn btn-secondary" id="result-refresh" data-testid="hand-result-refresh" hidden>
+                        Refresh status
+                    </button>
+                    <button type="button" class="btn btn-warning" id="result-next" data-testid="hand-result-continue">
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase D — Dice + break-point HUD (briefly shown on first deal). -->
+    <div id="dice-hud" hidden>
+        <span class="dice-face" id="dice-hud-d1">⚀</span>
+        <span class="dice-face" id="dice-hud-d2">⚀</span>
+        <span class="dice-sum">= <span id="dice-hud-sum">2</span></span>
+        <span class="dice-break">→ break @ <span id="dice-hud-break">2</span></span>
+    </div>
+
+    <!-- Phase D — Bot banner (bottom-left): announces auto-fill. -->
+    <div id="bot-banner" hidden></div>
+
+    <!-- Hicks postfix-verify P0 — turn indicator banner.  Floating top-center.
+         Surfaces "Your turn — click a tile to discard" when seat 0 has 14
+         tiles, "Your turn — pick a tile from the wall" while a pickup
+         affordance targets self, and "Claim opportunity …" with a seconds
+         countdown when a claim window includes self.  See game-ui.ts
+         setupTurnBanner / refreshTurnBanner. -->
+    <div id="turn-banner" hidden role="status" aria-live="polite"></div>
+
+    <!-- Phase F — Variant badge (top-right): always-visible label so players
+         confirm what they're playing without opening the sidebar. -->
+    <div id="variant-badge">🀄 Changsha</div>
+
+    <!-- Phase I Wave 1 — streaming move-log sidebar.  Anchored top-right
+         beneath the variant badge.  Populated by move-log.ts subscribing to
+         the existing client collections (match/dice/things/sound/claim/
+         pickup/result).  No new wire contract required. -->
+    <aside id="move-log" aria-label="Move log"></aside>
+
+    <!-- Phase F — Pickup HUD (center-bottom): announces "your turn — pick N
+         tiles" or "Bot 2 is picking…".  The take-shortcut button emits
+         pickup.take so impatient players don't have to click N wall tiles. -->
+    <div id="pickup-hud" hidden>
+        <span id="pickup-hud-text">Your turn — pick 4 tiles</span>
+        <button class="btn btn-warning btn-sm ml-2" id="pickup-take-btn">
+            Take <span id="pickup-take-count">4</span>
+        </button>
+    </div>
+
+    <!-- Phase F — Roll-dice button (center, above the table).  Only shown
+         when pickup.phase === 'RollingDice' and this seat is the dealer. -->
+    <button id="roll-dice" hidden title="Click to roll the dice and start picking tiles">
+        <span class="dice-label" aria-hidden="true">⚄ ⚂</span>
+        <span class="roll-dice-label">Roll dice</span>
+    </button>
+
+    <!-- Phase F — Break marker overlay.  Painted at the per-seat wall position
+         indicated by pickup.breakPoint after the dice roll resolves. -->
+    <div id="break-marker" hidden>▼</div>
+
+    <section id="own-turn-actions" class="rule-action-panel" hidden
+             aria-labelledby="own-turn-actions-title" data-testid="own-turn-actions">
+        <h2 id="own-turn-actions-title">Own-turn declarations</h2>
+        <div class="rule-action-buttons">
+            <button id="own-turn-hu" type="button" class="btn btn-warning" disabled
+                    data-testid="own-turn-hu">Self-draw Hu</button>
+            <button id="own-turn-concealed-kong" type="button" class="btn btn-warning" disabled
+                    data-testid="own-turn-concealed-kong">Concealed Kong</button>
+            <button id="own-turn-added-kong" type="button" class="btn btn-warning" disabled
+                    data-testid="own-turn-added-kong">Added Kong</button>
+        </div>
+        <p id="own-turn-action-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="rule-action-recovery" class="rule-action-panel" hidden role="alert"
+             aria-labelledby="rule-action-recovery-title" data-testid="rule-action-recovery">
+        <h2 id="rule-action-recovery-title">Server confirmation unavailable</h2>
+        <p id="rule-action-recovery-message"></p>
+        <div class="rule-action-buttons">
+            <button id="rule-action-reload" type="button" class="btn btn-secondary"
+                    data-testid="rule-action-reload">Reload table</button>
+        </div>
+    </section>
+
+    <dialog id="rule-action-choice-dialog" class="rule-action-dialog"
+            aria-labelledby="rule-action-choice-title" aria-describedby="rule-action-choice-hint">
+        <h2 id="rule-action-choice-title">Choose tiles</h2>
+        <p id="rule-action-choice-hint"></p>
+        <div id="rule-action-choices" class="rule-action-choices"></div>
+        <button id="rule-action-choice-cancel" type="button" class="btn btn-secondary">Cancel</button>
+    </dialog>
+
+    <!-- Phase G — Lobby toggle (top-left).  Opens the lobby panel so users
+         can pick variant / dealMode / botCount / botDifficulty without
+         editing the URL bar.  Hidden via body.lobby-active while the panel
+         is open. -->
+    <button id="lobby-toggle" type="button" title="Open lobby" data-testid="lobby-toggle">
+        <span class="lobby-toggle-icon">☰</span>
+        <span class="lobby-toggle-label">Lobby</span>
+    </button>
+
+    <!-- Ferro P0 (persistent one-click New Game) — a prominent, text-labeled
+         primary action in the authoritative top chrome, independent of the
+         setup/sidebar so it stays reachable in every Changsha phase (seating,
+         active hand, claim, disconnected/reconnecting, GameComplete). Keeps
+         id="new-game" + data-action="new-game" so client-ui.ts's newGame()
+         binding AND action-router's [data-action] deep-link stay wired
+         unchanged (navigation is Hicks's lane; not implemented here). Hicks may
+         toggle [disabled]/aria-busy during navigation to block double-fire. -->
+    <button id="new-game" data-action="new-game" type="button"
+            class="new-game-primary" data-testid="new-game-button"
+            aria-label="Start a new game">New Game</button>
+
+    <!-- Phase J Wave 4 — Mobile move-log drawer toggle.  Hidden ≥ 1025 px
+         via CSS; on tablet/phone widths the move-log slides off the right
+         edge and this hamburger button surfaces / hides it.  game-ui.ts
+         (setupMobileDrawer) wires the open/close + outside-click. -->
+    <button id="move-log-toggle" type="button" title="Move log"
+            aria-controls="move-log" aria-expanded="false"
+            data-testid="mobile-move-log-toggle">
+        <span class="move-log-toggle-icon">📜</span>
+    </button>
+
+    <!-- Phase J Wave 2 — Settings drawer toggle (top-right, beside the
+         variant badge).  Opens an inline panel exposing per-game session
+         overrides: bot strength, hand count, auto-deal.  Persists via
+         localStorage keyed by gameId so each game keeps its own settings.
+         The values flow into the new-game URL on Apply / New Game. -->
+    <button id="settings-toggle" type="button" title="Per-game settings"
+            aria-label="Open per-game settings">
+        <span class="settings-toggle-icon" aria-hidden="true">⚙</span>
+    </button>
+
+    <!-- Phase J Wave 7 — App-wide settings button.  Sits next to the
+         per-game settings gear and opens the tabbed app settings drawer
+         below.  Keeps the existing Wave-2 gear untouched. -->
+    <button id="settings-button" type="button" title="Settings: view and hand order"
+            data-testid="settings-button"
+            aria-label="Settings: view and hand order"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="settings-drawer-v2">
+        <span class="settings-button-icon" aria-hidden="true">⚙</span>
+        <span class="sr-only">Settings</span>
+    </button>
+
+    <!-- Phase J Wave 2 — Connection banner (top-center).  Surfaces the
+         WS reconnect lifecycle: yellow while attempting, red when all
+         attempts fail, green flash on success.  Visibility + state-class
+         owned by client-ui.ts. -->
+    <div id="connection-banner" class="connection-banner" role="status"
+         aria-live="polite" hidden>
+        <span class="connection-banner-text" id="connection-banner-text"></span>
+        <span class="connection-banner-actions" id="connection-banner-actions" hidden>
+            <!-- Phase J Wave 4 — Copy-rejoin-link button.  Revealed inline
+                 by client-ui.ts after the first failed retry (attempt
+                 >= 2) so a player whose tab is mid-reconnect can grab a
+                 share-able URL containing a fresh rejoin token. -->
+            <button type="button" class="btn btn-sm btn-info"
+                    id="connection-banner-copy-link"
+                    data-testid="reconnect-copy-link"
+                    hidden
+                    title="Copy a link you can paste into another tab to keep this seat">
+                🔗 Copy rejoin link
+            </button>
+            <button type="button" class="btn btn-sm btn-warning"
+                    id="connection-banner-retry">Retry</button>
+            <button type="button" class="btn btn-sm btn-secondary"
+                    id="connection-banner-lobby">Back to Lobby</button>
+        </span>
+    </div>
+
+    <!-- Phase J Wave 4 — Toast region.  Aria-live polite region anchored
+         bottom-center; client-ui.ts (showToast) pushes ephemeral notices
+         here for non-blocking feedback (e.g. "Link copied", "Your
+         previous session has ended"). -->
+    <div id="toast-region" class="toast-region"
+         role="status" aria-live="polite"
+         data-testid="toast-region"></div>
+
+    <!-- Phase J Wave 2 — Settings drawer (top-right slide-out).  Mirrors
+         a subset of the lobby pickers (bot strength, hand count, auto-deal)
+         so users can adjust mid-session without bouncing through the lobby.
+         Values persist in localStorage (gameId-keyed) and apply on the next
+         New Game.  Hidden by default; #settings-toggle flips .settings-open. -->
+    <aside id="settings-drawer" class="settings-drawer" role="dialog"
+           aria-label="Game settings" aria-hidden="true">
+        <div class="settings-drawer-header">
+            <h3 class="settings-drawer-title">⚙ Settings</h3>
+            <button id="settings-close" type="button"
+                    class="settings-drawer-close" aria-label="Close settings"
+                    title="Close">×</button>
+        </div>
+        <div class="settings-drawer-body">
+            <div id="settings-table-display">
+                <div class="settings-row">
+                    <label class="settings-checkbox-label settings-perspective-row">
+                        <input type="checkbox" id="settings-game-perspective"
+                               data-testid="settings-game-perspective"
+                               aria-describedby="settings-game-perspective-hint" checked>
+                        <span data-i18n="settings.perspective">Perspective view</span>
+                    </label>
+                    <small id="settings-game-perspective-hint" class="settings-hint"
+                           data-i18n="settings.perspective_hint">Uncheck for flat view. Applies immediately; P also switches views.</small>
+                </div>
+                <div class="settings-row">
+                    <label for="settings-game-hand-sort" class="settings-label" data-i18n="hand.order">Hand order</label>
+                    <select id="settings-game-hand-sort" class="dark-select form-control form-control-sm"
+                            data-testid="settings-game-hand-sort" aria-label="Hand order"
+                            aria-describedby="settings-game-hand-sort-hint">
+                        <option value="suit" data-i18n="hand.sort_suit">Suit + rank</option>
+                        <option value="groups" data-i18n="hand.sort_groups">Pairs / triples first</option>
+                    </select>
+                    <small id="settings-game-hand-sort-hint" class="settings-hint" data-i18n="hand.sort_hint">
+                        Automatic, on your screen only. Groups include four identical tiles; this does not claim a meld or suggest a scoring pattern. Relay games keep manual arrangement.
+                    </small>
+                </div>
+            </div>
+            <div class="settings-row">
+                <label for="settings-bot-strength" class="settings-label">
+                    Bot Strength
+                </label>
+                <select id="settings-bot-strength" class="dark-select form-control form-control-sm">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard" selected>Hard</option>
+                </select>
+            </div>
+            <div class="settings-row">
+                <label for="settings-hand-count" class="settings-label">
+                    Hand Count
+                </label>
+                <select id="settings-hand-count" class="dark-select form-control form-control-sm">
+                    <option value="1">1 (single hand)</option>
+                    <option value="4" selected>4 (east-wind)</option>
+                    <option value="8">8 (east round)</option>
+                    <option value="16">16 (half match)</option>
+                </select>
+            </div>
+            <div class="settings-row">
+                <label class="settings-checkbox-label">
+                    <input type="checkbox" id="settings-auto-deal">
+                    Auto-Deal
+                    <small class="settings-hint">
+                        Runtime auto-starts the next hand after each result.
+                    </small>
+                </label>
+            </div>
+            <!-- Phase J Wave 3 — Sound toggle.  Mirrors the auto-deal row;
+                 persists via the same localStorage key pattern.  When off,
+                 every SoundEvent in sound.ts is a no-op. -->
+            <div class="settings-row">
+                <label class="settings-checkbox-label">
+                    <input type="checkbox" id="settings-sound" checked>
+                    Sound
+                    <small class="settings-hint">
+                        Plays SFX on draws, discards, claims and wins.
+                    </small>
+                </label>
+            </div>
+        </div>
+        <div class="settings-drawer-footer">
+            <small class="settings-saved-note" id="settings-saved-note" hidden>Saved ✓</small>
+            <button id="settings-apply" type="button"
+                    class="btn btn-warning btn-sm">
+                Apply &amp; Restart
+            </button>
+        </div>
+    </aside>
+
+    <!-- Phase J Wave 7 — App-wide settings drawer (V2).  Tabbed surface
+         exposing General / Audio / Display / Network preferences.
+         Persists to localStorage under `mahjong.settings.v1` (single
+         JSON blob). -->
+    <aside id="settings-drawer-v2" class="settings-drawer-v2"
+           role="dialog" aria-label="Application settings"
+           aria-modal="false" aria-hidden="true"
+           data-testid="settings-drawer">
+        <div class="settings-drawer-v2-header">
+            <h3 class="settings-drawer-v2-title">⚙ Settings</h3>
+            <button id="settings-close-v2" type="button"
+                    class="settings-drawer-v2-close"
+                    data-testid="settings-close"
+                    aria-label="Close settings">×</button>
+        </div>
+        <div class="settings-drawer-v2-tabs"
+             id="settings-drawer-v2-tabs"
+             role="tablist"
+             aria-label="Settings sections"></div>
+        <div class="settings-drawer-v2-panels"
+             id="settings-drawer-v2-panels"></div>
+        <div class="settings-drawer-v2-footer">
+            <small class="settings-saved-note-v2"
+                   id="settings-saved-note-v2"
+                   role="status" aria-live="polite" hidden>Saved ✓</small>
+            <button id="settings-reset" type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-testid="settings-reset">
+                Reset
+            </button>
+            <button id="settings-save" type="button"
+                    class="btn btn-warning btn-sm"
+                    data-testid="settings-save">
+                Save
+            </button>
+        </div>
+    </aside>
+
+    <!-- Phase J Wave 7 — Player profile page.  Full overlay surfaced
+         from the lobby chip; shows stats grid + recent games + editable
+         display name / avatar colour. -->
+    <div id="profile-page" class="profile-page"
+         role="dialog" aria-label="Player profile"
+         aria-modal="true" aria-hidden="true"
+         data-testid="profile-page">
+        <div class="profile-page-shell">
+            <header class="profile-page-header">
+                <div class="profile-page-identity">
+                    <div id="profile-page-avatar"
+                         class="profile-page-avatar"
+                         aria-hidden="true">?</div>
+                    <div class="profile-page-identity-text">
+                        <h2 id="profile-page-name" class="profile-page-name">
+                            Guest
+                        </h2>
+                        <small id="profile-page-member-since"
+                               class="profile-page-member-since">
+                            New member
+                        </small>
+                    </div>
+                </div>
+                <button id="profile-page-close" type="button"
+                        class="profile-page-close"
+                        data-testid="profile-page-close"
+                        aria-label="Close profile">×</button>
+            </header>
+
+            <section class="profile-page-section"
+                     aria-labelledby="profile-page-stats-heading">
+                <h3 id="profile-page-stats-heading"
+                    class="profile-page-section-title">Career stats</h3>
+                <div id="profile-stats-grid"
+                     class="profile-stats-grid"
+                     data-testid="profile-stats-grid"></div>
+            </section>
+
+            <section class="profile-page-section"
+                     aria-labelledby="profile-page-edit-heading">
+                <h3 id="profile-page-edit-heading"
+                    class="profile-page-section-title">Profile</h3>
+                <label class="profile-page-field">
+                    <span class="profile-page-field-label">Display name</span>
+                    <input id="profile-page-display-name-input"
+                           class="profile-page-input"
+                           data-testid="profile-page-display-name-input"
+                           type="text" maxlength="32"
+                           autocomplete="off" spellcheck="false">
+                    <span id="profile-page-display-name-error"
+                          class="profile-page-error"
+                          aria-live="polite"></span>
+                </label>
+                <div class="profile-page-field">
+                    <span class="profile-page-field-label">Avatar colour</span>
+                    <div id="profile-page-color-presets"
+                         class="profile-page-color-presets"
+                         role="radiogroup"
+                         aria-label="Avatar colour presets"></div>
+                    <label class="profile-page-color-custom-row">
+                        <span>Custom colour</span>
+                        <input id="profile-page-color-custom"
+                               class="profile-page-color-custom"
+                               data-testid="profile-page-color-custom"
+                               type="color" value="#2980b9">
+                    </label>
+                </div>
+            </section>
+
+            <section class="profile-page-section"
+                     aria-labelledby="profile-page-recent-heading">
+                <h3 id="profile-page-recent-heading"
+                    class="profile-page-section-title">Recent games</h3>
+                <div id="profile-recent-games-error"
+                     class="profile-recent-error"
+                     aria-live="polite" hidden></div>
+                <div id="profile-recent-games-loading"
+                     class="profile-recent-loading"
+                     aria-live="polite" hidden>Loading recent games…</div>
+                <div id="profile-recent-games"
+                     class="profile-recent-games"
+                     data-testid="profile-recent-games"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Phase J Wave 2 — End-of-game summary modal.  Rendered when the
+         runtime pushes `gameComplete["current"].isComplete = true` after
+         the final hand of the match.  Shows per-seat totals plus a hand-
+         by-hand recap (built client-side from each `result.current` we
+         observed, or from a `handHistory` array if Bishop ships one).
+         The two action buttons clear the modal and either start a new
+         game with the current settings drawer values or punt the user
+         back to the lobby URL. -->
+    <div class="modal" id="game-complete-modal" tabindex="-1"
+         aria-hidden="true" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content game-complete-modal-content">
+                <div class="modal-body text-light text-center">
+                    <h2 id="game-complete-headline" class="mb-1">🏆 GAME OVER 🏆</h2>
+                    <div id="game-complete-subtitle" class="mb-3 text-warning"></div>
+
+                    <div class="game-complete-section">
+                        <h4 class="game-complete-section-title">Final Scores</h4>
+                        <table class="table table-sm table-dark mx-auto"
+                               id="game-complete-totals">
+                            <thead>
+                                <tr>
+                                    <th>座位 Seat</th>
+                                    <th>玩家 Player</th>
+                                    <th>总分 Total Δ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="game-complete-section">
+                        <h4 class="game-complete-section-title">Hand-by-hand</h4>
+                        <div id="game-complete-recap" class="game-complete-recap"></div>
+                    </div>
+
+                    <!-- Phase J Wave 5 — Stats delta panel.  Populated
+                         by client-ui.ts:setupPostGameStatsPanel() when
+                         the gameComplete singleton flips to complete.
+                         Shows the local player's career stats with a
+                         per-row delta vs. the pre-game snapshot. -->
+                    <div id="game-complete-stats-delta"
+                         class="game-complete-section" hidden></div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-warning"
+                            id="game-complete-new-game">
+                        🆕 New Game
+                    </button>
+                    <!-- Phase J Wave 3 — Open the replay viewer for this
+                         match.  The viewer reads the client-side capture
+                         + the server's handHistory payload (when present)
+                         and renders a tile-by-tile 2D top-down replay. -->
+                    <button type="button" class="btn btn-info"
+                            id="game-complete-replay"
+                            data-testid="game-complete-replay">
+                        🎞 View Replay
+                    </button>
+                    <button type="button" class="btn btn-secondary"
+                            id="game-complete-lobby">
+                        ☰ Back to Lobby
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase J Wave 3 — Replay viewer.  Opens from the game-complete
+         modal's "View Replay" button.  2D top-down layout: hand selector
+         on the left, per-seat tile zones on the right, timeline scrubber
+         + play/step controls along the bottom.  All children are
+         populated by Replay.open() in src/replay.ts.
+         Phase J Wave 7 — added prev-hand / next-hand buttons, a speed
+         dropdown (0.5x / 1x / 2x / 4x), and a discrete event counter
+         exposed via data-testid="replay-event-counter".
+         Phase J Wave 9 — added an "Audit" tab visible only to admins
+         (claims.role=admin from /api/auth/me).  Renders per-action rows
+         fetched from GET /api/games/{id}/audit. -->
+    <div id="replay-screen" class="replay-screen" role="dialog"
+         aria-label="Hand replay" aria-modal="true" aria-hidden="true"
+         data-testid="replay-screen"
+         tabindex="-1">
+        <div class="replay-shell" data-testid="replay-viewer">
+            <div class="replay-header">
+                <h3 class="replay-title">🎞 Hand Replay</h3>
+                <div class="replay-tabs" role="tablist"
+                     aria-label="Replay view tabs">
+                    <button id="replay-tab-replay" type="button"
+                            class="replay-tab replay-tab-active"
+                            role="tab"
+                            aria-controls="replay-pane-replay"
+                            aria-selected="true"
+                            data-testid="replay-replay-tab">Replay</button>
+                    <button id="replay-tab-audit" type="button"
+                            class="replay-tab"
+                            role="tab"
+                            aria-controls="replay-pane-audit"
+                            aria-selected="false"
+                            data-testid="replay-audit-tab"
+                            hidden>Audit</button>
+                </div>
+                <div class="replay-header-actions">
+                    <span id="replay-source-label"
+                          class="replay-source-label"
+                          aria-live="polite"></span>
+                    <label for="replay-hand-selector" class="replay-selector-label">
+                        Hand
+                    </label>
+                    <select id="replay-hand-selector"
+                            class="dark-select form-control form-control-sm"
+                            aria-label="Select hand to replay">
+                    </select>
+                    <button id="replay-close" type="button"
+                            class="replay-close-btn"
+                            data-testid="replay-close"
+                            aria-label="Close replay"
+                            title="Close">×</button>
+                </div>
+            </div>
+            <div id="replay-pane-replay" class="replay-pane replay-pane-active"
+                 role="tabpanel" aria-labelledby="replay-tab-replay">
+            <div class="replay-body">
+                <div class="replay-board-pane">
+                    <div id="replay-board" class="replay-board"
+                         role="region" aria-label="Replay table state"
+                         aria-live="polite"></div>
+                </div>
+                <aside class="replay-side-pane"
+                       aria-label="Replay move log">
+                    <h4 class="replay-side-title">Move log</h4>
+                    <div id="replay-move-log" class="replay-move-log"></div>
+                </aside>
+                <!-- Phase K Wave 6 — AI commentary side-panel mount
+                     point.  The `commentary-panel.<hash>.js` chunk is
+                     dynamic-imported by `replay.ts:openServer()` and
+                     anchors a `data-testid="commentary-panel"` element
+                     inside this host.  Until Bishop's W6 endpoint
+                     lands, the panel surfaces a "Phase L feature —
+                     not yet available" placeholder. -->
+                <aside id="replay-commentary-host"
+                       class="replay-side-pane replay-commentary-host"
+                       aria-label="AI commentary"
+                       data-testid="replay-commentary-host"></aside>
+            </div>
+            <div class="replay-footer" role="group"
+                 aria-label="Replay playback controls">
+                <button id="replay-prev" type="button"
+                        class="btn btn-sm btn-secondary"
+                        data-testid="replay-prev"
+                        aria-label="Previous hand"
+                        title="Previous hand">⏮</button>
+                <button id="replay-step-back" type="button"
+                        class="btn btn-sm btn-secondary"
+                        data-testid="replay-step-back"
+                        aria-label="Step back one move"
+                        title="Step back">⏪</button>
+                <button id="replay-play" type="button"
+                        class="btn btn-sm btn-warning"
+                        data-testid="replay-play"
+                        aria-label="Play or pause"
+                        aria-pressed="false"
+                        title="Play / pause">▶ Play</button>
+                <button id="replay-step-fwd" type="button"
+                        class="btn btn-sm btn-secondary"
+                        data-testid="replay-step-fwd"
+                        aria-label="Step forward one move"
+                        title="Step forward">⏩</button>
+                <button id="replay-next" type="button"
+                        class="btn btn-sm btn-secondary"
+                        data-testid="replay-next"
+                        aria-label="Next hand"
+                        title="Next hand">⏭</button>
+                <label class="replay-speed-label">
+                    <span class="sr-only">Playback speed</span>
+                    <select id="replay-speed-select"
+                            class="dark-select form-control form-control-sm replay-speed-select"
+                            data-testid="replay-speed-select"
+                            aria-label="Playback speed">
+                    </select>
+                </label>
+                <input id="replay-timeline" type="range"
+                       class="replay-timeline"
+                       data-testid="replay-scrubber"
+                       min="0" max="0" step="1" value="0"
+                       aria-label="Scrub timeline">
+                <span id="replay-timeline-label"
+                      class="replay-timeline-label">Move 0 / 0</span>
+                <span id="replay-event-counter"
+                      class="replay-event-counter"
+                      data-testid="replay-event-counter"
+                      aria-live="polite">0 / 0</span>
+            </div>
+            </div>
+            <div id="replay-pane-audit" class="replay-pane"
+                 role="tabpanel" aria-labelledby="replay-tab-audit"
+                 hidden>
+                <div id="replay-audit-empty" class="replay-audit-empty"
+                     aria-live="polite"></div>
+                <div id="replay-audit-table" class="replay-audit-table"
+                     role="table" aria-label="Per-action audit rows"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- One widget for server-wide presence/invitations and room-scoped chat. -->
+    <div id="chat-panel"
+         class="chat-panel chat-panel-collapsed"
+         data-testid="chat-panel"
+         hidden
+         aria-label="Chat, online players and invitations">
+        <div class="chat-header">
+            <button id="chat-toggle"
+                    type="button"
+                    class="chat-toggle"
+                    data-testid="chat-toggle"
+                    aria-controls="chat-panel-body"
+                    aria-expanded="false">
+                <span class="chat-toggle-label" data-i18n="chat.toggle">Chat</span>
+                <span id="chat-invite-unread" class="chat-invite-unread"
+                      data-testid="chat-invite-unread" hidden>0</span>
+            </button>
+            <div id="chat-room-selectors" class="chat-header-selectors" hidden>
+                <label class="chat-channel-label sr-only" for="chat-channel-select">
+                    Channel
+                </label>
+                <select id="chat-channel-select"
+                        class="dark-select form-control form-control-sm chat-channel-select"
+                        data-testid="chat-channel-select"
+                        aria-label="Chat channel">
+                </select>
+                <span id="chat-recipient-wrap"
+                      class="chat-recipient-wrap"
+                      hidden>
+                    <label class="chat-recipient-label sr-only" for="chat-recipient-select">
+                        Recipient
+                    </label>
+                    <select id="chat-recipient-select"
+                            class="dark-select form-control form-control-sm chat-recipient-select"
+                            data-testid="chat-recipient-select"
+                            aria-label="Private recipient">
+                    </select>
+                </span>
+            </div>
+            <button id="chat-collapse" type="button" class="chat-collapse"
+                    data-testid="chat-collapse" aria-label="Collapse chat"
+                    title="Collapse chat" aria-controls="chat-panel-body" hidden>
+                <span aria-hidden="true">×</span>
+            </button>
+        </div>
+        <div id="chat-panel-body" class="chat-panel-body">
+            <section id="chat-online" class="chat-social-section"
+                     data-testid="online-players" aria-labelledby="chat-online-title">
+                <h3 id="chat-online-title" class="chat-section-title" data-i18n="social.online">Online</h3>
+                <p id="online-players-status" class="chat-social-status"
+                   role="status" aria-live="polite" data-testid="online-players-status">Connecting to the online lobby...</p>
+                <button id="online-players-retry" type="button" class="btn btn-sm btn-secondary"
+                        data-testid="online-players-retry" data-i18n="common.retry" hidden>Retry</button>
+                <div id="online-players-list" class="online-players-list" role="list"></div>
+                <p id="online-invite-status" class="chat-social-status" role="status" aria-live="polite"
+                   data-testid="online-invite-status"></p>
+            </section>
+            <section class="chat-social-section" aria-labelledby="chat-invites-title">
+                <h3 id="chat-invites-title" class="chat-section-title" data-i18n="social.invitations">Invitations</h3>
+                <div id="incoming-invites" class="incoming-invites" data-testid="incoming-invites"></div>
+                <p id="incoming-invites-empty" class="chat-social-status" data-i18n="social.no_invites">No invitations yet.</p>
+                <p class="chat-social-status" data-i18n="social.invite_hint">Invitations expire after five minutes and do not reserve seats.</p>
+            </section>
+            <div id="chat-unavailable"
+                 class="chat-unavailable"
+                 role="status"
+                 aria-live="polite"
+                 data-testid="chat-unavailable"
+                 hidden></div>
+            <section id="chat-room-content" aria-label="Chat in this table">
+            <h3 class="chat-section-title chat-room-title" data-i18n="chat.room_chat">This table</h3>
+            <div id="chat-messages"
+                 class="chat-messages"
+                 role="log"
+                 aria-live="polite"
+                 aria-relevant="additions"
+                 data-testid="chat-messages"></div>
+            <div id="chat-status"
+                 class="chat-status"
+                 role="status"
+                 aria-live="polite"></div>
+            <div class="chat-composer">
+                <textarea id="chat-input"
+                          class="chat-input"
+                          data-testid="chat-input"
+                          rows="2"
+                          maxlength="280"
+                          aria-label="Type a chat message"></textarea>
+                <div class="chat-composer-row">
+                    <span id="chat-char-count"
+                          class="chat-char-count"
+                          data-testid="chat-char-count"
+                          aria-live="polite">0/280</span>
+                    <button id="chat-send"
+                            type="button"
+                            class="btn btn-sm btn-primary chat-send"
+                            data-testid="chat-send" data-i18n="chat.send">Send</button>
+                </div>
+            </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Phase G — Lobby panel (top-left overlay).  Pickers map 1:1 to the
+         Phase F query params; Apply & Start rebuilds the URL and calls
+         window.location.replace() so a fresh game starts with the new
+         settings.  Soft hot-swap is deferred to V2. -->
+    <div id="lobby-panel" role="dialog" aria-label="Lobby">
+        <div class="lobby-header">
+            <h2 class="lobby-title">🀄 Lobby</h2>
+            <button id="lobby-close" type="button" class="lobby-close-btn"
+                    aria-label="Close lobby" title="Close">×</button>
+        </div>
+        <div class="lobby-body">
+            <!-- Phase J Wave 5 — Lobby tab strip.  Toggles between the
+                 existing "My Game" surface (Quick Match / seat picker /
+                 settings) and the new "Public Games" matchmaking
+                 browser.  The buttons own ARIA tab semantics; their
+                 click handler in lobby.ts:installLobbyTabs() flips
+                 #lobby-tab-my-game / #lobby-tab-public-games. -->
+            <div class="lobby-tabs" role="tablist"
+                 aria-label="Lobby sections">
+                <button id="lobby-my-game-tab" type="button"
+                        class="lobby-tab lobby-tab-active"
+                        role="tab" aria-selected="true"
+                        aria-controls="lobby-tab-my-game"
+                        data-testid="lobby-my-game-tab">My Game</button>
+                <button id="lobby-public-games-tab" type="button"
+                        class="lobby-tab"
+                        role="tab" aria-selected="false"
+                        aria-controls="lobby-tab-public-games"
+                        data-testid="lobby-public-games-tab">Public Games</button>
+                <!-- Phase J Wave 6 — Leaderboard tab.  Click flips to
+                     #lobby-tab-leaderboard and starts the 30-second
+                     auto-refresh in leaderboard.ts. -->
+                <button id="lobby-leaderboard-tab" type="button"
+                        class="lobby-tab"
+                        role="tab" aria-selected="false"
+                        aria-controls="lobby-tab-leaderboard"
+                        data-testid="lobby-leaderboard-tab">Leaderboard</button>
+                <!-- Phase J Wave 10 — Tournaments tab.  Click flips to
+                     #lobby-tab-tournaments; tournaments.ts feature-detects
+                     the /api/tournaments endpoint (404 → "Coming soon"). -->
+                <button id="lobby-tournaments-tab" type="button"
+                        class="lobby-tab"
+                        role="tab" aria-selected="false"
+                        aria-controls="lobby-tab-tournaments"
+                        data-testid="lobby-tournaments-tab">Tournaments</button>
+            </div>
+
+            <!-- Phase J Wave 6 — Onboarding card (first visit only).
+                 Wired by identity.ts:installOnboardingCard().  Hidden
+                 via inline display:none until the bootstrap detects a
+                 missing mahjong_pid cookie. -->
+            <section id="onboarding-card" class="onboarding-card"
+                     role="region" aria-label="Welcome — set up your profile"
+                     aria-hidden="true" data-testid="onboarding-card" hidden>
+                <div class="onboarding-card-header">
+                    <h3 class="onboarding-card-title">👋 Welcome!</h3>
+                    <p class="onboarding-card-subtitle">
+                        What name should we use?
+                    </p>
+                </div>
+                <div class="onboarding-card-preview">
+                    <div id="onboarding-preview-avatar"
+                         class="onboarding-preview-avatar"
+                         aria-hidden="true">?</div>
+                </div>
+                <label class="onboarding-field">
+                    <span class="onboarding-field-label">Display name</span>
+                    <input id="onboarding-display-name-input" type="text"
+                           class="onboarding-input"
+                           data-testid="onboarding-display-name-input"
+                           minlength="1" maxlength="32"
+                           autocomplete="off" spellcheck="false"
+                           placeholder="Your display name…">
+                    <span id="onboarding-display-name-error"
+                          class="onboarding-error"
+                          aria-live="polite"></span>
+                </label>
+                <div class="onboarding-field">
+                    <span class="onboarding-field-label">Avatar colour</span>
+                    <div id="onboarding-avatar-presets"
+                         class="onboarding-avatar-presets" role="radiogroup"
+                         aria-label="Avatar colour presets"></div>
+                    <label class="onboarding-custom-row">
+                        <span>Or pick any colour:</span>
+                        <input id="onboarding-avatar-color-custom" type="color"
+                               class="onboarding-custom-color"
+                               data-testid="onboarding-avatar-color-custom"
+                               value="#2980b9">
+                    </label>
+                </div>
+                <div class="onboarding-actions">
+                    <button id="onboarding-continue" type="button"
+                            class="btn btn-success btn-sm"
+                            data-testid="onboarding-continue">
+                        Continue
+                    </button>
+                    <button id="onboarding-skip" type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-testid="onboarding-skip">
+                        Skip
+                    </button>
+                </div>
+            </section>
+
+            <!-- Phase J Wave 5 — "My Game" tab pane wraps every existing
+                 lobby control (player chips, seat preview, pickers,
+                 advanced settings).  installLobbyTabs() toggles its
+                 visibility against the public-games pane below. -->
+            <section id="lobby-tab-my-game" class="lobby-tab-pane lobby-tab-panel-active"
+                     role="tabpanel"
+                     aria-labelledby="lobby-my-game-tab">
+            <!-- Phase J Wave 4 — Player chip strip.  Surfaces the live
+                 `seats`+`nicks` collections as a 0..4 chip row so the
+                 lobby user sees who is already in the game (and which
+                 colour seat they hold).  Hidden until the lobby module
+                 attaches a Client via attachLobbyClient(). -->
+            <section class="lobby-players-strip" id="lobby-players-strip"
+                     aria-label="Players in this game" hidden>
+                <h3 class="lobby-section-title">Players</h3>
+                <div id="lobby-players-list" class="lobby-players-list"
+                     role="list"></div>
+            </section>
+
+            <!-- Phase J Wave 4 — Seat preview.  Renders the four chairs
+                 with the player nick currently holding each seat (or
+                 "Open" / "Bot — Medium" placeholder).  Lets the user
+                 plan a seat take before committing.  Hidden until the
+                 lobby module attaches a Client. -->
+            <section class="lobby-seat-preview" id="lobby-seat-preview"
+                     aria-label="Seat preview" hidden>
+                <h3 class="lobby-section-title">Seats</h3>
+                <div class="lobby-seat-preview-grid">
+                    <div class="lobby-seat-preview-cell" data-seat="0"
+                         data-testid="lobby-seat-preview-0">
+                        <span class="lobby-seat-preview-wind">East 东</span>
+                        <span class="lobby-seat-preview-occupant">—</span>
+                    </div>
+                    <div class="lobby-seat-preview-cell" data-seat="1"
+                         data-testid="lobby-seat-preview-1">
+                        <span class="lobby-seat-preview-wind">South 南</span>
+                        <span class="lobby-seat-preview-occupant">—</span>
+                    </div>
+                    <div class="lobby-seat-preview-cell" data-seat="2"
+                         data-testid="lobby-seat-preview-2">
+                        <span class="lobby-seat-preview-wind">West 西</span>
+                        <span class="lobby-seat-preview-occupant">—</span>
+                    </div>
+                    <div class="lobby-seat-preview-cell" data-seat="3"
+                         data-testid="lobby-seat-preview-3">
+                        <span class="lobby-seat-preview-wind">North 北</span>
+                        <span class="lobby-seat-preview-occupant">—</span>
+                    </div>
+                </div>
+            </section>
+
+            <p id="lobby-room-configuration" class="lobby-room-configuration"
+               role="status" aria-live="polite" data-testid="lobby-room-configuration" hidden></p>
+            <h3 class="lobby-section-title" data-i18n="lobby.new_table_settings">New table settings</h3>
+            <p class="lobby-hint" data-i18n="lobby.creation_settings_hint">
+                These choices configure a new table. Joining a table keeps its server settings.
+            </p>
+            <fieldset class="lobby-fieldset" id="lobby-variant-fieldset" data-testid="lobby-variant-fieldset">
+                <legend>Variant</legend>
+                <label><input type="radio" name="lobby-variant" value="changsha" checked> Changsha</label>
+                <label><input type="radio" name="lobby-variant" value="four-player"> Riichi — 4 player</label>
+                <label><input type="radio" name="lobby-variant" value="three-player"> Riichi — 3 player</label>
+                <label><input type="radio" name="lobby-variant" value="bamboo"> Bamboo</label>
+                <label><input type="radio" name="lobby-variant" value="minefield"> Minefield</label>
+            </fieldset>
+
+            <fieldset class="lobby-fieldset" id="lobby-deal-mode-fieldset">
+                <legend>Deal mode <small class="lobby-hint">(Changsha only)</small></legend>
+                <label><input type="radio" name="lobby-deal-mode" value="manual"> Manual (click to pick)</label>
+                <label><input type="radio" name="lobby-deal-mode" value="auto" checked> Auto (instant deal)</label>
+            </fieldset>
+
+            <!-- Phase K Wave 24 — playability fix.  The Changsha rule-preset
+                 picker surfaces the DB-seeded ChangshaRulePresets rows so a
+                 user can pick a ruleset before Quick Match.  Populated by
+                 `rule-presets.ts:renderLobbySelect()` after `/api/rule-presets`
+                 returns; left empty here so the renderer can replace it. -->
+            <fieldset class="lobby-fieldset" id="lobby-rule-preset-fieldset">
+                <legend>Rule preset <small class="lobby-hint">(Changsha — coming soon)</small></legend>
+                <select class="dark-select form-control form-control-sm"
+                        id="lobby-rule-preset-select"
+                        data-testid="lobby-rule-preset-select"
+                        disabled aria-disabled="true"
+                        title="Rule presets are not yet applied to gameplay"
+                        aria-label="Changsha rule preset (not yet applied to gameplay)"></select>
+                <small class="lobby-hint" id="lobby-rule-preset-note">
+                    Not yet applied to gameplay —
+                    <a href="#" id="lobby-create-preset-link"
+                       data-testid="lobby-create-preset-link">create / edit presets…</a>
+                </small>
+            </fieldset>
+
+            <fieldset class="lobby-fieldset" id="lobby-bot-count-fieldset">
+                <legend>Bots</legend>
+                <label><input type="radio" name="lobby-bot-count" value="0"> <span data-i18n="lobby.bots_0">0 bots</span></label>
+                <label><input type="radio" name="lobby-bot-count" value="1"> <span data-i18n="lobby.bots_1">1 bot</span></label>
+                <label><input type="radio" name="lobby-bot-count" value="2"> <span data-i18n="lobby.bots_2">2 bots</span></label>
+                <label><input type="radio" name="lobby-bot-count" value="3" checked> <span data-i18n="lobby.bots_3">3 bots</span></label>
+                <label><input type="radio" name="lobby-bot-count" value="4" disabled> <span data-i18n="lobby.bots_4">4 bots (spectator only)</span></label>
+            </fieldset>
+
+            <!-- Phase I Wave 4 — seat picker.  Pairs with botCount: Spectate
+                 widens botCount to 0-4 and auto-snaps to 4 for the
+                 all-bots-watch experience the server runtime auto-deals.
+                 Seat 0..3 lets returning players claim a specific wind
+                 without juggling URL params; "Auto" is the legacy flow
+                 where the server seats us in the first open chair. -->
+            <fieldset class="lobby-fieldset" id="lobby-seat-fieldset">
+                <legend>Seat</legend>
+                <label><input type="radio" name="lobby-seat" value="" checked> Auto (take an open seat)</label>
+                <label><input type="radio" name="lobby-seat" value="0"> Seat 0 <small class="lobby-hint">(East 东)</small></label>
+                <label><input type="radio" name="lobby-seat" value="1"> Seat 1 <small class="lobby-hint">(South 南)</small></label>
+                <label><input type="radio" name="lobby-seat" value="2"> Seat 2 <small class="lobby-hint">(West 西)</small></label>
+                <label><input type="radio" name="lobby-seat" value="3"> Seat 3 <small class="lobby-hint">(North 北)</small></label>
+                <label><input type="radio" name="lobby-seat" value="-1"> 👁 Spectate <small class="lobby-hint">(no seat — watch bots play)</small></label>
+                <p id="lobby-spectator-hint" class="lobby-spectator-hint" hidden>
+                    All four seats can be filled with bots — sit back and
+                    watch.  The runtime auto-deals once all four seats are
+                    bots.
+                </p>
+            </fieldset>
+
+            <fieldset class="lobby-fieldset lobby-card-group" id="lobby-bot-difficulty-fieldset" data-testid="lobby-bot-difficulty-fieldset">
+                <legend>Bot difficulty</legend>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-bot-difficulty" value="Easy">
+                    <span class="lobby-card-icon">😌</span>
+                    <span class="lobby-card-label">Easy</span>
+                </label>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-bot-difficulty" value="Medium" checked>
+                    <span class="lobby-card-icon">🙂</span>
+                    <span class="lobby-card-label">Medium</span>
+                </label>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-bot-difficulty" value="Hard">
+                    <span class="lobby-card-icon">😈</span>
+                    <span class="lobby-card-label">Hard</span>
+                </label>
+            </fieldset>
+
+            <!-- Phase H Wave 1 — hand count selector.  Default 4 = Bishop's
+                 runtime east-wind rotation default (Phase J Wave 2).  The
+                 backend reads this off the URL and pins it to MaxHands.
+                 Phase J Wave 4 — promoted to lobby-card-group with icon
+                 hints so the visual weight matches Variant + Bots. -->
+            <fieldset class="lobby-fieldset lobby-card-group" id="lobby-hand-count-fieldset" data-testid="lobby-hand-count-fieldset">
+                <legend>Hands per match</legend>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-hand-count" value="1">
+                    <span class="lobby-card-icon">短</span>
+                    <span class="lobby-card-label">1 <small class="lobby-hint">(single)</small></span>
+                </label>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-hand-count" value="4" checked>
+                    <span class="lobby-card-icon">局</span>
+                    <span class="lobby-card-label">4 <small class="lobby-hint">(east-wind)</small></span>
+                </label>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-hand-count" value="8">
+                    <span class="lobby-card-icon">圈</span>
+                    <span class="lobby-card-label">8 <small class="lobby-hint">(East round)</small></span>
+                </label>
+                <label class="lobby-card-option">
+                    <input type="radio" name="lobby-hand-count" value="16">
+                    <span class="lobby-card-icon">半</span>
+                    <span class="lobby-card-label">16 <small class="lobby-hint">(half match)</small></span>
+                </label>
+            </fieldset>
+
+            <fieldset class="lobby-fieldset" id="lobby-base-unit-fieldset">
+                <legend id="lobby-base-unit-legend">Scoring base unit</legend>
+                <label class="lobby-seed-label" for="lobby-base-unit" id="lobby-base-unit-label">Base unit</label>
+                <input id="lobby-base-unit" type="text" inputmode="numeric" pattern="[0-9]+"
+                       autocomplete="off" spellcheck="false" value="1"
+                       aria-describedby="lobby-base-unit-hint lobby-base-unit-error"
+                       data-testid="lobby-base-unit">
+                <div id="lobby-base-unit-error" class="lobby-seed-error" role="alert" hidden></div>
+                <p id="lobby-base-unit-hint" class="lobby-advanced-hint">
+                    Creation only. Changing this value starts a new table.
+                </p>
+                <p id="lobby-current-base-unit" class="lobby-hint" role="status" hidden></p>
+            </fieldset>
+
+            <!-- Phase H Wave 1 — Advanced section: optional seed override.
+                 <details> collapses by default so the input doesn't clutter
+                 the main lobby.  Empty/blank → server picks a random seed
+                 (current behavior); filled → reproducible game. -->
+            <details class="lobby-advanced" id="lobby-advanced">
+                <summary>Advanced</summary>
+                <div class="lobby-advanced-body">
+                    <label class="lobby-seed-label" for="lobby-seed">
+                        Seed <small class="lobby-hint">(optional, 0–2³¹−1)</small>
+                    </label>
+                    <input id="lobby-seed" type="text" inputmode="numeric"
+                           pattern="[0-9]*" autocomplete="off" spellcheck="false"
+                           placeholder="random" maxlength="10">
+                    <div id="lobby-seed-error" class="lobby-seed-error" hidden>
+                        Seed must be an integer between 0 and 2147483647.
+                    </div>
+                    <p class="lobby-advanced-hint">
+                        Leave blank for a random seed.  A fixed seed makes the
+                        whole game reproducible — useful for bug reports.
+                    </p>
+                </div>
+            </details>
+
+            <!-- Phase J Wave 5 — Make-public toggle.  Only meaningful
+                 when the user is the host of an active game; the
+                 toggle's change handler calls Bishop's SignalR
+                 `SetGamePublic` RPC.  The friendly name input is
+                 optional (server falls back to "<host>'s game"). -->
+            <section class="lobby-make-public"
+                     aria-label="Make this game public">
+                <h3 class="lobby-section-title" data-i18n="lobby.make_public">Make public</h3>
+                <label class="lobby-make-public-row">
+                    <input id="lobby-make-public-toggle" type="checkbox"
+                           data-testid="lobby-set-public-toggle" disabled
+                           aria-describedby="lobby-make-public-status">
+                    <span data-i18n="lobby.public_toggle_label">List this game in the public lobby</span>
+                </label>
+                <input id="lobby-make-public-name" type="text"
+                       class="lobby-make-public-name"
+                       data-testid="lobby-public-name-input"
+                       placeholder="Friendly name (optional)"
+                       maxlength="64" autocomplete="off" disabled
+                       data-i18n-placeholder="lobby.public_name">
+                <div id="lobby-make-public-status"
+                     class="lobby-make-public-status" role="status" aria-live="polite"
+                     data-testid="lobby-public-status">Loading table metadata...</div>
+                <button id="copy-table-link" type="button" class="btn btn-sm btn-secondary"
+                        data-testid="copy-table-link" data-i18n="lobby.copy_table_link" disabled>Copy table link</button>
+                <input id="table-link-output" class="lobby-table-link-output" type="text"
+                       readonly hidden aria-label="Table join link">
+            </section>
+
+            <!-- Phase J Wave 5 — Stats panel.  Renders the local
+                 player's career stats from the cached profile.
+                 Empty until the SignalR ProfileLoaded event lands. -->
+            <section class="lobby-stats-section"
+                     aria-label="Your stats">
+                <h3 class="lobby-section-title">Your stats</h3>
+                <div id="lobby-stats-panel" class="lobby-stats-panel"
+                     data-testid="lobby-stats-panel"></div>
+            </section>
+            </section>
+            <!-- /lobby-tab-my-game -->
+
+            <!-- Phase J Wave 5 — Public games pane.  Polled every 5 s
+                 via matchmaking.ts:startPolling() while this tab is
+                 active.  Each card renders publicName +
+                 creatorDisplayName + seatedCount/maxSeats + a Join
+                 button. -->
+            <section id="lobby-tab-public-games"
+                     class="lobby-tab-pane public-games-pane"
+                     role="tabpanel"
+                     aria-labelledby="lobby-public-games-tab"
+                     data-testid="lobby-public-section" hidden>
+                <div class="public-games-header">
+                    <h3 class="lobby-section-title">Public Games</h3>
+                    <button id="lobby-join-random" type="button"
+                            class="btn btn-success btn-sm"
+                            data-testid="lobby-join-random"
+                            title="Join any public game with free seats">
+                        🎲 Join Random
+                    </button>
+                </div>
+                <div id="lobby-public-games-error"
+                     class="public-games-status public-games-error"
+                     aria-live="polite" hidden></div>
+                <div id="lobby-public-games-empty"
+                     class="public-games-empty">
+                    No public games right now. Try Quick Match in the
+                    "My Game" tab to start your own.
+                </div>
+                <div id="lobby-public-games-list"
+                     class="public-games-list" role="list"
+                     data-testid="lobby-public-list"></div>
+            </section>
+
+            <!-- Phase J Wave 6 — Leaderboard pane.  Mounted by
+                 leaderboard.ts:installLeaderboardSurface() and refreshed
+                 every 30 s while this tab is active.  Renders a paged
+                 table of player stats from Bishop's
+                 GET /api/leaderboard endpoint. -->
+            <section id="lobby-tab-leaderboard"
+                     class="lobby-tab-pane leaderboard-pane"
+                     role="tabpanel"
+                     aria-labelledby="lobby-leaderboard-tab"
+                     data-testid="lobby-leaderboard-section" hidden>
+                <div class="leaderboard-header">
+                    <h3 class="lobby-section-title">Leaderboard</h3>
+                    <div class="leaderboard-controls">
+                        <label class="leaderboard-control">
+                            <span>Sort</span>
+                            <select id="leaderboard-sort-select"
+                                    class="dark-select form-control form-control-sm"
+                                    data-testid="leaderboard-sort-select"></select>
+                        </label>
+                        <label class="leaderboard-control">
+                            <span>Min games</span>
+                            <input id="leaderboard-min-games-input"
+                                   class="form-control form-control-sm"
+                                   data-testid="leaderboard-min-games-input"
+                                   type="number" min="0" step="1" value="5">
+                        </label>
+                        <label class="leaderboard-control leaderboard-control-rating">
+                            <span>Rated</span>
+                            <input id="leaderboard-rating-toggle"
+                                   type="checkbox"
+                                   data-testid="leaderboard-rating-toggle">
+                        </label>
+                        <label class="leaderboard-control leaderboard-control-season">
+                            <span>Season</span>
+                            <select id="leaderboard-season-select"
+                                    class="dark-select form-control form-control-sm"
+                                    data-testid="leaderboard-season-select"></select>
+                        </label>
+                    </div>
+                </div>
+                <div id="leaderboard-rating-status"
+                     class="leaderboard-status leaderboard-rating-status"
+                     data-testid="leaderboard-rating-status"
+                     aria-live="polite" hidden></div>
+                <div id="leaderboard-error"
+                     class="leaderboard-status leaderboard-error"
+                     aria-live="polite" hidden></div>
+                <div id="leaderboard-loading"
+                     class="leaderboard-status leaderboard-loading"
+                     aria-live="polite">Loading leaderboard…</div>
+                <div id="leaderboard-empty"
+                     class="leaderboard-status leaderboard-empty" hidden>
+                    No players match this filter yet — try lowering the
+                    "Min games" threshold or play a few hands.
+                </div>
+                <div id="leaderboard-table"
+                     class="leaderboard-table-host"
+                     data-testid="leaderboard-table"
+                     role="region" aria-label="Leaderboard rows"></div>
+                <div class="leaderboard-footer">
+                    <button id="leaderboard-prev-page" type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-testid="leaderboard-prev-page"
+                            disabled>← Prev page</button>
+                    <span id="leaderboard-paging-summary"
+                          class="leaderboard-paging-summary"
+                          data-testid="leaderboard-paging-summary"
+                          aria-live="polite"></span>
+                    <button id="leaderboard-next-page" type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-testid="leaderboard-next-page"
+                            disabled>Next page →</button>
+                </div>
+            </section>
+            <!-- Phase J Wave 10 — Tournaments tab pane.  tournaments.ts
+                 feature-detects /api/tournaments.  When the endpoint
+                 returns 404 we show a "Coming soon" placeholder so the
+                 tab can ship ahead of Bishop's backend.  When the
+                 endpoint is live the placeholder is swapped for the
+                 list / detail / create surfaces. -->
+            <section id="lobby-tab-tournaments"
+                     class="lobby-tab-pane"
+                     role="tabpanel"
+                     aria-labelledby="lobby-tournaments-tab"
+                     data-testid="lobby-tournament-card"
+                     hidden>
+                <div id="tournaments-placeholder"
+                     class="lobby-tab-tournaments-empty"
+                     data-testid="tournaments-placeholder">
+                    Tournaments are coming soon. Check back once the next
+                    backend update lands.
+                </div>
+                <div id="tournament-list"
+                     class="tournament-list"
+                     data-testid="lobby-tournament-list"
+                     role="list" hidden></div>
+                <div id="tournament-detail"
+                     class="tournament-detail"
+                     data-testid="tournament-detail"
+                     hidden>
+                    <h4 id="tournament-detail-name"
+                        class="tournament-detail-name"></h4>
+                    <div id="tournament-detail-meta"
+                         class="tournament-detail-meta"></div>
+                    <pre id="tournament-bracket"
+                         class="tournament-bracket"
+                         data-testid="tournament-matches-table"></pre>
+                    <pre id="tournament-standings"
+                         class="tournament-standings"
+                         data-testid="tournament-leaderboard"></pre>
+                    <div class="tournament-detail-actions">
+                        <button id="tournament-register" type="button"
+                                class="btn btn-success btn-sm"
+                                data-testid="tournament-detail-register-btn"
+                                hidden>Register</button>
+                        <button id="tournament-unregister" type="button"
+                                class="btn btn-secondary btn-sm"
+                                data-testid="tournament-unregister-btn"
+                                hidden>Unregister</button>
+                        <button id="tournament-start" type="button"
+                                class="btn btn-warning btn-sm"
+                                data-testid="tournament-start-btn"
+                                hidden>Start</button>
+                        <button id="tournament-detail-back" type="button"
+                                class="btn btn-secondary btn-sm">Back</button>
+                    </div>
+                </div>
+                <form id="tournament-create-form"
+                      class="tournament-create-form"
+                      data-testid="tournament-create-form"
+                      hidden>
+                    <h4>Create tournament</h4>
+                    <label>
+                        Name
+                        <input id="tournament-create-name" type="text"
+                               class="form-control form-control-sm"
+                               data-testid="lobby-tournament-name"
+                               minlength="1" maxlength="64" required>
+                    </label>
+                    <label>
+                        Format
+                        <select id="tournament-create-format"
+                                class="form-control form-control-sm"
+                                data-testid="tournament-create-format">
+                            <option value="round-robin">Round-robin</option>
+                            <option value="single-elim">Single elimination</option>
+                            <option value="swiss">Swiss</option>
+                        </select>
+                    </label>
+                    <label>
+                        Max players
+                        <input id="tournament-create-max-players" type="number"
+                               class="form-control form-control-sm"
+                               data-testid="tournament-create-max-players"
+                               min="4" max="64" value="8" step="1">
+                    </label>
+                    <button type="submit"
+                            class="btn btn-success btn-sm"
+                            data-testid="lobby-tournament-create">
+                        Create
+                    </button>
+                </form>
+            </section>
+        </div>
+        <div class="lobby-footer">
+            <label class="lobby-save-defaults" title="Persist these choices in this browser for next visit">
+                <input id="lobby-save-defaults" type="checkbox">
+                Save as defaults
+            </label>
+            <!-- Phase J Wave 4 — Quick Match.  Bypasses the per-picker
+                 review step: snaps to 3 Medium bots / Auto seat / current
+                 variant + hand count + dealMode, and applies straight to
+                 the URL.  Same exit path as Apply & Start so existing
+                 boot flow handles validation. -->
+            <button id="lobby-quick-match" type="button"
+                    class="btn btn-success btn-sm"
+                    data-testid="lobby-quick-match"
+                    title="Skip the pickers and start a 3-Medium-bot game now">
+                ⚡ Quick Match
+            </button>
+            <button id="lobby-apply" type="button" class="btn btn-warning btn-sm" data-testid="lobby-apply">
+                Apply &amp; Start
+            </button>
+        </div>
+        <!-- Phase J Wave 4 — Settings shortcut.  Opens the existing
+             settings drawer without closing the lobby; lets returning
+             players tweak per-game overrides before clicking Apply.
+             Phase J Wave 5 — adds an Open Profile shortcut alongside
+             that opens the profile drawer for display-name + avatar
+             colour editing. -->
+        <div class="lobby-settings-shortcut">
+            <button id="lobby-open-chat" type="button" class="lobby-settings-link"
+                    data-testid="lobby-open-chat" aria-controls="chat-panel">
+                <span data-i18n="social.open">Online players and invitations</span><span id="lobby-invite-unread"></span>
+            </button>
+            <span id="lobby-online-summary" class="lobby-hint" role="status" aria-live="polite"></span>
+            <button id="lobby-open-profile" type="button"
+                    class="lobby-settings-link profile-toggle"
+                    data-testid="lobby-open-profile"
+                    title="Edit your display name and avatar colour">
+                <span id="lobby-open-profile-avatar"
+                      class="profile-toggle-avatar"
+                      aria-hidden="true">?</span>
+                <span id="lobby-open-profile-label">Profile</span>
+            </button>
+            <button id="lobby-open-settings" type="button"
+                    class="lobby-settings-link"
+                    data-testid="lobby-open-settings"
+                    title="Open the per-game settings drawer">
+                ⚙ Open game settings…
+            </button>
+        </div>
+        <div id="lobby-build-info" class="lobby-build-info" data-testid="lobby-build-info">
+            <details>
+                <summary id="build-summary">Build / Version · UI: dev / unidentified</summary>
+                <dl>
+                    <dt data-i18n="build.ui">Loaded UI build</dt>
+                    <dd><code id="build-ui-full" dir="ltr">dev / unidentified</code></dd>
+                    <dt data-i18n="build.server_build">Actual server build</dt>
+                    <dd><code id="build-server-full" dir="ltr">—</code></dd>
+                    <dt data-i18n="build.version">Server assembly version</dt>
+                    <dd><code id="build-server-version" dir="ltr">—</code></dd>
+                </dl>
+            </details>
+            <p id="build-status" role="status" aria-live="polite">Checking server build…</p>
+            <button id="build-retry" type="button" class="btn btn-secondary btn-sm"
+                    data-i18n="common.retry" hidden>Retry</button>
+            <div id="build-mismatch" role="status" aria-live="polite" hidden>
+                <p data-i18n="build.mismatch">This page and server are different builds. Reload to update when you are ready; this will reconnect your game.</p>
+                <button id="build-reload" type="button" class="btn btn-secondary btn-sm"
+                        data-i18n="build.reload">Reload page</button>
+            </div>
+        </div>
+        <div class="lobby-about">
+            <a id="lobby-about-link"
+               href="https://github.com/long2know/mahjong-autotable/blob/main/docs/known-limitations.md"
+               target="_blank" rel="noopener noreferrer">
+                ℹ︎ About / Known Limitations
+            </a>
+            <!-- Hicks 2026-05-26 — first-play P0 unblock.  The auto-tour
+                 used to mount a z=2000 overlay over the lobby on every
+                 fresh visit, intercepting clicks until the user found
+                 the small Skip button.  It's now strictly opt-in: this
+                 link is wired in index.ts:scheduleOnboardingTourOptIn()
+                 to lazy-load tour.ts and call startTour(). -->
+            <span class="lobby-about-sep" aria-hidden="true"> · </span>
+            <a id="lobby-tour-link" href="#"
+               data-testid="lobby-tour-link"
+               title="Walk through the lobby + game controls in ~45 seconds">
+                🎬 Take a tour
+            </a>
+        </div>
+    </div>
+
+    <!-- Phase J Wave 5 — Profile drawer.  Sibling of #lobby-panel so
+         it can slide in from the right without nesting inside the
+         lobby's transform.  Content is hand-mounted by
+         profile.ts:installProfileDrawer() at boot. -->
+    <aside id="profile-drawer" class="profile-drawer"
+           role="dialog" aria-label="Profile" aria-hidden="true"
+           data-testid="profile-drawer">
+        <div class="profile-drawer-header">
+            <h2 class="profile-drawer-title">Profile</h2>
+            <button id="profile-drawer-close" type="button"
+                    class="profile-drawer-close"
+                    aria-label="Close profile">×</button>
+        </div>
+        <div class="profile-drawer-body">
+            <div class="profile-preview">
+                <div id="profile-preview-avatar"
+                     class="profile-preview-avatar" aria-hidden="true">?</div>
+                <div id="profile-preview-name"
+                     class="profile-preview-name">Guest</div>
+            </div>
+
+            <label class="profile-field">
+                <span class="profile-field-label profile-section-title">Display name</span>
+                <input id="profile-display-name-input" type="text"
+                       class="profile-display-name-input"
+                       data-testid="profile-display-name-input"
+                       maxlength="32" autocomplete="off"
+                       spellcheck="false">
+                <span id="profile-display-name-error"
+                      class="profile-display-name-error"
+                      aria-live="polite"></span>
+            </label>
+
+            <div class="profile-field">
+                <span class="profile-field-label profile-section-title">Avatar colour</span>
+                <div id="profile-avatar-presets"
+                     class="profile-avatar-presets" role="radiogroup"
+                     aria-label="Avatar colour presets"></div>
+                <label class="profile-avatar-custom-row">
+                    <span>Or pick any colour:</span>
+                    <input id="profile-avatar-color-custom" type="color"
+                           class="profile-avatar-custom"
+                           data-testid="profile-avatar-color-custom"
+                           value="#2980b9">
+                </label>
+            </div>
+
+            <div class="profile-drawer-footer">
+                <button id="profile-save" type="button"
+                        class="btn btn-warning btn-sm"
+                        data-testid="profile-save">Save</button>
+                <button id="profile-reset" type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-testid="profile-reset">Reset to default</button>
+                <span id="profile-saved-note"
+                      class="profile-saved-note"
+                      aria-live="polite" hidden></span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Phase J Wave 10 — Avatar migration modal.
+         Forced (non-dismissible) modal shown to users whose persisted
+         avatarColor is still the legacy `#808080` placeholder.  Picks
+         one of 8 palette colours and persists via setAvatarColor().
+         Wired by identity.ts:installAvatarMigrationModalIfNeeded(). -->
+    <div id="migrate-avatar-modal"
+         class="migrate-avatar-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="migrate-avatar-title"
+         data-testid="avatar-migration-modal"
+         hidden>
+        <div class="migrate-avatar-card">
+            <h3 id="migrate-avatar-title" class="migrate-avatar-title">
+                Pick your avatar colour
+            </h3>
+            <p class="migrate-avatar-body">
+                We're retiring the default grey avatar so players can tell
+                each other apart at a glance. Pick a colour to keep using
+                this profile.
+            </p>
+            <div id="migrate-avatar-grid"
+                 class="migrate-avatar-grid"
+                 role="radiogroup"
+                 aria-label="Avatar colour presets"></div>
+            <div class="migrate-avatar-actions">
+                <button id="migrate-avatar-dismiss" type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-testid="avatar-migration-dismiss">Not now</button>
+                <button id="migrate-avatar-confirm" type="button"
+                        class="btn btn-success btn-sm"
+                        data-testid="avatar-migration-confirm"
+                        disabled>Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/index.ts"></script>
+</body>
+</html>

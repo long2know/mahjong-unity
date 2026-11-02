@@ -1,0 +1,257 @@
+{
+  "$schema": "https://grafana.com/schema/dashboard.json",
+  "_phaseKWave19Bishop": {
+    "owner": "Bishop (Backend)",
+    "wave": "Phase-K-Wave-19",
+    "metrics": [
+      "jwt_issue_duration_seconds",
+      "jwt_validator_check_duration_seconds"
+    ],
+    "alertThresholdSecondsP99": 0.05,
+    "errorBudgetMinutesPerMonth": 21.6,
+    "notes": "Per-tenant histograms emitted by JwtDurationMetrics. Labels: tenant. Bucket bounds: 250us, 500us, 1ms, 2.5ms, 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 1s, 5s, +Inf. The issuing service stamps on every IssueAsync / IssueForTenantAsync; the validator stamps on every Validate."
+  },
+  "_phaseKWave21Bishop": {
+    "owner": "Bishop (Backend)",
+    "wave": "Phase-K-Wave-21",
+    "metrics": [
+      "jwt_validator_anomaly_total",
+      "jwt_scheduled_rotation_total"
+    ],
+    "notes": "W21 anomaly counter (labels: tenant, reason) and scheduled-rotation counter (labels: tenant, status). Panels 9 + 10 expose them filterable by the tenant dashboard variable."
+  },
+  "uid": "bishop-jwt-validator-metrics",
+  "title": "JWT Issue / Validator Duration",
+  "tags": ["bishop", "phase-k", "wave-19", "wave-21", "jwt", "auth", "latency", "anomaly", "slo"],
+  "timezone": "utc",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "type": "query",
+        "label": "Tenant",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(jwt_validator_check_duration_seconds_count, tenant)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Validator p50 latency (5m window)",
+      "description": "histogram_quantile(0.50, ...) over the 5-minute rate of jwt_validator_check_duration_seconds_bucket. Filterable by tenant.",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.01 },
+              { "color": "red", "value": 0.025 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(jwt_validator_check_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Validator p95 latency (5m window)",
+      "description": "histogram_quantile(0.95, ...) over the 5-minute rate of jwt_validator_check_duration_seconds_bucket.",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.025 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(jwt_validator_check_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Validator p99 latency (5m window)",
+      "description": "histogram_quantile(0.99, ...) over the 5-minute rate of jwt_validator_check_duration_seconds_bucket. Alerts fire above 50ms.",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.025 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(jwt_validator_check_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Issue p50 latency (5m window)",
+      "description": "histogram_quantile(0.50, ...) over the 5-minute rate of jwt_issue_duration_seconds_bucket.",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(jwt_issue_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Issue p95 latency (5m window)",
+      "description": "histogram_quantile(0.95, ...) over the 5-minute rate of jwt_issue_duration_seconds_bucket.",
+      "gridPos": { "x": 8, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(jwt_issue_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Issue p99 latency (5m window)",
+      "description": "histogram_quantile(0.99, ...) over the 5-minute rate of jwt_issue_duration_seconds_bucket.",
+      "gridPos": { "x": 16, "y": 8, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(jwt_issue_duration_seconds_bucket{tenant=~\"$tenant\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Validator request rate by tenant (5m)",
+      "description": "rate(jwt_validator_check_duration_seconds_count[5m]) grouped by tenant.",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (rate(jwt_validator_check_duration_seconds_count{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Issue request rate by tenant (5m)",
+      "description": "rate(jwt_issue_duration_seconds_count[5m]) grouped by tenant.",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (tenant) (rate(jwt_issue_duration_seconds_count{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{tenant}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Validator anomalies by reason (5m)",
+      "description": "Phase K Wave 21 — Bishop. rate(jwt_validator_anomaly_total[5m]) grouped by reason. Reasons: clock-skew, invalid-issuer, expired-too-soon. Filterable by tenant via the dashboard variable.",
+      "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(jwt_validator_anomaly_total{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Scheduled rotations by status (5m)",
+      "description": "Phase K Wave 21 — Bishop. rate(jwt_scheduled_rotation_total[5m]) grouped by status. Statuses: success, error, skipped. Filterable by tenant via the dashboard variable.",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(jwt_scheduled_rotation_total{tenant=~\"$tenant\"}[5m]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

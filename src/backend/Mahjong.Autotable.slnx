@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mahjong.Autotable.Api.Tests/Mahjong.Autotable.Api.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,50 @@
+node_modules/
+.npm-cache/
+.unity-validation/
+dist/
+build/
+.cache/
+*.blend1
+.vscode/
+.parcel-cache/
+test-results/
+playwright-report/
+
+# Phase K Wave 10 — Vite's disk-persisted build cache (transform +
+# dep-pre-bundle cache; pinned inside the autotable-src tree by
+# `vite.config.ts` so CI can mount it as a cached artifact keyed
+# on package-lock + vite.config hash).  Never commit; wipe with
+# `rm -rf .vite` if you suspect a stale transform.
+.vite/
+
+# Phase K Wave 11 — Vite cache hit-rate metric ledger.  Written by
+# `scripts/build-with-cache-metric.js` after each build, read on the
+# next run to classify chunks as hit/miss/new.  Regenerated locally
+# whenever the build wrapper runs; never commit.
+.vite-cache-metric.json
+
+# Phase K Wave 11 — PWA Builder report JSON (written by the W11
+# PWA Builder CI workflow).  Re-generated on each preview-URL run.
+pwabuilder-report.json
+
+# Phase K Wave 11 — LH13 baseline calibration ledger (written by
+# `scripts/lh-baseline.js`).  Per-run artefact; the canonical
+# baseline lives in `docs/frontend-pwa-audit.md §7`.
+.lh-baseline.json
+
+# Phase K Wave 8 — Lighthouse PWA audit output (regenerated on
+# demand via `npm exec lighthouse …` — see docs/frontend-pwa-audit.md
+# for the audit recipe + interpretation of the JSON).
+# Phase K Wave 9 — Migrated to Lighthouse 13 + PWA Builder; the
+# `.lighthouse-report.json` filename matches the W9 recipe.
+.lighthouse-pwa.json
+.lighthouse-pwa.report.html
+.lighthouse-report.json
+.lighthouse-report.report.html
+
+# NOTE: upstream's .gitignore ignored *.auto.* because Inkscape/Blender
+# regenerated them at `make files` time. We commit the prebuilt assets
+# under img/ so Parcel can build without Inkscape/Blender (Ripley pivot
+# plan §2 Phase A, "no asset edits in v1").
+!img/*.auto.png
+!img/*.auto.glb

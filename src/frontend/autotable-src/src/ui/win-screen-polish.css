@@ -1,0 +1,136 @@
+/* Ferro — Win-screen polish.
+ *
+ * Score counter + fan list section.  Layered on top of the existing
+ * `#game-complete-modal` styles in style.css / main.css — we add
+ * Ferro-prefixed classes so cascade collisions are impossible.
+ */
+
+.ferro-roll-counter {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+    min-width: 2.5ch;
+    text-align: right;
+    /* Inherit color from the parent <td>'s inline style (game-ui.ts
+     * assigns green/red), but layer in a subtle glow that fades once
+     * the animation finishes. */
+    transition: text-shadow 0.5s ease-out;
+}
+.ferro-roll-counter-done {
+    text-shadow: 0 0 12px currentColor;
+    animation: ferro-roll-settle 600ms ease-out forwards;
+}
+@keyframes ferro-roll-settle {
+    0%   { transform: scale(1.18); }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1.0); }
+}
+
+/* Fan list section ----------------------------------------------------- */
+
+.ferro-win-fans {
+    margin-top: 8px;
+}
+.ferro-win-fans .game-complete-section-title .zh {
+    font-size: 1.05em;
+    font-weight: 700;
+    margin-right: 6px;
+    color: #ffce5d;
+}
+.ferro-win-fans .game-complete-section-title .py {
+    font-size: 0.85em;
+    letter-spacing: 0.06em;
+    color: #c3b58c;
+    text-transform: uppercase;
+}
+
+.ferro-fan-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.ferro-fan-card {
+    position: relative;
+    padding: 10px 12px;
+    background: linear-gradient(145deg, rgba(255, 206, 93, 0.10), rgba(255, 206, 93, 0.02));
+    border: 1px solid rgba(255, 206, 93, 0.35);
+    border-radius: 10px;
+    color: #f4ecd6;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: ferro-fan-reveal 460ms cubic-bezier(0.22, 0.84, 0.36, 1) forwards;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+@keyframes ferro-fan-reveal {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ferro-fan-zh {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffce5d;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+}
+.ferro-fan-py {
+    font-size: 0.85rem;
+    color: #fffbe8;
+    margin-top: 2px;
+    letter-spacing: 0.03em;
+}
+.ferro-fan-en {
+    font-size: 0.75rem;
+    color: #c3b58c;
+    margin-top: 1px;
+    font-style: italic;
+}
+.ferro-fan-count {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fffbe8;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 1px 6px;
+    border-radius: 6px;
+}
+.ferro-fan-points {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #f0a430;
+    letter-spacing: 0.04em;
+}
+.ferro-fan-empty {
+    color: #c3b58c;
+    font-style: italic;
+    padding: 6px 0;
+    text-align: center;
+}
+
+/* Mobile reflow */
+@media (max-width: 480px) {
+    .ferro-fan-list {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    .ferro-fan-card {
+        padding: 8px 10px;
+    }
+    .ferro-fan-zh { font-size: 1.0rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ferro-fan-card {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+    .ferro-roll-counter-done {
+        animation: none !important;
+    }
+}

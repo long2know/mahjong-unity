@@ -1,0 +1,30 @@
+{
+  "$id": "https://mahjong-autotable.local/schemas/dist-size.json",
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "type": "object",
+  "required": ["current", "history"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "$description": { "type": "string" },
+    "current": {
+      "type": "string",
+      "description": "Wave key of the latest entry (must equal history[last].wave)."
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["wave", "chunks"],
+        "properties": {
+          "wave": { "type": "string", "pattern": "^[A-Z][0-9]+$" },
+          "bundler": { "type": "string" },
+          "recordedAt": { "type": "string", "format": "date-time" },
+          "chunks": {
+            "type": "object",
+            "additionalProperties": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

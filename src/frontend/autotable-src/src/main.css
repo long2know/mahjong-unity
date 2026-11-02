@@ -1,0 +1,1269 @@
+/* ─────────────────────────────────────────────────────────────────────
+ * Phase J Wave 5 — new styles for the public-games tab, profile drawer,
+ * stats panel, and the post-game "Your stats" delta section.
+ *
+ * Loaded alongside style.css from index.html so the existing Wave-4
+ * cascade is untouched.  All selectors are namespaced (`.lobby-tabs`,
+ * `.profile-drawer`, `.stats-grid`, `.public-game-card`) so they don't
+ * collide with the upstream pwmarcz / autotable rules in style.css.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* ── Lobby tab strip (My Game / Public Games) ─────────────────────── */
+
+.lobby-tabs {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid #444;
+    margin-bottom: 10px;
+}
+.lobby-tab {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+    background: transparent;
+    color: #ccc;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    text-align: center;
+}
+.lobby-tab:hover,
+.lobby-tab:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.04);
+    outline: none;
+}
+.lobby-tab.lobby-tab-active {
+    color: #ffce5d;
+    border-bottom-color: #ffce5d;
+    background: rgba(255, 206, 93, 0.05);
+}
+
+.lobby-tab-panel {
+    display: none;
+}
+.lobby-tab-panel.lobby-tab-panel-active {
+    display: block;
+}
+
+/* ── Public games list ────────────────────────────────────────────── */
+
+.public-games-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.public-games-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.public-games-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #ddd;
+}
+.public-games-status {
+    font-size: 0.8rem;
+    color: #888;
+    min-height: 1.2em;
+}
+.public-games-status.public-games-error {
+    color: #ff9494;
+}
+.public-games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.public-games-empty {
+    color: #888;
+    font-size: 0.9rem;
+    padding: 16px 8px;
+    text-align: center;
+    font-style: italic;
+    border: 1px dashed #555;
+    border-radius: 4px;
+}
+
+.public-game-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid #444;
+    border-radius: 6px;
+    transition: background 0.12s, border-color 0.12s;
+}
+.public-game-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #666;
+}
+.public-game-card.public-game-card-full {
+    opacity: 0.65;
+}
+.public-game-card-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.public-game-card-meta {
+    color: #aaa;
+    font-size: 0.8rem;
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.public-game-card-meta-creator {
+    color: #ccc;
+}
+.public-game-card-meta-seats {
+    font-variant-numeric: tabular-nums;
+}
+.public-game-card-meta-seats.seats-full {
+    color: #ff9494;
+}
+.public-game-card-join {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+}
+
+/* Join-random button sits inline with the list header. */
+.public-games-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ── Make-my-game-public toggle ───────────────────────────────────── */
+
+.lobby-make-public {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #444;
+    border-radius: 6px;
+}
+.lobby-make-public-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+.lobby-make-public-row label {
+    margin: 0;
+    color: #ddd;
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+}
+.lobby-make-public-name {
+    flex: 2 1 160px;
+    background: #1f1f1f;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+    min-width: 120px;
+}
+.lobby-make-public-name:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.lobby-make-public-status {
+    width: 100%;
+    font-size: 0.8rem;
+    color: #aaa;
+    min-height: 1em;
+}
+.lobby-make-public-status.lobby-make-public-status-error {
+    color: #ff9494;
+}
+
+/* ── Profile drawer ──────────────────────────────────────────────── */
+
+.profile-drawer {
+    position: fixed;
+    top: 0;
+    right: -360px;
+    width: 340px;
+    max-width: 92vw;
+    height: 100vh;
+    background: #2a2a2a;
+    color: #eee;
+    box-shadow: -2px 0 14px rgba(0, 0, 0, 0.4);
+    transition: right 0.25s ease;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+}
+.profile-drawer.profile-drawer-open {
+    right: 0;
+}
+.profile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid #444;
+}
+.profile-drawer-title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #fff;
+}
+.profile-drawer-close {
+    background: transparent;
+    border: none;
+    color: #ddd;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.profile-drawer-close:hover,
+.profile-drawer-close:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+.profile-drawer-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.profile-section-title {
+    margin: 0 0 6px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #aaa;
+    letter-spacing: 0.04em;
+}
+.profile-display-name-input {
+    width: 100%;
+    background: #1f1f1f;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 9px;
+    font-size: 1rem;
+}
+.profile-display-name-input.profile-input-invalid {
+    border-color: #cc4040;
+}
+.profile-display-name-error {
+    color: #ff9494;
+    font-size: 0.8rem;
+    margin-top: 4px;
+    min-height: 1.1em;
+}
+.profile-avatar-presets {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+}
+.profile-avatar-preset {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.profile-avatar-preset:hover,
+.profile-avatar-preset:focus-visible {
+    transform: scale(1.08);
+    outline: none;
+}
+.profile-avatar-preset.profile-avatar-preset-selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+.profile-avatar-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+.profile-avatar-custom-row label {
+    margin: 0;
+    color: #ccc;
+    font-size: 0.88rem;
+}
+.profile-avatar-custom {
+    width: 48px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+}
+.profile-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+}
+.profile-preview-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.05rem;
+    flex: 0 0 auto;
+}
+.profile-preview-name {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.profile-drawer-footer {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid #444;
+}
+.profile-drawer-footer .btn {
+    flex: 1 1 auto;
+}
+.profile-saved-note {
+    font-size: 0.8rem;
+    color: #9ee69e;
+    align-self: center;
+}
+
+/* Profile drawer toggle (lives in the lobby; also a sibling of the
+   existing settings toggle so it floats top-right when the lobby is
+   closed). */
+.profile-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+.profile-toggle:hover,
+.profile-toggle:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+}
+.profile-toggle-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.78rem;
+}
+
+/* ── Stats panel + grid ──────────────────────────────────────────── */
+
+.lobby-stats-panel {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #444;
+    border-radius: 6px;
+}
+.lobby-stats-panel-title {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #aaa;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.lobby-stats-panel-subject {
+    color: #ddd;
+    text-transform: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0;
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 8px;
+}
+.stats-grid-delta {
+    grid-template-columns: repeat(2, 1fr);
+}
+.stats-cell {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    position: relative;
+}
+.stats-cell-label {
+    color: #aaa;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.stats-cell-value {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.stats-cell-delta {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 2px;
+}
+.stats-cell-delta-pos {
+    color: #9ee69e;
+}
+.stats-cell-delta-neg {
+    color: #ff9494;
+}
+.stats-cell-delta-neutral {
+    color: #cccccc;
+}
+
+/* Post-game modal "Your stats" delta section reuses the grid styles. */
+.stats-delta-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #444;
+}
+
+/* ── Mobile responsive overrides ──────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .profile-drawer {
+        right: -100vw;
+        width: 100vw;
+        max-width: 100vw;
+    }
+    .public-games-list {
+        max-height: 50vh;
+    }
+    .public-game-card {
+        grid-template-columns: 1fr;
+    }
+    .public-game-card-name,
+    .public-game-card-meta {
+        grid-column: 1 / 2;
+    }
+    .public-game-card-join {
+        grid-column: 1 / 2;
+        grid-row: auto;
+        width: 100%;
+    }
+    .lobby-make-public-row label {
+        flex: 1 1 100%;
+    }
+    .lobby-make-public-name {
+        flex: 1 1 100%;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .profile-avatar-presets {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Phase J Wave 6 — Onboarding card + Leaderboard table styles.
+ *
+ * The onboarding card is a one-shot welcome surface that shows above
+ * the lobby tabs when the user has no `mahjong_pid` cookie.  The
+ * leaderboard surface is a paged table inside the new "Leaderboard"
+ * tab.  Both reuse the dark-theme tokens already established by
+ * style.css + the Wave-5 main.css block above.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* ── Onboarding card ─────────────────────────────────────────────── */
+
+.onboarding-card {
+    background: linear-gradient(140deg, #2c3e50 0%, #34495e 100%);
+    border: 1px solid #ffce5d;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 0 0 14px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: #f0f0f0;
+}
+.onboarding-card-header {
+    margin: 0 0 8px 0;
+}
+.onboarding-card-title {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #ffce5d;
+    font-weight: 700;
+}
+.onboarding-card-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.95rem;
+    color: #ddd;
+}
+.onboarding-card-preview {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+.onboarding-preview-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background-color: #2980b9;
+    transition: background-color 0.18s ease;
+}
+.onboarding-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 8px 0;
+}
+.onboarding-field-label {
+    font-size: 0.85rem;
+    color: #bbb;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.onboarding-input {
+    background: #1c1f24;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.onboarding-input:focus {
+    outline: none;
+    border-color: #ffce5d;
+    box-shadow: 0 0 0 2px rgba(255, 206, 93, 0.25);
+}
+.onboarding-input-invalid {
+    border-color: #e74c3c;
+}
+.onboarding-error {
+    font-size: 0.8rem;
+    color: #e57373;
+    min-height: 1em;
+}
+.onboarding-avatar-presets {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+}
+.onboarding-avatar-preset {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.onboarding-avatar-preset:hover,
+.onboarding-avatar-preset:focus-visible {
+    transform: scale(1.08);
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+.onboarding-avatar-preset-selected {
+    border-color: #ffce5d;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4) inset;
+}
+.onboarding-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+.onboarding-custom-color {
+    width: 36px;
+    height: 28px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+}
+.onboarding-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* ── Leaderboard pane ────────────────────────────────────────────── */
+
+.leaderboard-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.leaderboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.leaderboard-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.leaderboard-control {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8rem;
+    color: #bbb;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.leaderboard-control > select,
+.leaderboard-control > input {
+    background: #1c1f24;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+    min-width: 110px;
+}
+.leaderboard-control > input[type="number"] {
+    min-width: 80px;
+    width: 90px;
+}
+.leaderboard-control > select:focus,
+.leaderboard-control > input:focus {
+    outline: none;
+    border-color: #ffce5d;
+    box-shadow: 0 0 0 2px rgba(255, 206, 93, 0.25);
+}
+.leaderboard-status {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 4px;
+    color: #ccc;
+}
+.leaderboard-error {
+    background: rgba(231, 76, 60, 0.12);
+    color: #e57373;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+.leaderboard-loading {
+    color: #888;
+    font-style: italic;
+}
+.leaderboard-empty {
+    background: rgba(255, 255, 255, 0.03);
+    color: #aaa;
+}
+.leaderboard-table-host {
+    width: 100%;
+    overflow-x: auto;
+}
+.leaderboard-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #1c1f24;
+    border: 1px solid #2a2e34;
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 0.9rem;
+    color: #e8e8e8;
+}
+.leaderboard-grid thead {
+    background: #262a31;
+}
+.leaderboard-grid th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 700;
+    color: #ccc;
+    border-bottom: 1px solid #333;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.leaderboard-grid th.lb-sort-active {
+    color: #ffce5d;
+}
+.leaderboard-grid td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #23262c;
+    vertical-align: middle;
+}
+.leaderboard-grid tbody tr:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.015);
+}
+.leaderboard-grid tbody tr:hover {
+    background: rgba(255, 206, 93, 0.08);
+}
+.leaderboard-grid tbody tr:last-child td {
+    border-bottom: none;
+}
+.lb-col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.lb-col-rank {
+    width: 56px;
+    text-align: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.lb-col-player {
+    text-align: left;
+    min-width: 160px;
+}
+.lb-cell-player {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.lb-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+.lb-name {
+    font-weight: 600;
+    color: #f0f0f0;
+}
+.leaderboard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+}
+.leaderboard-paging-summary {
+    color: #aaa;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Mobile breakpoint — collapse the leaderboard table into a denser
+   layout so it fits the 480px viewport without horizontal scroll. */
+@media (max-width: 768px) {
+    .leaderboard-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .leaderboard-controls {
+        justify-content: space-between;
+    }
+    .leaderboard-grid {
+        font-size: 0.82rem;
+    }
+    .leaderboard-grid th,
+    .leaderboard-grid td {
+        padding: 6px 6px;
+    }
+    .lb-col-rank {
+        width: 40px;
+    }
+    .lb-avatar {
+        width: 22px;
+        height: 22px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ── Phase K Wave 6 → 7 — AI commentary panel ───────────────────── */
+/* Anchored inside `#replay-commentary-host` (rendered by
+   `commentary-panel.<hash>.js`).  Mirrors the existing
+   `.replay-side-pane` width so the replay viewer's flex row keeps
+   its symmetric look (board pane in the middle, two narrow asides
+   flanking it).
+   Wave 7 expanded the renderer to group records by turn, surface
+   speaker badges (PBP / Color / Analyst / Narrator), an emotion-
+   intensity bar, and clickable tile-reference chips.  The W6
+   `.commentary-line` rules are kept as a fallback for the legacy
+   `{ lines: [...] }` envelope. */
+.replay-commentary-host {
+    flex: 0 0 280px;
+    overflow: hidden;
+}
+.commentary-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.commentary-panel-header {
+    border-bottom: 1px solid #1f3a5f;
+    padding: 10px 14px;
+    background: rgba(255, 209, 102, 0.04);
+}
+.commentary-panel-title {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #ffd166;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.commentary-panel-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+.commentary-panel-loading,
+.commentary-panel-empty,
+.commentary-panel-error {
+    padding: 16px 8px;
+    color: #b8c5d1;
+    font-style: italic;
+    text-align: center;
+}
+.commentary-panel-error {
+    color: #ffd166;
+}
+.commentary-line {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 8px;
+    padding: 6px 4px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    align-items: start;
+}
+.commentary-line:last-child { border-bottom: none; }
+.commentary-line-actor {
+    display: inline-block;
+    min-width: 32px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    background: rgba(31, 58, 95, 0.7);
+    color: #e8f0ff;
+}
+.commentary-line-actor-0 { background: rgba(220, 60, 60, 0.45); }
+.commentary-line-actor-1 { background: rgba(60, 180, 100, 0.45); }
+.commentary-line-actor-2 { background: rgba(60, 120, 220, 0.45); }
+.commentary-line-actor-3 { background: rgba(220, 160, 60, 0.45); }
+.commentary-line-actor-narrator {
+    background: rgba(120, 120, 120, 0.45);
+}
+.commentary-line-text {
+    line-height: 1.4;
+    color: #e8f0ff;
+}
+
+/* Wave 7 — grouped record renderer */
+.commentary-turn {
+    border-bottom: 1px solid rgba(31, 58, 95, 0.4);
+    margin-bottom: 4px;
+}
+.commentary-turn:last-child { border-bottom: none; }
+.commentary-turn-header {
+    width: 100%;
+    text-align: left;
+    background: rgba(31, 58, 95, 0.25);
+    color: #ffd166;
+    border: none;
+    padding: 6px 10px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+}
+.commentary-turn-header:hover { background: rgba(31, 58, 95, 0.45); }
+.commentary-turn[data-collapsed="true"] > .commentary-turn-body {
+    display: none;
+}
+.commentary-record {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+        "speaker text"
+        "refs    refs"
+        "intensity intensity"
+        "meta    meta";
+    gap: 4px 8px;
+    padding: 6px 4px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    align-items: start;
+}
+.commentary-record:last-child { border-bottom: none; }
+.commentary-speaker {
+    grid-area: speaker;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+}
+.commentary-speaker-pbp      { background: rgba(220, 80, 80, 0.55); }
+.commentary-speaker-color    { background: rgba(60, 180, 100, 0.55); }
+.commentary-speaker-analyst  { background: rgba(60, 120, 220, 0.55); }
+.commentary-speaker-narrator { background: rgba(120, 120, 120, 0.55); }
+.commentary-text {
+    grid-area: text;
+    line-height: 1.4;
+    color: #e8f0ff;
+}
+.commentary-tile-refs {
+    grid-area: refs;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+}
+.commentary-tile-ref {
+    background: rgba(255, 209, 102, 0.12);
+    border: 1px solid rgba(255, 209, 102, 0.45);
+    color: #ffd166;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    font-family: 'Segoe UI', monospace;
+    cursor: pointer;
+}
+.commentary-tile-ref:hover {
+    background: rgba(255, 209, 102, 0.28);
+}
+.commentary-intensity {
+    grid-area: intensity;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.commentary-intensity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5fd1a7, #ffd166, #f56c4d);
+    transition: width 200ms ease-out;
+}
+.commentary-record-meta {
+    grid-area: meta;
+    font-size: 0.68rem;
+    color: rgba(184, 197, 209, 0.65);
+}
+@media (max-width: 1100px) {
+    .replay-commentary-host { display: none; }
+}
+
+/* ── Phase K Wave 6 — PWA install button (top-bar variant) ───────── */
+/* `pwa.ts` mints the deferred-prompt button as
+   `data-testid="pwa-install-button"`; we anchor it in the top-right
+   corner where the user expects an "Install" affordance. */
+.pwa-install-button {
+    position: fixed;
+    top: 12px;
+    /* #152 — the install affordance is the widest top-bar item; anchor it to
+       the LEFT of the gear/badge cluster (variant-badge right:12, settings
+       right:136/184, lobby-toggle right:228) so nothing overlaps. */
+    right: 327px;
+    z-index: 5500;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 600px) {
+    .pwa-install-button { font-size: 0.78rem; padding: 5px 10px; }
+}
+/* #152 — on narrow viewports the top bar has no room for the wide install
+   pill; drop it to the bottom-right where it clears every top-bar control. */
+@media (max-width: 768px) {
+    .pwa-install-button {
+        top: auto;
+        right: 12px;
+        bottom: 12px;
+        max-width: min(70vw, 240px);
+    }
+}
+
+/* ── Phase K Wave 6 — Spectator livestream viewer ───────────────── */
+.spectator-livestream-screen {
+    position: fixed;
+    inset: 0;
+    background: #0d161e;
+    color: #e8f0ff;
+    z-index: 4500;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 24px;
+    gap: 16px;
+}
+.spectator-livestream-screen[hidden] { display: none; }
+.spectator-livestream-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.spectator-livestream-title {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #ffd166;
+}
+.spectator-livestream-table {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.95rem;
+    color: #b8c5d1;
+}
+.spectator-livestream-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    text-align: center;
+}
+.spectator-livestream-status {
+    font-style: italic;
+    color: #b8c5d1;
+    min-height: 1.2em;
+}
+.spectator-livestream-status[data-state="error"] {
+    color: #ff8a8a;
+    font-style: normal;
+}
+.spectator-livestream-status[data-state="phase-l"] {
+    color: #ffd166;
+    font-style: normal;
+}
+.spectator-livestream-audio {
+    width: min(560px, 90%);
+}
+.spectator-count {
+    font-size: 0.92rem;
+    color: #e8f0ff;
+    background: rgba(31, 58, 95, 0.6);
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+.spectator-livestream-close {
+    margin-left: auto;
+}
+
+/* ── Phase K Wave 6 — Bracket renderer multi-format ─────────────── */
+.bracket-format-toggle {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 10px;
+    flex-wrap: wrap;
+}
+.bracket-swiss-table,
+.bracket-double-elim-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.bracket-swiss-table th,
+.bracket-swiss-table td,
+.bracket-double-elim-table th,
+.bracket-double-elim-table td {
+    border: 1px solid #1f3a5f;
+    padding: 6px 8px;
+    text-align: left;
+}
+.bracket-swiss-table th,
+.bracket-double-elim-table th {
+    background: rgba(31, 58, 95, 0.5);
+    color: #ffd166;
+}
+.bracket-swiss-round-header,
+.bracket-double-elim-round-header {
+    background: rgba(255, 209, 102, 0.08);
+    color: #ffd166;
+    font-weight: 600;
+    text-align: center;
+}
+.bracket-double-elim-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+/* Phase K Wave 8 — Finals row spans both winners + losers columns
+ * at the bottom of the double-elim layout.  When the reset match is
+ * rendered, the row stacks the two cards vertically (winners-side
+ * first, then reset).  Mobile collapse uses the same `grid-template-
+ * columns: 1fr` rule already applied to the layout. */
+.bracket-double-elim-finals-row {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+.bracket-double-elim-grand-final {
+    background: rgba(255, 209, 102, 0.12);
+    border: 1px solid #ffd166;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+.bracket-double-elim-grand-final-reset {
+    background: rgba(229, 126, 78, 0.16);
+    border: 1px dashed #e57e4e;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+.bracket-double-elim-grand-final h5,
+.bracket-double-elim-grand-final-reset h5 {
+    margin: 0 0 8px;
+    color: #ffd166;
+    font-size: 0.95rem;
+}
+.bracket-double-elim-grand-final-reset h5 {
+    color: #f4a684;
+}
+.bracket-double-elim-column h5 {
+    margin: 0 0 8px;
+    color: #ffd166;
+    font-size: 0.95rem;
+}
+/* Phase K Wave 8 — `bracket-live-update` is a hidden Playwright
+ * anchor.  It carries `data-update-id` (timestamp of the most recent
+ * `TournamentBracketUpdated` push) — a mutation-observer assertion
+ * waits for the attribute to change.  Visually absent. */
+.bracket-live-update {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    pointer-events: none;
+}
+.bracket-match-pending { color: #b8c5d1; }
+.bracket-match-complete { color: #e8f0ff; }
+.bracket-match-winner { color: #95e6a0; font-weight: 600; }
+@media (max-width: 720px) {
+    .bracket-double-elim-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Phase K Wave 8 — Commentary tile-ref highlight overlay ─────── */
+/* When a commentary chip dispatches `mahjong:highlight-tile`, this
+ * overlay flashes a yellow halo on top of the WebGL canvas for 2 s.
+ * The host `#main` element receives `data-highlight-tile-id` for
+ * Playwright; the overlay receives `data-highlight-active` and the
+ * same `data-highlight-tile-id`.  `prefers-reduced-motion: reduce`
+ * collapses the animation to a static highlight. */
+.tile-highlight-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 3;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 215, 0, 0.30) 0%,
+        rgba(255, 215, 0, 0.12) 35%,
+        rgba(255, 215, 0, 0) 65%);
+    transition: opacity 120ms ease-out;
+}
+.tile-highlight-overlay[data-highlight-active="true"] {
+    opacity: 1;
+    animation: tile-highlight-pulse 2000ms ease-out forwards;
+}
+@keyframes tile-highlight-pulse {
+    0%   { opacity: 1; }
+    70%  { opacity: 0.85; }
+    100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tile-highlight-overlay[data-highlight-active="true"] {
+        animation: none;
+        opacity: 1;
+    }
+}

@@ -1,0 +1,380 @@
+[
+  {
+    "definition": "RendererLayout",
+    "value": {
+      "contractVersion": "1.0.0",
+      "instanceId": "fixture-instance",
+      "sessionId": "fixture-session",
+      "type": "layout",
+      "layoutRevision": 1,
+      "gameType": "CHANGSHA",
+      "activeSeats": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "canonicalBoard": {
+        "width": 174,
+        "depth": 174
+      },
+      "slots": [
+        {
+          "slotName": "hand.0@0",
+          "group": "hand",
+          "seat": 0,
+          "indexes": [
+            0
+          ],
+          "kind": "TILE",
+          "poses": [
+            {
+              "position": {
+                "x": 49,
+                "y": 4.5,
+                "z": 2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "size": {
+                "x": 6,
+                "y": 9,
+                "z": 4
+              }
+            },
+            {
+              "position": {
+                "x": 49,
+                "y": 4.5,
+                "z": 2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "size": {
+                "x": 6,
+                "y": 9,
+                "z": 4
+              }
+            },
+            {
+              "position": {
+                "x": 49,
+                "y": 4.5,
+                "z": 2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "size": {
+                "x": 6,
+                "y": 9,
+                "z": 4
+              }
+            }
+          ],
+          "drawShadow": false,
+          "shadowRotationIndex": 0,
+          "canFlipMultiple": true,
+          "rotateHeld": true
+        },
+        {
+          "slotName": "wall.0.1@1",
+          "group": "wall",
+          "seat": 1,
+          "indexes": [
+            0,
+            1
+          ],
+          "kind": "TILE",
+          "poses": [
+            {
+              "position": {
+                "x": 49,
+                "y": 4.5,
+                "z": 2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "size": {
+                "x": 6,
+                "y": 9,
+                "z": 4
+              }
+            },
+            {
+              "position": {
+                "x": 49,
+                "y": 4.5,
+                "z": 2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "size": {
+                "x": 6,
+                "y": 9,
+                "z": 4
+              }
+            }
+          ],
+          "drawShadow": false,
+          "shadowRotationIndex": 0,
+          "canFlipMultiple": false,
+          "rotateHeld": false
+        }
+      ]
+    }
+  },
+  {
+    "definition": "RendererFrame",
+    "value": {
+      "contractVersion": "1.0.0",
+      "instanceId": "fixture-instance",
+      "sessionId": "fixture-session",
+      "type": "frame",
+      "frameId": 1,
+      "layoutRevision": 1,
+      "session": {
+        "gameId": "fixture-room",
+        "mode": "changsha",
+        "connected": true,
+        "snapshotReady": true,
+        "actorSeat": 0,
+        "viewSeat": 0,
+        "viewerRevision": 4
+      },
+      "presentation": {
+        "viewMode": "perspective",
+        "boardLayout": "rectangular",
+        "handLayout": "separate",
+        "tileLabels": true,
+        "lookDown": 0,
+        "zoom": 0
+      },
+      "match": {
+        "dealer": 0,
+        "honba": 0,
+        "conditions": {
+          "gameType": "CHANGSHA",
+          "back": 0,
+          "fives": "000",
+          "points": "25",
+          "dealType": "HANDS",
+          "baseUnit": 1,
+          "dealMode": "auto"
+        }
+      },
+      "entities": [
+        {
+          "entityId": "fixture-own-tile",
+          "kind": "TILE",
+          "slotName": "hand.0@0",
+          "group": "hand",
+          "seat": 0,
+          "indexes": [
+            0
+          ],
+          "rotationIndex": 1,
+          "pose": {
+            "position": {
+              "x": 49,
+              "y": 4.5,
+              "z": 2
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "size": {
+              "x": 6,
+              "y": 9,
+              "z": 4
+            }
+          },
+          "scale": 1,
+          "appearance": {
+            "faceIndex": 0,
+            "knownFace": true,
+            "showFace": true,
+            "backIndex": 0,
+            "valueIndex": null
+          },
+          "display": {
+            "selected": false,
+            "hovered": false,
+            "held": false,
+            "temporary": false,
+            "bottom": false,
+            "drawn": false,
+            "highlight": 0
+          },
+          "interaction": {
+            "canSelect": true,
+            "canDrag": false,
+            "canFlip": false,
+            "canDiscard": true,
+            "canPickup": false
+          }
+        },
+        {
+          "entityId": "fixture-concealed-wall",
+          "kind": "TILE",
+          "slotName": "wall.0.1@1",
+          "group": "wall",
+          "seat": 1,
+          "indexes": [
+            0,
+            1
+          ],
+          "rotationIndex": 0,
+          "pose": {
+            "position": {
+              "x": 49,
+              "y": 4.5,
+              "z": 2
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0,
+              "w": 1
+            },
+            "size": {
+              "x": 6,
+              "y": 9,
+              "z": 4
+            }
+          },
+          "scale": 1,
+          "appearance": {
+            "faceIndex": null,
+            "knownFace": false,
+            "showFace": false,
+            "backIndex": 0,
+            "valueIndex": null
+          },
+          "display": {
+            "selected": false,
+            "hovered": false,
+            "held": false,
+            "temporary": false,
+            "bottom": false,
+            "drawn": false,
+            "highlight": 0
+          },
+          "interaction": {
+            "canSelect": false,
+            "canDrag": false,
+            "canFlip": false,
+            "canDiscard": false,
+            "canPickup": false
+          }
+        }
+      ],
+      "seats": [
+        {
+          "seat": 0,
+          "playerId": null,
+          "nick": null,
+          "score": null
+        },
+        {
+          "seat": 1,
+          "playerId": null,
+          "nick": null,
+          "score": null
+        },
+        {
+          "seat": 2,
+          "playerId": null,
+          "nick": null,
+          "score": null
+        },
+        {
+          "seat": 3,
+          "playerId": null,
+          "nick": null,
+          "score": null
+        }
+      ],
+      "localHand": {
+        "seat": 0,
+        "entityIds": [
+          "fixture-own-tile"
+        ],
+        "drawnEntityId": null
+      },
+      "turn": {
+        "activeSeat": 0,
+        "phase": "AwaitingDiscard",
+        "awaitingDiscard": true
+      },
+      "pickup": null,
+      "dice": {
+        "values": [
+          3,
+          4
+        ],
+        "state": "rolled",
+        "canRoll": false
+      }
+    }
+  },
+  {
+    "definition": "RendererAction",
+    "value": {
+      "contractVersion": "1.0.0",
+      "instanceId": "fixture-instance",
+      "sessionId": "fixture-session",
+      "type": "action",
+      "actionId": "fixture-action",
+      "contextFrameId": 1,
+      "intent": {
+        "kind": "discard",
+        "entityId": "fixture-own-tile"
+      }
+    }
+  },
+  {
+    "definition": "Viewport",
+    "value": {
+      "contractVersion": "1.0.0",
+      "instanceId": "fixture-instance",
+      "type": "viewport",
+      "resizeRevision": 1,
+      "widthCssPx": 390,
+      "heightCssPx": 844,
+      "devicePixelRatio": 3,
+      "renderPixelRatio": 2,
+      "widthPx": 780,
+      "heightPx": 1688,
+      "insetsCssPx": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "handBandCssPx": 112
+    }
+  }
+]

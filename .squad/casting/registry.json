@@ -1,0 +1,54 @@
+{
+  "schema": "squad-agent-provenance/v1",
+  "schema_version": 1,
+  "revision": 2,
+  "generated_at": "2026-10-09T19:15:33-0700",
+  "agents": {
+    "lead": {
+      "display_name": "Lead",
+      "persistent_name": "Lead",
+      "role": "Architecture & Migration",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-10-09T19:15:33-0700",
+      "updated_at": "2026-10-09T19:15:33-0700"
+    },
+    "unity": {
+      "display_name": "Unity",
+      "persistent_name": "Unity",
+      "role": "Unity WebGL Rendering",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-10-09T19:15:33-0700",
+      "updated_at": "2026-10-09T19:15:33-0700"
+    },
+    "frontend": {
+      "display_name": "Frontend",
+      "persistent_name": "Frontend",
+      "role": "Browser & Mobile UX",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-10-09T19:15:33-0700",
+      "updated_at": "2026-10-09T19:15:33-0700"
+    },
+    "backend": {
+      "display_name": "Backend",
+      "persistent_name": "Backend",
+      "role": "Rules, APIs & Hosting",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-10-09T19:15:33-0700",
+      "updated_at": "2026-10-09T19:15:33-0700"
+    },
+    "tester": {
+      "display_name": "Tester",
+      "persistent_name": "Tester",
+      "role": "Quality & Compatibility",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-10-09T19:15:33-0700",
+      "updated_at": "2026-10-09T19:15:33-0700"
+    }
+  },
+  "transaction_id": "eb6e0a95-e8c1-497f-8e52-87bc4b3aa850"
+}

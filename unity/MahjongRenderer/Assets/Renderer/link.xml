@@ -1,0 +1,4 @@
+<linker>
+  <assembly fullname="Mahjong.Renderer" preserve="all" />
+  <assembly fullname="Unity.Newtonsoft.Json" preserve="all" />
+</linker>

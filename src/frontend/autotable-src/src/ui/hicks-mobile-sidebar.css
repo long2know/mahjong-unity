@@ -1,0 +1,281 @@
+/* Hicks — Mobile-responsive (≤480px / iPhone-SE 375px) + lobby/sidebar
+ * sizing polish.
+ *
+ * Companion CSS for `feat/mobile-responsive-and-lobby-overlay`.
+ * Layered after `style.css` so the local overrides win the cascade.
+ *
+ * Goals
+ * -----
+ * 1. Eliminate the 12 px horizontal scroll at 375 px caused by the lobby
+ *    panel keeping its desktop `top:12px; left:12px` offset while the
+ *    480-pixel media query expanded it to `width:100vw; height:100vh`.
+ * 2. Bring the legacy `#sidebar` (Deal / Setup overlay) closer to the
+ *    upstream-autotable footprint for the original Riichi variants by
+ *    hiding the Changsha-only claim-button row when no claim window is
+ *    active.  Per Stephen's 2026-05-19 directive
+ *    ("the overlay on the left with the Deal/Setup options is a
+ *     different size") the sidebar should visually match upstream when
+ *    nothing Changsha-specific is happening on screen.
+ * 3. Keep the variant-switcher dropdown (Ferro) and Quick-Match button
+ *    tappable at 375 px without dragging in horizontal scroll.
+ * 4. Surface the lobby-close affordance at the top of the mobile lobby
+ *    panel so users can dismiss it after picking a variant.
+ *
+ * Lane discipline: this file is owned by Hicks (frontend trunk) per the
+ * 2026-05-19 lane map.  We do not touch any of Ferro's overlays or CSS;
+ * the only files imported/modified by this change set are `index.ts`
+ * (CSS import) and this stylesheet.
+ */
+
+/* ---------------------------------------------------------------------- */
+/* Sidebar parity with upstream — hide Changsha-only claim row when       */
+/* nothing's claimable.                                                   */
+/*                                                                        */
+/* The legacy claim buttons in #sidebar > div.mt-3 are wired by           */
+/* game-ui.ts:792-800 and are toggled `disabled` based on the live        */
+/* `claim` collection.  When all five buttons are disabled there is no    */
+/* active claim window, which is the steady-state for every visible      */
+/* second of a game except the 5–7s decision windows.  Collapsing that   */
+/* row to zero height brings our sidebar visually back to the upstream-  */
+/* autotable shape Stephen flagged.  Ferro's `ClaimWindowOverlay` is the */
+/* primary surface during claim windows; the legacy row remains as the   */
+/* keyboard-accessible fallback when any single button is enabled.       */
+#sidebar > .mt-3:has(#claim-pung[disabled]):has(#claim-chow[disabled]):has(#claim-kong[disabled]):has(#claim-hu[disabled]):has(#claim-pass[disabled]) {
+    display: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile viewport hardening (≤ 480 px — iPhone-SE / iPhone-mini)         */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 480px) {
+    /* Defence-in-depth: prevent any sub-viewport rounding error or stray
+     * overlay from producing a horizontal scrollbar at 375 px.  The
+     * canvas + sidebar + lobby are all `position:absolute` so locking
+     * `overflow-x` on the document never affects gameplay scroll, only
+     * accidental side-scroll. */
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    /* Lobby panel resets — `style.css` at line 542 keeps the desktop
+     * `top:12px; left:12px` positioning while the 480-pixel rule at
+     * line 1985 expands width/height to 100vw/100vh.  Together those
+     * produced a 12 px right-edge overflow (docW=387 at innerW=375).
+     * Pin the panel flush to the top-left at this breakpoint so the
+     * 100vw box stays inside the viewport. */
+    #lobby-panel {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: 100vh;
+        /* Honour notched-display safe areas so the close button isn't
+         * tucked under the status bar on iOS. */
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    /* The close button can get hidden under the status bar on notched
+     * iPhones; pin it to the right edge of the header so it stays
+     * tappable. */
+    #lobby-panel .lobby-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background-color: rgba(20, 22, 28, 0.96);
+    }
+    #lobby-panel .lobby-close-btn {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.8rem;
+    }
+
+    /* Quick-Match button at full-row width with a 44 px touch target,
+     * matching the WCAG floor Ferro applied to the variant picker. */
+    #lobby-quick-match {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+
+    /* Lobby footer buttons (Apply / Cancel) inherit the wrap from the
+     * existing 480px rule; just make sure they hit the 44 px target. */
+    #lobby-panel .lobby-footer .btn {
+        min-height: 44px;
+    }
+
+    /* Sidebar at iPhone-SE width — the existing 768 px rule shrinks it
+     * to 180 px which leaves ~150 px of canvas to the right of the
+     * sidebar for the discard pile.  At 375 px that's *too* narrow
+     * for the own-hand row to feel comfortable, so we collapse the
+     * sidebar into a compact pill anchored top-left.  The full sidebar
+     * is reachable via the existing lobby panel + claim-window
+     * overlays. */
+    #sidebar {
+        width: 160px;
+        padding: 0.6em 0.7em;
+        font-size: 0.82rem;
+        max-height: calc(100vh - 70px);
+        overflow-y: auto;
+        background: rgba(20, 22, 28, 0.78);
+    }
+    #sidebar .btn {
+        font-size: 0.82rem;
+        padding: 4px 6px;
+    }
+    /* Compact the claim buttons inside the sidebar (when visible — i.e.
+     * during an active claim window) so all four fit across 160 px. */
+    #sidebar .d-flex > .mr-1 {
+        margin-right: 2px !important;
+    }
+    /* Lobby toggle (☰) is the always-on entry point to the variant
+     * switcher; keep it 44 px tall but anchor it at safe-area-top.
+     * #152 — reset the desktop `right:228` anchor (top-right toolbar) so the
+     * mobile pill sits top-LEFT, and drop the text label so it stays a
+     * compact icon that leaves room for the right-hand chrome cluster. */
+    #lobby-toggle {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        left: max(8px, env(safe-area-inset-left, 8px));
+        right: auto;
+        min-height: 44px;
+        padding: 8px 12px;
+    }
+    #lobby-toggle .lobby-toggle-label {
+        display: none;
+    }
+
+    /* #152 — deterministic mobile top-right chrome cluster (single row).
+     * From the right edge: move-log hamburger (8), square gear (58), round
+     * gear (102), variant badge (146, capped). None overlap each other, the
+     * top-left lobby pill, or the dice HUD (which drops to row 2 below). */
+    #move-log-toggle {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        right: max(8px, env(safe-area-inset-right, 8px));
+    }
+    #settings-button {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        right: 58px;
+    }
+    #settings-toggle {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        right: 102px;
+    }
+    #variant-badge {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        right: 146px;
+        max-width: 96px;
+    }
+
+    /* Dice HUD drops to a second row on phones so it never collides with the
+     * top-row chrome cluster or the top-left lobby pill. */
+    #dice-hud {
+        top: 56px;
+        font-size: 0.92rem;
+        max-width: 70vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Pickup HUD: stack its label + take button vertically so the text
+     * never gets squeezed under the dice-shortcut button at 375 px. */
+    #pickup-hud {
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+        max-width: calc(100vw - 24px);
+    }
+    #pickup-hud #pickup-take-btn {
+        margin-left: 0 !important;
+        align-self: stretch;
+        min-height: 44px;
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Settings panel — fit-to-content on mobile/tablet (≤ 768 px).           */
+/*                                                                        */
+/* Stephen's 2026-06-03 polish directive flagged that both the Phase J    */
+/* Wave 2 per-game Settings drawer (#settings-drawer) and the Wave 7      */
+/* app-wide Settings drawer (.settings-drawer-v2) cover the entire game   */
+/* board on phones/tablets.  Pre-existing style.css rules push them to    */
+/* `width:100vw; height:100vh` at ≤ 480 px (and `width:100vw` at the      */
+/* Wave 7 720 px breakpoint), which hides the table behind the panel.    */
+/*                                                                        */
+/* New behaviour at ≤ 768 px:                                             */
+/*   • width      = min(90vw, 360 px)  — leaves the right edge of the    */
+/*                  table visible so the user can dismiss with context.  */
+/*   • height     = auto + max-height: 90vh — fits the content; scrolls  */
+/*                  if knobs exceed the cap.                              */
+/*   • anchored to the top-right with a small inset so the gear button    */
+/*                  and variant badge stay reachable above it.            */
+/*   • overflow-y: auto on the drawer itself so the body's internal      */
+/*                  flex:1 region keeps its scroll behaviour without     */
+/*                  requiring a fixed parent height.                      */
+/*                                                                        */
+/* Layered after `style.css` so the cascade wins without specificity      */
+/* hacks; desktop (> 768 px) styling is intentionally untouched.          */
+/* ---------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    #settings-drawer,
+    .settings-drawer,
+    .settings-drawer-v2 {
+        top: max(8px, env(safe-area-inset-top, 8px));
+        right: max(8px, env(safe-area-inset-right, 8px));
+        left: auto;
+        bottom: auto;
+        width: min(90vw, 360px);
+        max-width: min(90vw, 360px);
+        height: auto;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 10px;
+        box-shadow: -4px 4px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Closed state for the Wave 2 drawer uses `right: -340px` to slide
+     * off-screen; the new width caps the slide distance so the panel
+     * doesn't peek back in.  Mirror the slide formula against the new
+     * max width. */
+    #settings-drawer:not(.settings-open) {
+        right: calc(-1 * min(90vw, 360px) - 24px);
+    }
+    #settings-drawer.settings-open {
+        right: max(8px, env(safe-area-inset-right, 8px));
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lobby overlay sizing parity (desktop ≥ 481 px) — Stephen's 2026-05-19  */
+/* directive flagged that the left-edge Deal/Setup overlay feels heavier  */
+/* than upstream-autotable.  Upstream's #sidebar is 220 px wide with a    */
+/* 1em padding box.  Our #sidebar already matches that geometry but the   */
+/* newer #lobby-panel (320 px wide) sat on top of it and visually pushed  */
+/* the perceived "overlay" footprint out by ~100 px.  Trim the lobby     */
+/* panel back to 280 px so the two overlays read as the same visual       */
+/* family (upstream-220 + 60 px to host the wider variant picker + bot    */
+/* selector).  The pickers inside are flex/box-sized so they reflow.      */
+/* ---------------------------------------------------------------------- */
+@media (min-width: 481px) {
+    #lobby-panel {
+        width: 280px;
+    }
+    /* Tighten the inside padding rhythm to match upstream's 1em sidebar
+     * cadence (currently the lobby uses 10–14 px which feels airier than
+     * the 16 px upstream sidebar). */
+    #lobby-panel .lobby-body {
+        padding: 8px 12px 4px;
+    }
+    #lobby-panel .lobby-header {
+        padding: 8px 12px;
+    }
+    #lobby-panel .lobby-footer {
+        padding: 6px 12px 10px;
+    }
+    /* Fieldset margins compact so more controls fit inside 280 px. */
+    #lobby-panel .lobby-fieldset {
+        margin-bottom: 8px;
+        padding: 4px 8px 6px;
+    }
+}

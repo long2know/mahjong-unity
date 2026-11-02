@@ -1,0 +1,22 @@
+{
+  "image": "unityci/editor:ubuntu-6000.3.24f1-webgl-3.2.2",
+  "platform": "linux/amd64",
+  "platformManifestDigest": "sha256:f3c6661a8c5bc975df168f114eb3882766546b2ad09765664f5b2bb186857ddb",
+  "indexDigest": "sha256:afef76250dfac01ba17a6a2b378435ffecf39d159033cd56ce6ef7142f39bb5a",
+  "configDigest": "sha256:7cec530703505e3b4712d828499d555c9cce15ab84f3e8277313a786365d929a",
+  "compressedLayerBytes": 7447979118,
+  "layerCount": 28,
+  "verifiedAtUtc": "2026-10-10",
+  "verification": "docker buildx imagetools inspect and --raw/--format remote metadata only; no image pulled or editor executed",
+  "unityVersion": "6000.3.24f1",
+  "unityRevision": "4e7b9b5b6244",
+  "licensePolicy": "Privately provisioned valid activation/license mounted read-only. Image download alone does not activate Unity. No account credentials, serial, activation, or unsupported Personal workaround.",
+  "primaryDocumentation": [
+    "https://game.ci/docs/docker/docker-images/",
+    "https://game.ci/docs/github/activation/",
+    "https://game.ci/docs/troubleshooting/common-issues/",
+    "https://game.ci/docs/cli/build/"
+  ],
+  "runtimeSeparation": "This Editor image only produces artifacts; Dockerfile retains the small single-process ASP.NET runtime.",
+  "sourceMetadata": "Actual git HEAD; sourceDirty and source-tree hash cover the same explicit renderer inputs, not unrelated unmounted backend/frontend files."
+}
