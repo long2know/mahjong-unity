@@ -37,7 +37,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
-      contents: read
+      # GitHub requires push-capable access to read an unpublished DRAFT release.
+      contents: write
       pull-requests: read
       packages: write
     steps:
