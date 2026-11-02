@@ -34,6 +34,9 @@ body.browser-shell-active :is(#main.unity-table, #browser-shell, .browser-panels
         8px max(8px, env(safe-area-inset-left));
     border-bottom: 1px solid var(--shell-border);
     background: var(--shell-surface);
+    /* Chromium's opaque-layer occlusion otherwise clips the WebGL hand at the
+       opposite edge of the canvas until keyboard focus changes its paint layer. */
+    opacity: .999;
     color: var(--shell-text);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     pointer-events: none;

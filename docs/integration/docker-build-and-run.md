@@ -512,10 +512,10 @@ session path or cached source mirror is required.
 
 Coverage is **33 tooling + 9 import/ignore/real-Docker-context cases**,
 **26 fail-closed player-evidence and runner-environment cases**, **147 combined
-backend/hosting/room/relay/continuation cases**, **125 retained,
+backend/hosting/room/relay/continuation cases**, **130 retained,
 Unity-adapter, browser-shell/accessibility and actual Game startup/settled-viewport
-source cases** (including six production-CSS layout cases covering forty DOM
-states), distinct
+source cases** (including production-CSS layout checks, three ordinary relay
+Deal-click regressions and two real-WebGL composition regressions), distinct
 strict primary TypeScript and Vite builds, and Unity metadata/frozen-contract,
 **5 JS bridge cases + 26-file C#9 editor/player syntax parsing**. Workflow
 contract tests also reject conditional source skips, widened evidence uploads,
@@ -543,10 +543,19 @@ licensed CI Editor/build execution.
 
 The compact labeled browser toolbar and quieter native felt/seat hierarchy must
 qualify together, not from separate authors' source-only receipts. The canonical
-125-case browser inventory executes every selected test file once; the layout
+130-case browser inventory executes every selected test file once; the layout
 file is explicitly selected in addition to `unity-*.test.mjs`. Source receipts
 fingerprint the shell/CSS, drawer helper, production callers and selected tests;
 Unity source metadata includes the art, scene, views and native rendering tests.
+
+Relay Deal controls must start below the fixed toolbar. The toolbar's
+`opacity: .999` is an intentional Chromium compatibility fix: a fully opaque
+header can incorrectly cull a header-height strip from the opposite edge of
+the underlying WebGL canvas until keyboard focus changes its paint layer.
+The desktop and DPR-2 phone regressions inspect actual composited screenshot
+pixels before and after focus, without changing native viewport geometry,
+input coordinates or gameplay thresholds. This source-level WebGL control is
+not a substitute for the genuine Unity camera cases below.
 
 After the final integration commit, run the standard pinned Editor
 `bash scripts/build-unity-webgl.sh --test-and-build` with the previously approved

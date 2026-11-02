@@ -281,4 +281,63 @@ test('production shell + UnityHost reserve unobstructed controls, panels and han
       }
     });
   }
+  for (const [width, height, dpr] of [[1280, 800, 1], [390, 844, 2]]) {
+    await t.test(`the ${width}×${height} header must not cull the WebGL hand before keyboard focus`, async () => {
+      const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr });
+      const page = await context.newPage();
+      try {
+        await page.route('**/*', route => route.abort());
+        await page.setContent(markup.replace('</head>', `<style>${styles}</style></head>`));
+        await page.addScriptTag({ content: bundle });
+        await page.evaluate(() => {
+          document.body.className = 'variant-changsha theme-light';
+          new window.shellSource['move-log.ts'].MoveLog({});
+          window.shellSource['browser-shell.ts'].installBrowserShell();
+          const { UnityHost } = window.shellSource['renderer/unity-host.ts'];
+          window.shellHost = new UnityHost(document.getElementById('main'), {
+            action() {}, resized() {}, resumed() {}, failure() {}, notice() {},
+          });
+          document.getElementById('unity-status').hidden = true;
+          window.shellHost.setPresentation({ handLayout: 'separate' });
+          const canvas = window.shellHost.canvas;
+          const gl = canvas.getContext('webgl2');
+          if (!gl) throw new Error('Actual WebGL2 is required for this browser-composition regression');
+          window.paintHand = () => {
+            gl.disable(gl.SCISSOR_TEST);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.enable(gl.SCISSOR_TEST);
+            gl.scissor(0, 0, canvas.width, canvas.height -
+              Math.ceil(document.getElementById('browser-shell').getBoundingClientRect().height * devicePixelRatio));
+            gl.clearColor(17 / 255, 93 / 255, 157 / 255, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            window.paintHandle = requestAnimationFrame(window.paintHand);
+          };
+          window.paintHand();
+        });
+        await measure(page);
+        for (const focused of [false, true]) {
+          if (focused) {
+            await page.locator('#unity-canvas').focus();
+            await page.keyboard.press('ArrowLeft');
+          }
+          const screenshot = await page.screenshot();
+          const pixels = await page.evaluate(async ({ bytes, dpr }) => {
+            const image = await createImageBitmap(new Blob([Uint8Array.from(bytes)], { type: 'image/png' }));
+            const canvas = new OffscreenCanvas(image.width, image.height);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0);
+            return [innerWidth * .25, innerWidth * .5].map(x =>
+              [...ctx.getImageData(Math.round(x * dpr), Math.round((innerHeight - 10) * dpr), 1, 1).data]);
+          }, { bytes: [...screenshot], dpr });
+          for (const pixel of pixels)
+            assert.deepEqual(pixel, [17, 93, 157, 255],
+              `The real composited hand band must remain visible ${focused ? 'after' : 'before'} keyboard focus`);
+        }
+      } finally {
+        await page.evaluate(() => { cancelAnimationFrame(window.paintHandle); window.shellHost?.dispose(); });
+        await context.close();
+      }
+    });
+  }
 });

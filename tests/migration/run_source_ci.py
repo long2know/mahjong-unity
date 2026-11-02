@@ -116,7 +116,7 @@ def plans():
                 "node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs",
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
-                    cwd=FRONTEND, kind="node", expected=125),
+                    cwd=FRONTEND, kind="node", expected=130),
             command("renderer-regressions", [
                 "node", "--test", "--test-reporter=tap",
                 "tests/migration/renderer-backend-shape.test.mjs",
