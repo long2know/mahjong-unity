@@ -30,6 +30,9 @@ HASHES = {
     XML: "f17e0b655bfc99baf7f0c39636995ec91409d4c88c9a20a1a0edc9f80e4c64d8",
     PLAN: "73a6cb057a13a6032ebb93122a8fddaccbe4f754e3fc65824b3e8030f77c7190",
 }
+tool_spec = importlib.util.spec_from_file_location("focus_probe_tooling", ROOT / "scripts/focus_probe_tooling.py")
+focus_tools = importlib.util.module_from_spec(tool_spec)
+tool_spec.loader.exec_module(focus_tools)
 
 
 def require(condition, message):
@@ -161,9 +164,18 @@ def qualify(source, group):
         validate_image(inspected)
         receipt.update(imageId=inspected["Id"], actualHostedRegistryPullPassed=True)
         receipt["fixturePermissions"] = prepare_runtime_fixtures(source)
+        environment = dict(os.environ)
+        if group == "focus":
+            tooling, additions = focus_tools.stage(source, ROOT / ".work/focus-tooling")
+            receipt.update(tooling)
+            environment.update(additions)
+            args[1] = str(Path(tooling["probeTooling"]["root"]) / "run_runtime_player_integration.py")
         save()
         with (out / (group + ".log")).open("w") as log:
-            result = subprocess.run(args, cwd=source, stdout=log, stderr=subprocess.STDOUT, timeout=2200)
+            result = subprocess.run(args, cwd=source, stdout=log, stderr=subprocess.STDOUT,
+                                    timeout=2200, env=environment)
+        if group == "focus":
+            focus_tools.validate(tooling)
         record["exitCode"] = result.returncode
         for kind in ("runtime", "player"):
             p = source / record[kind + "Receipt"]
