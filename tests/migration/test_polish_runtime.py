@@ -10,7 +10,6 @@ from pathlib import Path
 import shutil
 import sqlite3
 import subprocess
-import sys
 import tarfile
 from types import SimpleNamespace
 import unittest
@@ -259,20 +258,31 @@ class RuntimeHandoffTests(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [])
 
     @unittest.skipUnless(os.environ.get("POLISH_POSIX_UID_REGRESSION") == "1",
-                         "Requires hosted POSIX UID1001 runner and authorized sudo to UID1000")
+                         "Requires hosted POSIX UID1001 runner and normal Docker fixture mounts")
     def test_real_uid1001_fixtures_allow_uid1000_sqlite_and_bootstrap_writes(self):
         self.assertEqual(os.getuid(), 1001, "This regression must exercise the actual hosted runner UID")
-        command = ["sudo", "-n", "-u", "#1000", "-g", "#1000", "--", sys.executable, "-c",
-                   "import os,pathlib,sqlite3,sys; assert os.getuid()==1000 and os.getgid()==1000; "
-                   "p=pathlib.Path(sys.argv[1]); "
-                   "db=sqlite3.connect(p/'state.db'); db.execute('create table proof (value integer)'); "
-                   "db.execute('insert into proof values (42)'); db.commit(); db.close(); "
-                   "(p/'bootstrap-cache'/'proof').write_text('uid1000'); "
-                   "(p/'bootstrap-cache'/'created-by-runtime').mkdir()"]
+        subprocess.run(["docker", "pull", "--platform", "linux/amd64", runtime.BROWSER],
+                       check=True, stdout=subprocess.DEVNULL, timeout=180)
+
+        def write_as_runtime(fixture):
+            return subprocess.run([
+                "docker", "run", "--rm", "--pull=never", "--platform", "linux/amd64",
+                "--network", "none", "--user", "1000:1000", "--read-only", "--cap-drop=ALL",
+                "--security-opt=no-new-privileges:true",
+                "--mount", f"type=bind,source={fixture},target=/data",
+                "--mount", f"type=bind,source={fixture / 'bootstrap-cache'},target=/app/data",
+                "--entrypoint", "python3", runtime.BROWSER, "-c",
+                "import os,pathlib,sqlite3; assert os.getuid()==1000 and os.getgid()==1000; "
+                "db=sqlite3.connect('/data/state.db'); db.execute('create table proof (value integer)'); "
+                "db.execute('insert into proof values (42)'); db.commit(); db.close(); "
+                "pathlib.Path('/app/data/proof').write_text('uid1000'); "
+                "pathlib.Path('/app/data/created-by-runtime').mkdir()",
+            ], capture_output=True, text=True)
+
         denied = self.work / "unbridged"
         denied.mkdir(mode=0o755)
         (denied / "bootstrap-cache").mkdir(mode=0o755)
-        before = subprocess.run([*command, str(denied)], capture_output=True, text=True)
+        before = write_as_runtime(denied)
         self.assertNotEqual(before.returncode, 0)
         self.assertIn("unable to open database file", before.stderr)
         self.assertFalse((denied / "state.db").exists())
@@ -284,7 +294,7 @@ class RuntimeHandoffTests(unittest.TestCase):
         (fixture / "bootstrap-cache").mkdir()
         self.assertEqual(fixture.stat().st_uid, 1001)
         self.assertEqual((fixture / "bootstrap-cache").stat().st_uid, 1001)
-        written = subprocess.run([*command, str(fixture)], capture_output=True, text=True)
+        written = write_as_runtime(fixture)
         self.assertEqual(written.returncode, 0, written.stderr + "\n" +
                          subprocess.check_output(["getfacl", "-p", str(fixture)], text=True))
         self.assertEqual((fixture / "state.db").stat().st_uid, 1000)

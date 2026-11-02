@@ -149,7 +149,10 @@ cleanup access to runtime-created subdirectories. No workspace/operator permissi
 ownership are changed; the image still runs as `1000:1000` with its original
 read-only root filesystem, dropped capabilities and no-new-privileges guard.
 Source CI requires the real Ubuntu UID1001-to-UID1000 SQLite/bootstrap regression,
-including the unbridged permission-denied control. Local runs without
+using the already-pinned browser tooling image with the canonical bind mounts
+and runtime hardening, including the unbridged permission-denied control. This
+avoids unrelated host-ancestor traversal that the mounted runtime never performs.
+Local runs without
 `POLISH_POSIX_UID_REGRESSION=1` explicitly skip that POSIX-only case, not claim it.
 
 Every partition always uploads its actual raw receipts, logs and PNGs plus a
