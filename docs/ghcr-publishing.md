@@ -33,16 +33,16 @@ are intentionally unsupported by this small handoff contract.
 From the publishing-tools checkout:
 
 ```bash
-SOURCE_SHA=0dae531a58d87548488d76a55297700d5ff3589c
+SOURCE_SHA=ee58678676bc3f99ac141a27111922dc3110ab2e
 python3 -B scripts/ghcr_publish.py bundle \
-  --source ../mjp --artifacts ../mjp/artifacts/unity-webgl \
+  --source ../mahjong-polish-runtime-fix --artifacts ../mahjong-polish-runtime-fix/artifacts/unity-webgl \
   --source-sha "$SOURCE_SHA" --output .work/unity-webgl.tar.gz
 # Record the emitted bundle_sha256 independently, before uploading.
-gh release create build-input-polish-0dae531-20261101 \
+gh release create build-input-polish-ee58678 \
   --repo long2know/mahjong-unity --draft --target "$SOURCE_SHA" \
   --title 'Private approved Unity build input' \
   --notes 'Genuine clean production build input; not a public release or runtime acceptance.'
-gh release upload build-input-polish-0dae531-20261101 .work/unity-webgl.tar.gz \
+gh release upload build-input-polish-ee58678 .work/unity-webgl.tar.gz \
   --repo long2know/mahjong-unity
 gh api repos/long2know/mahjong-unity/releases \
   --jq '.[] | select(.draft) | {id,tag_name,assets:[.assets[]|{id,name,size}]}'
@@ -62,13 +62,15 @@ either open or merged. This allows runtime qualification **before** merging the
 candidate source; forks and mismatched PR/manifest/source identities fail.
 Dispatching this workflow is an explicit authorization to package that PR head.
 
-The already-staged November 1, 2026 input for PR21 is:
+The corrected November 1, 2026 PR21 input was already packaged successfully by
+run `41377303458`, attempt `1`. These parameters document that publication;
+do not republish it merely to run qualification:
 
 ```bash
 gh workflow run ghcr-publish.yml --repo long2know/mahjong-unity --ref main \
-  -f source_sha=0dae531a58d87548488d76a55297700d5ff3589c -f source_pr=21 \
-  -f release_id=430946697 -f asset_id=699921814 \
-  -f bundle_sha256=ff7b561d4067e31937162b193c414aaa614fd94a083391151cc52b13d97c6eb2
+  -f source_sha=ee58678676bc3f99ac141a27111922dc3110ab2e -f source_pr=21 \
+  -f release_id=431007157 -f asset_id=700226136 \
+  -f bundle_sha256=bdec288a7ab1b8c5346ca8e38e93dcf17a3fac66ccd65d7a1c6af8967c007172
 gh run list --repo long2know/mahjong-unity --workflow ghcr-publish.yml
 gh run watch RUN_ID --repo long2know/mahjong-unity --exit-status
 ```
@@ -109,15 +111,21 @@ manual, main-only `polish-runtime.yml`. It **does not** build an image, rebuild
 Unity, push/tag anything, deploy, merge, or approve `latest`. No dispatch inputs
 can change its source, image, cases or evidence.
 
-The bounded workflow pins source `0dae531a58d87548488d76a55297700d5ff3589c`,
+The bounded workflow pins corrected source `ee58678676bc3f99ac141a27111922dc3110ab2e`,
 the already published OCI digest
-`sha256:f9c6420c81206d250b79ab37c32a60045696b61a4dca56bc6f6a701168764f49`
+`sha256:57fb86eb080d4ccda38edbd695eff451e92bfcb8ec4595c53ca0bbef0a192c02`
 and config ID
-`sha256:b0d050bea10783403714e9065c1360716e2a60d4e011c1ee43b0f1bdd05e3027`.
-It reuses the five-file WebGL input above. Supplemental draft asset `700020559`
-in release `430946697` is exactly the original Editor receipt, its actual
+`sha256:98127da019eee62ddb83e0536149a8e1970e5a2499c5dd4e7d4e837d8caef674`.
+It uses the new five-file WebGL input above (11,622,505 bytes), with manifest SHA256
+`ae21183a8da87013b79b4c8404c7cc38b3d8b6684113e2fead9171042ea01b29`.
+Supplemental draft asset `700226139` (13,108 bytes)
+in release `431007157` is exactly the original new Editor receipt, its actual
 171-case NUnit XML and the unchanged complete case plan; archive SHA256:
-`86468491b6de1dda82e7568825caf213d2a0e57305acb5e59bc40969d1127dfa`.
+`1a3405a9cb9e6f590da34dd42db5bbddbf8fc03c117119c6739544af8c6b7a65`.
+Receipt/XML live under `artifacts/test-results/polish/editor-ee58678/`;
+the original plan is `polish/runtime-final/case-plan-ee58678.json` under
+`artifacts/test-results/`. The source's actual 130 frontend + 6 renderer +
+12 contracts results are separate from main tooling's 107-case frontend suite.
 The helper pins each member's original bytes and rejects links, duplicates,
 missing/extra files, changed evidence and existing destinations. It does not
 reinterpret the Editor receipt, upload license/account files, or claim a hosted
@@ -127,7 +135,7 @@ licensed Editor run.
 gh workflow run polish-runtime.yml --repo long2know/mahjong-unity --ref main
 gh run watch RUN_ID --repo long2know/mahjong-unity --exit-status
 gh run download RUN_ID --repo long2know/mahjong-unity \
-  --pattern 'polish-runtime-0dae531-*-RUN_ID-ATTEMPT' \
+  --pattern 'polish-runtime-ee58678-*-RUN_ID-ATTEMPT' \
   --dir artifacts/test-results/polish-hosted-RUN_ID
 ```
 
@@ -135,7 +143,7 @@ Five fixed partitions (`general`, `focus`, `camera`, `relay`, `mobile`) run on
 **separate** Ubuntu amd64 runners, with `fail-fast: false`. Each pulls the same
 immutable candidate and pinned Chromium image, verifies image/source/non-root
 identity, builds only the matching Vite reference, then invokes the original
-`0dae531` canonical runtime/player wrapper without changing a guard or case.
+`ee58678` canonical runtime/player wrapper without changing a guard or case.
 The mobile partition omits `--cases`, retaining the full native API lifecycle.
 Headful focus retains the original private authenticated Xvfb procedure.
 The token is confined to the draft-input step; registry permission is read-only.
@@ -165,10 +173,11 @@ Runtime hardening and authenticated X11 procedures are unchanged.
 
 Run `41372708835` and all its failed raw artifacts remain historical evidence,
 not acceptance. Its frozen `0dae531` harness is not rewritten or interposed.
-The next candidate source must explicitly include the reviewed canonical tmpfs
-permission fix **before** its genuine Editor build and image publication.
-This harness-only change does not authorize rerunning or relabeling the old
-candidate; the fixed-input workflow above still names that old candidate.
+Corrected source `ee58678` already includes the reviewed canonical tmpfs fix
+from before its genuine Editor build and image publication. The workflow now
+selects only those new original inputs and that new immutable image; none of
+the old source's evidence is rebound, rewritten or relabeled. Source/Editor
+approval and publication do not imply the new image's 22+20 runtime acceptance.
 
 Every partition always uploads its actual raw receipts, logs and PNGs plus a
 `polish/runtime-hosted/GROUP-group.json` header pinning source/digest/config,
@@ -201,7 +210,7 @@ After the accountable owner authorizes acceptance:
 DIGEST=sha256:REPLACE_WITH_EXACT_ACCEPTED_DIGEST
 gh workflow run ghcr-promote.yml --repo long2know/mahjong-unity --ref main \
   -f image_digest="$DIGEST" \
-  -f source_sha=0dae531a58d87548488d76a55297700d5ff3589c \
+  -f source_sha=ee58678676bc3f99ac141a27111922dc3110ab2e \
   -f candidate_run_id=RUN_ID -f candidate_run_attempt=ATTEMPT \
   -f acceptance_pr=ACCEPTANCE_PR_NUMBER -f confirmation="runtime-qualified:$DIGEST"
 ```

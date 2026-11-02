@@ -157,6 +157,7 @@ class RuntimeHandoffTests(unittest.TestCase):
                                            "--image", runtime.CONFIG])
                 self.assertIn(runtime.EDITOR, args)
                 self.assertIn(group, name)
+                self.assertIn("-hosted-" + runtime.SOURCE[:7] + "-", name)
                 if group == "mobile":
                     self.assertIn("--mobile-playability", args)
                     self.assertNotIn("--cases", args)
@@ -358,6 +359,10 @@ class RuntimeHandoffTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
         self.assertIn("group: [general, focus, camera, relay, mobile]", workflow)
         self.assertIn("fail-fast: false", workflow)
+        for field in ("ref", "SOURCE_SHA", "BUILD_SHA"):
+            self.assertIn(field + ": " + runtime.SOURCE, workflow)
+        self.assertIn('RELEASE_ID: "' + runtime.RELEASE + '"', workflow)
+        self.assertIn("polish-runtime-" + runtime.SOURCE[:7], workflow)
         self.assertIn("packages: read", workflow)
         self.assertNotIn("packages: write", workflow)
         self.assertIn("if: always()", workflow)
