@@ -284,7 +284,9 @@ class RuntimeHandoffTests(unittest.TestCase):
         (fixture / "bootstrap-cache").mkdir()
         self.assertEqual(fixture.stat().st_uid, 1001)
         self.assertEqual((fixture / "bootstrap-cache").stat().st_uid, 1001)
-        subprocess.run([*command, str(fixture)], check=True, capture_output=True, text=True)
+        written = subprocess.run([*command, str(fixture)], capture_output=True, text=True)
+        self.assertEqual(written.returncode, 0, written.stderr + "\n" +
+                         subprocess.check_output(["getfacl", "-p", str(fixture)], text=True))
         self.assertEqual((fixture / "state.db").stat().st_uid, 1000)
         self.assertEqual((fixture / "bootstrap-cache/proof").read_text(), "uid1000")
         self.assertEqual((fixture / "bootstrap-cache/created-by-runtime").stat().st_uid, 1000)
