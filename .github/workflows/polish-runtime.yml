@@ -2,6 +2,11 @@ name: Qualify exact published polish candidate
 
 on:
   workflow_dispatch:
+    inputs:
+      focus_only:
+        description: Retake only focus; preserve and independently validate the other original partitions
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [general, focus, camera, relay, mobile]
+        group: ${{ fromJSON(inputs.focus_only && '["focus"]' || '["general","focus","camera","relay","mobile"]') }}
     permissions:
       # Required only to read the unpublished draft input release.
       contents: write

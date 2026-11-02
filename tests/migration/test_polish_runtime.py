@@ -180,13 +180,23 @@ class RuntimeHandoffTests(unittest.TestCase):
                  "Config": {"User": "1000:1000", "Env": ["BUILD_SHA=" + runtime.SOURCE],
                             "Labels": {"org.opencontainers.image.revision": runtime.SOURCE,
                                        "org.mahjong-unity.allow-source-dirty": "0"}}}
+        tooling = {"applicationSourceSha": runtime.SOURCE, "probeSourceSha": "reviewed-probe-revision",
+                   "probeTooling": {"root": str(self.work / "focus-tools")}}
+        tool_environment = {"MAHJONG_APPLICATION_SOURCE_ROOT": str(source),
+                            "MAHJONG_PROBE_TOOL_ROOT": tooling["probeTooling"]["root"],
+                            "MAHJONG_TEST_TOOLING_RECEIPT": str(self.work / "tooling-provenance.json")}
 
         def execute(args, **kwargs):
             if args[0] == "docker":
                 self.assertEqual(args[:4], ["docker", "pull", "--platform", "linux/amd64"])
             else:
-                self.assertEqual(args[:2], ["python3", "tests/migration/run_runtime_player_integration.py"])
+                expected = (str(Path(tooling["probeTooling"]["root"]) / "run_runtime_player_integration.py")
+                            if group == "focus" else "tests/migration/run_runtime_player_integration.py")
+                self.assertEqual(args[:2], ["python3", expected])
                 self.assertEqual(kwargs["cwd"], source)
+                if group == "focus":
+                    for key, value in tool_environment.items():
+                        self.assertEqual(kwargs["env"][key], value)
                 name = args[args.index("--output-name") + 1]
                 for suffix, data in [
                     ("", {"status": runtime_status, "imageId": runtime.CONFIG,
@@ -204,6 +214,8 @@ class RuntimeHandoffTests(unittest.TestCase):
                 patch.dict(runtime.os.environ, {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}), \
                 patch.object(runtime.subprocess, "check_output", return_value=json.dumps([image])), \
                 patch.object(runtime, "prepare_runtime_fixtures", return_value={"runtimeUid": 1000}) as fixtures, \
+                patch.object(runtime.focus_tools, "stage", return_value=(tooling, tool_environment)) as stage, \
+                patch.object(runtime.focus_tools, "validate") as validate, \
                 patch.object(runtime.subprocess, "run", side_effect=execute) as run:
             if runtime_status == "passed":
                 runtime.qualify(source, group)
@@ -211,6 +223,12 @@ class RuntimeHandoffTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "canonical receipt failed"):
                     runtime.qualify(source, group)
         fixtures.assert_called_once_with(source)
+        if group == "focus":
+            stage.assert_called_once_with(source, ROOT / ".work/focus-tooling")
+            validate.assert_called_once_with(tooling)
+        else:
+            stage.assert_not_called()
+            validate.assert_not_called()
         receipt = json.loads((source / f"artifacts/test-results/polish/runtime-hosted/{group}-group.json").read_text())
         self.assertEqual(receipt["fixturePermissions"]["runtimeUid"], 1000)
         self.assertEqual([call.args[0][-1] for call in run.call_args_list[:2]], [runtime.IMAGE, runtime.BROWSER])
@@ -236,6 +254,15 @@ class RuntimeHandoffTests(unittest.TestCase):
         self.assertEqual(receipt["status"], "failed")
         self.assertEqual(receipt["groups"][0]["runtimeStatus"], "failed")
         self.assertIn("canonical receipt failed", receipt["failure"]["message"])
+
+    def test_focus_caller_records_distinct_application_and_executed_probe_revision(self):
+        _, receipt = self.run_partition_fixture("focus")
+        self.assertEqual(receipt["applicationSourceSha"], runtime.SOURCE)
+        self.assertEqual(receipt["probeSourceSha"], "reviewed-probe-revision")
+        self.assertEqual(receipt["sourceCommit"], runtime.SOURCE)
+        self.assertEqual(receipt["publishedImage"], runtime.IMAGE)
+        self.assertEqual(receipt["groups"][0]["command"][1],
+                         str(Path(receipt["probeTooling"]["root"]) / "run_runtime_player_integration.py"))
 
     def test_root_runner_is_rejected_before_source_or_network_access(self):
         with patch.object(runtime.os, "getuid", return_value=0), \
@@ -357,7 +384,8 @@ class RuntimeHandoffTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", workflow)
         self.assertNotIn("pull_request:", workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
-        self.assertIn("group: [general, focus, camera, relay, mobile]", workflow)
+        self.assertIn('\'["general","focus","camera","relay","mobile"]\'', workflow)
+        self.assertIn('inputs.focus_only && \'["focus"]\'', workflow)
         self.assertIn("fail-fast: false", workflow)
         for field in ("ref", "SOURCE_SHA", "BUILD_SHA"):
             self.assertIn(field + ": " + runtime.SOURCE, workflow)

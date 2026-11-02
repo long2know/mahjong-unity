@@ -28,6 +28,7 @@ unity/MahjongRenderer/Assets/Resources/renderer-build-identity.json.meta
 
 # Reproducible build output and test/tool work, never production source.
 artifacts/
+/.work/
 **/bin/
 **/obj/
 **/node_modules/

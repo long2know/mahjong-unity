@@ -111,6 +111,9 @@ manual, main-only `polish-runtime.yml`. It **does not** build an image, rebuild
 Unity, push/tag anything, deploy, merge, or approve `latest`. No dispatch inputs
 can change its source, image, cases or evidence.
 
+The optional boolean `focus_only` selects only the fixed focus partition; its
+default still runs all five. It does not change any canonical case or identity.
+
 The bounded workflow pins corrected source `ee58678676bc3f99ac141a27111922dc3110ab2e`,
 the already published OCI digest
 `sha256:57fb86eb080d4ccda38edbd695eff451e92bfcb8ec4595c53ca0bbef0a192c02`
@@ -178,6 +181,54 @@ from before its genuine Editor build and image publication. The workflow now
 selects only those new original inputs and that new immutable image; none of
 the old source's evidence is rebound, rewritten or relabeled. Source/Editor
 approval and publication do not imply the new image's 22+20 runtime acceptance.
+
+### Private-display focus tooling, separate from the application
+
+Run `41378618444` reached the genuine player but its focus guard rejected the
+unchanged authenticated launcher's `DISPLAY=127.0.0.1:310`: the consumer accepted
+only `:digits`. The corrected guard accepts only `:digits` or exact IPv4 loopback
+`127.0.0.1:digits`, not remote hosts, alternative addresses, screen suffixes or
+trailing whitespace. Cookie creation, Xauthority, native X11 focus/restore,
+memory checks and all gameplay assertions remain unchanged.
+
+The frozen canonical wrappers have no external probe-root selector. Therefore
+`focus_probe_tooling.py` explicitly stages a bounded, reviewed test-tool
+derivative under the publisher's fresh `.work/focus-tooling/`. All four original
+wrapper/probe/launcher inputs are byte-pinned to `ee58678`. The gameplay probe
+changes only that one guard. The two Python entrypoints retain every canonical
+assertion, but explicitly select the frozen application root, derived child
+entrypoint and corrected probe/unchanged launcher. No application file is edited;
+there is no hidden executable shim, live monkeypatch, image change, dirty override
+or build/receipt relabeling.
+
+Group and raw runtime/player receipts distinguish `applicationSourceSha` (still
+`ee58678676bc3f99ac141a27111922dc3110ab2e`) from `probeSourceSha` (the clean tracked
+publisher/tool revision). They record the transform hash, original and executed
+file hashes and explicit tool paths; the actual Docker bind command names the
+selected files. Browser-source hashes inspect the actual selected tool bytes
+before and after execution. Image/config/health/build/manifest/Editor checks
+continue to bind to the frozen application, not the later tool revision.
+
+Source CI checks the actual frozen inputs and remote-display rejection, then
+launches the **unchanged** private-cookie Xvfb as UID1001. Under its actual
+loopback `DISPLAY`, the old consumer must reject; the corrected original native
+X11 function must open the authenticated display, change focus and restore it.
+This is a focused tooling regression, not full player/focus/memory qualification.
+
+Only after independent tooling approval and validation of the other four
+original partitions may the parent request:
+
+```bash
+gh workflow run polish-runtime.yml --repo long2know/mahjong-unity --ref main \
+  -f focus_only=true
+```
+
+Keep the original failed focus artifacts failed. Download the retake to a
+different run directory and derive a union referencing all original successful
+receipts plus the new focus receipt, including both run/attempts and the exact
+probe revision/hashes. A focus-only success is never combined 22+20 approval.
+The image/application source stays unchanged; no Editor rebuild is needed for
+this probe-format correction.
 
 Every partition always uploads its actual raw receipts, logs and PNGs plus a
 `polish/runtime-hosted/GROUP-group.json` header pinning source/digest/config,
