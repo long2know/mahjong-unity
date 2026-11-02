@@ -111,7 +111,7 @@ jobs:
         with:
           node-version: "20"
           package-manager-cache: false
-      - name: 107 browser/caller tests, 6 renderer regressions, strict typecheck and Vite (not player qualification)
+      - name: 125 browser/caller/layout tests, 6 renderer regressions, strict typecheck and Vite (not player qualification)
         run: python3 tests/migration/run_source_ci.py frontend-source --install-dependencies
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -122,6 +122,7 @@ jobs:
             artifacts/test-results/migration-ci/frontend-source/receipt.json
             artifacts/test-results/migration-ci/frontend-source/prerequisites.log
             artifacts/test-results/migration-ci/frontend-source/dependencies.log
+            artifacts/test-results/migration-ci/frontend-source/browser-dependencies.log
             artifacts/test-results/migration-ci/frontend-source/workflow-contracts.log
             artifacts/test-results/migration-ci/frontend-source/frontend-tests.log
             artifacts/test-results/migration-ci/frontend-source/renderer-regressions.log

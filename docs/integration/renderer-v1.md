@@ -170,6 +170,35 @@ The local `CancelInput` receiver clears native pointer and double-click state at
 gesture start, even when the fingers/mouse never move; cancellation is not a
 session/authority change or a fabricated viewport resize.
 
+### Browser/native polish (#20)
+
+The browser shell reparents the existing controls without replacing their IDs,
+handlers or feature gates. A single ResizeObserver reports its actual height;
+the Unity host reserves the resulting chrome footprint rather than assuming a
+fixed toolbar size. Chat, pickup, claim and own-turn actions share a stacked
+panel area. The two existing settings drawers retain their responsibilities,
+but closed controls are inert and opening/Tab/Escape restore predictable focus.
+Reduced-motion styles retain the inherited effectively-zero 0.01 ms transition
+duration; stable host/header measurements explicitly have no transition.
+
+Native polish adds one owned forty-vertex/forty-triangle shared outline mesh,
+reused felt/river seams and a hand separator, plus separate public seat/score
+labels and turn marks driven only by the authoritative active seat. Decorations
+have no colliders, do not change table/hand poses or camera fitting, and reuse
+the four existing shared materials. New native regression cases cover picking,
+concealment, all five variants, viewports/cameras and unchanged-frame resource
+reuse/disposal.
+
+The mandatory source inventory includes the six real production-CSS layout
+cases and drawer/controller regression tests. Real combined-player qualification
+additionally records ten served-CSS desktop/phone/chat states, actual C# frame
+identity, fourteen unobstructed hand targets, drawer focus, reduced motion and
+lobby reachability inside the existing native discard case. See the
+[exact-image qualification procedure](docker-build-and-run.md#issue-20-combined-polish-qualification)
+for final-commit Editor, runtime, screenshots and mandatory-CI receipts. Source
+or specialist-only results do not approve deployment or close physical-device
+follow-through in #13.
+
 **October 15, 2026 traditional-layout correction:** the previous independent
 lane-packing experiment incorrectly placed walls outside the hands and closed
 gaps left by drawn stacks. Changsha rectangular presentation now preserves every

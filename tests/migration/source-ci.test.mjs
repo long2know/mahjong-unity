@@ -95,7 +95,7 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assertRegressionCommands(description);
   const source = named('frontend-source', 'frontend-tests');
   assert.equal(source.cwd, 'src/frontend/autotable-src');
-  assert.equal(source.expected, 107);
+  assert.equal(source.expected, 130);
   assert.equal(named('frontend-source', 'workflow-contracts').expected, 12);
   for (const path of [
     'tests/node/room-startup-readiness.test.mjs',
@@ -104,10 +104,19 @@ test('actual frontend command covers retained/Unity/production callers plus dist
     'tests/node/perspective-settings.test.mjs',
     'tests/node/unity-camera-controls.test.mjs',
     'tests/node/unity-pixel-evidence.test.mjs',
+    'tests/node/unity-browser-shell.test.mjs',
+    'tests/node/browser-shell-layout.test.mjs',
     '../../../tests/migration/browser-source-integration.test.mjs',
   ]) assert(source.argv.includes(path), path);
+  assert.equal(new Set(source.argv.filter(path => path.endsWith('.test.mjs'))).size,
+    source.argv.filter(path => path.endsWith('.test.mjs')).length, 'Each selected file executes once');
   assert(source.argv.some(path => path.startsWith('tests/node/unity-')));
   assert.deepEqual(named('frontend-source', 'dependencies').argv, ['npm', 'ci', '--no-audit', '--no-fund']);
+  assert.deepEqual(named('frontend-source', 'browser-dependencies'), {
+    name: 'browser-dependencies',
+    argv: ['npx', '--no-install', 'playwright', 'install', '--with-deps', 'chromium'],
+    cwd: 'src/frontend/autotable-src', kind: null, expected: null, dependency: true,
+  });
   assert.deepEqual(named('frontend-source', 'typecheck').argv, ['npm', 'run', 'typecheck']);
   assert.deepEqual(named('frontend-source', 'vite-build').argv, ['npm', 'run', 'build']);
   assert.equal(JSON.parse(readFileSync(join(root, 'src/frontend/autotable-src/package.json'))).scripts.typecheck, 'tsc --noEmit');
@@ -129,7 +138,7 @@ test('tools execute relocated cases, camera evidence, object/ignore/Docker gates
   assert.deepEqual(named('source-tools', 'source-gates').argv, ['python3', 'tests/migration/test_source_gate.py', '-v']);
   assert.equal(named('source-tools', 'source-gates').expected, 9);
   assert.deepEqual(named('source-tools', 'player-evidence').argv, ['python3', 'tests/migration/test_browser_evidence.py', '-v']);
-  assert.equal(named('source-tools', 'player-evidence').expected, 24);
+  assert.equal(named('source-tools', 'player-evidence').expected, 26);
   assert.equal(named('source-tools', 'missing-unity-artifact').kind, 'missing-unity');
   const implementation = readFileSync(join(root, runner), 'utf8');
   assert.match(implementation, /"MIGRATION_BASELINE_GIT_STORE": str\(self\.work \/ "baseline\.git"\)/);
@@ -173,6 +182,7 @@ test('Unity source job executes metadata/frozen guards, five JS cases and actual
 test('failure evidence uploads only named logs/receipts/TRX/source graph, never fixture stores or private input areas', () => {
   for (const [group, log] of [
     ['frontend-source', 'renderer-regressions.log'],
+    ['frontend-source', 'browser-dependencies.log'],
     ['source-tools', 'player-packaging.log'],
   ]) assert(description.evidencePaths[group].includes(`artifacts/test-results/migration-ci/${group}/${log}`));
   for (const group of groups) {
@@ -216,6 +226,10 @@ test('mutating actual workflow command/evidence or accepting command failure is 
       const upload = value.jobs['source-tools'].steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
       upload.with.path = upload.with.path.replace(/.*\/player-packaging\.log\n/, '');
     },
+    value => {
+      const upload = value.jobs['frontend-source'].steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+      upload.with.path = upload.with.path.replace(/.*\/browser-dependencies\.log\n/, '');
+    },
   ]) {
     const changed = structuredClone(workflow);
     mutate(changed);
@@ -247,6 +261,8 @@ test('actual runner fails missing prerequisites with persistent regression sourc
     ['source-tools', [
       'tests/migration/test_player_packaging.py',
       'src/frontend/autotable-src/src/renderer/renderer-contract.ts',
+      'tests/migration/browser-gameplay.mjs',
+      'tests/migration/player-headful.mjs',
     ]],
     ['frontend-source', [
       'tests/migration/renderer-backend-shape.test.mjs',
@@ -258,6 +274,21 @@ test('actual runner fails missing prerequisites with persistent regression sourc
       'src/frontend/autotable-src/src/renderer/renderer-frame.ts',
       'src/frontend/autotable-src/src/renderer/renderer-sink.ts',
       'src/frontend/autotable-src/src/renderer/renderer-contract.ts',
+      'src/frontend/autotable-src/src/browser-shell.ts',
+      'src/frontend/autotable-src/src/browser-shell.css',
+      'src/frontend/autotable-src/src/ui/drawer-accessibility.ts',
+      'src/frontend/autotable-src/src/game-bootstrap.ts',
+      'src/frontend/autotable-src/src/game-ui.ts',
+      'src/frontend/autotable-src/src/chat.ts',
+      'src/frontend/autotable-src/src/ui/claim-window-overlay.ts',
+      'src/frontend/autotable-src/tests/node/unity-browser-shell.test.mjs',
+      'src/frontend/autotable-src/tests/node/browser-shell-layout.test.mjs',
+    ]],
+    ['unity-source', [
+      'unity/MahjongRenderer/Assets/Renderer/Art/ProceduralArt.cs',
+      'unity/MahjongRenderer/Assets/Renderer/Rendering/RendererScene.cs',
+      'unity/MahjongRenderer/Assets/Renderer/Rendering/Views.cs',
+      'unity/MahjongRenderer/Assets/Tests/Editor/RenderingTests.cs',
     ]],
   ]) {
     const directory = join(fixture, group);

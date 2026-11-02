@@ -3,12 +3,14 @@ import type { Client } from './client';
 import { mountChatPanel } from './lobby';
 import { showToast } from './toast';
 import { t } from './i18n';
+import { installBrowserShell } from './browser-shell';
 
 let booted = false;
 
 export async function bootstrapGame(): Promise<void> {
   if (booted) return;
   booted = true;
+  installBrowserShell();
   markShellReady();
   try {
     const scene = await import('./scene-shell');

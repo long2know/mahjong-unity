@@ -20,9 +20,10 @@ function harness({ status = 200, deferMetadata = false } = {}) {
   const identity = { playerId: 'verified-player', displayName: 'Verified player', avatarColor: '#234567', isFirstVisit: false };
   let verified = identity, globalConnections = 0;
   const location = new URL('http://readiness.test/autotable/?variant=changsha&gameId=room-a');
-  const rootElement = {
-    hidden: true, style: {}, classList: { toggle() {} }, setAttribute() {},
-  };
+  const rootClasses = new Map();
+  const rootElement = Object.assign(new EventTarget(), {
+    hidden: true, style: {}, classList: { toggle: (name, value) => rootClasses.set(name, value) }, setAttribute() {},
+  });
   class Socket {
     static OPEN = 1;
     static CLOSED = 3;
@@ -77,7 +78,8 @@ function harness({ status = 200, deferMetadata = false } = {}) {
     setInterval: () => 1, clearInterval() {},
     window: { location, localStorage: { getItem: () => null, setItem() {} },
       matchMedia: () => ({ matches: false, addEventListener() {} }),
-      setInterval: () => 1, clearInterval() {}, setTimeout: () => 1, clearTimeout() {} },
+      setInterval: () => 1, clearInterval() {}, setTimeout: () => 1, clearTimeout() {},
+      requestAnimationFrame: callback => callback() },
     document: { getElementById: id => id === 'chat-panel' ? rootElement : null },
     fetch: (input, options = {}) => {
       const url = String(input);
@@ -122,12 +124,30 @@ function harness({ status = 200, deferMetadata = false } = {}) {
       ...(bound ? [['turn', 'current', { phase: 'Seating', activeSeat: null, awaitingDiscard: false }]] : []),
     ],
   });
-  return { requests, client, gameState, start, snapshot, deferred, rootElement,
+  return { requests, client, chat, gameState, start, snapshot, deferred, rootElement,
+    collapsed: () => rootClasses.get('chat-panel-collapsed'),
     globalConnections: () => globalConnections,
     hubConnected: () => hubListeners.forEach(fn => fn()),
     setIdentity: value => { verified = value; identityListeners.forEach(fn => fn({ status: value ? 'ready' : 'unavailable', error: null })); },
   };
 }
+
+test('the installed chat panel closes on Escape without also consuming Escape from a nested selector', () => {
+  const h = harness();
+  h.chat.openChatPanel();
+  assert.equal(h.collapsed(), false);
+  const nested = Object.assign(new Event('keydown', { cancelable: true }), { key: 'Escape' });
+  nested.preventDefault();
+  h.rootElement.dispatchEvent(nested);
+  assert.equal(h.collapsed(), false);
+  const escape = Object.assign(new Event('keydown', { cancelable: true }), { key: 'Escape' });
+  h.rootElement.dispatchEvent(escape);
+  assert.equal(h.collapsed(), true);
+  assert.equal(escape.defaultPrevented, true);
+  const closed = Object.assign(new Event('keydown', { cancelable: true }), { key: 'Escape' });
+  h.rootElement.dispatchEvent(closed);
+  assert.equal(closed.defaultPrevented, false);
+});
 
 for (const create of [true, false]) {
   test(`${create ? 'NEW' : 'JOIN'} URL, JOINED and unbound FULL never trigger room HTTP`, async () => {

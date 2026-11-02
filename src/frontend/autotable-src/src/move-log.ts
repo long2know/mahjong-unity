@@ -168,7 +168,7 @@ export class MoveLog {
     const header = document.createElement('div');
     header.className = 'move-log-header';
     header.innerHTML = '<span class="move-log-title">📜 Move Log</span>' +
-      '<button type="button" class="move-log-clear" title="Clear log">×</button>';
+      '<button type="button" class="move-log-clear" title="Clear log" aria-label="Clear move log">Clear</button>';
     this.mount.appendChild(header);
 
     this.listEl = document.createElement('div');
