@@ -155,6 +155,21 @@ avoids unrelated host-ancestor traversal that the mounted runtime never performs
 Local runs without
 `POLISH_POSIX_UID_REGRESSION=1` explicitly skip that POSIX-only case, not claim it.
 
+Headful browser tmpfs mounts must explicitly use the actual non-root browser
+UID/GID and `mode=0700`; do not rely on an image mountpoint's inherited owner or
+make private Xauthority temporary storage world-writable. The focused hosted
+regression records the original exact `/probe/temp` mount's effective ownership
+and denied exclusive authority-file write, then verifies private UID1001 tmpfs
+and mode-0600 file creation for both `/probe/temp` and the dev harness's `/tmp`.
+Runtime hardening and authenticated X11 procedures are unchanged.
+
+Run `41372708835` and all its failed raw artifacts remain historical evidence,
+not acceptance. Its frozen `0dae531` harness is not rewritten or interposed.
+The next candidate source must explicitly include the reviewed canonical tmpfs
+permission fix **before** its genuine Editor build and image publication.
+This harness-only change does not authorize rerunning or relabeling the old
+candidate; the fixed-input workflow above still names that old candidate.
+
 Every partition always uploads its actual raw receipts, logs and PNGs plus a
 `polish/runtime-hosted/GROUP-group.json` header pinning source/digest/config,
 original evidence hashes, workflow run/attempt and raw receipt hashes. Preserve

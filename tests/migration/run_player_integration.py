@@ -38,6 +38,10 @@ def load(name, path):
     return module
 
 
+def private_browser_tmpfs(directory, uid, gid):
+    return f"{directory}:rw,nosuid,nodev,size=256m,uid={uid},gid={gid},mode=0700"
+
+
 def browser_environment(scope, cases, headful):
     temporary = "/tmp" if headful else "/probe/temp"
     return {
@@ -518,7 +522,8 @@ def main():
             "--shm-size=256m", "--workdir=/workspace",
         ]
         if headful:
-            command.extend(("--tmpfs", "/tmp:rw,nosuid,nodev,size=256m", "--memory=1536m", "--pids-limit=512"))
+            command.extend(("--tmpfs", private_browser_tmpfs("/tmp", uid, gid),
+                            "--memory=1536m", "--pids-limit=512"))
         for key, value in browser_environment(args.scope, args.cases, headful).items():
             command.extend(("--env", key + "=" + value))
         for source, target, readonly in (
