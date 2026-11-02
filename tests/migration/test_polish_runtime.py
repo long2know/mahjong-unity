@@ -5,8 +5,12 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import shutil
+import sqlite3
+import subprocess
+import sys
 import tarfile
 from types import SimpleNamespace
 import unittest
@@ -196,13 +200,16 @@ class RuntimeHandoffTests(unittest.TestCase):
                 patch.object(runtime.os, "getuid", return_value=1000), \
                 patch.dict(runtime.os.environ, {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "1"}), \
                 patch.object(runtime.subprocess, "check_output", return_value=json.dumps([image])), \
+                patch.object(runtime, "prepare_runtime_fixtures", return_value={"runtimeUid": 1000}) as fixtures, \
                 patch.object(runtime.subprocess, "run", side_effect=execute) as run:
             if runtime_status == "passed":
                 runtime.qualify(source, group)
             else:
                 with self.assertRaisesRegex(ValueError, "canonical receipt failed"):
                     runtime.qualify(source, group)
+        fixtures.assert_called_once_with(source)
         receipt = json.loads((source / f"artifacts/test-results/polish/runtime-hosted/{group}-group.json").read_text())
+        self.assertEqual(receipt["fixturePermissions"]["runtimeUid"], 1000)
         self.assertEqual([call.args[0][-1] for call in run.call_args_list[:2]], [runtime.IMAGE, runtime.BROWSER])
         self.assertEqual(receipt["publishedImage"], runtime.IMAGE)
         self.assertEqual(receipt["imageId"], runtime.CONFIG)
@@ -232,6 +239,60 @@ class RuntimeHandoffTests(unittest.TestCase):
                 patch.object(runtime, "checked_source") as check, self.assertRaisesRegex(ValueError, "non-root"):
             runtime.qualify(self.work, "general")
         check.assert_not_called()
+
+    def test_fixture_bridge_rejects_existing_directory_without_changing_it(self):
+        work = self.work / "artifacts/test-results/migration-player-work"
+        work.mkdir(parents=True)
+        original = work.stat().st_mode
+        with patch.object(runtime.subprocess, "run") as acl, self.assertRaises(FileExistsError):
+            runtime.prepare_runtime_fixtures(self.work)
+        acl.assert_not_called()
+        self.assertEqual(work.stat().st_mode, original)
+
+    def test_fixture_bridge_rejects_linked_ancestor_without_touching_target(self):
+        outside = self.work / "outside"
+        outside.mkdir()
+        (self.work / "artifacts").symlink_to(outside, target_is_directory=True)
+        with patch.object(runtime.subprocess, "run") as acl, self.assertRaisesRegex(ValueError, "Linked"):
+            runtime.prepare_runtime_fixtures(self.work)
+        acl.assert_not_called()
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipUnless(os.environ.get("POLISH_POSIX_UID_REGRESSION") == "1",
+                         "Requires hosted POSIX UID1001 runner and authorized sudo to UID1000")
+    def test_real_uid1001_fixtures_allow_uid1000_sqlite_and_bootstrap_writes(self):
+        self.assertEqual(os.getuid(), 1001, "This regression must exercise the actual hosted runner UID")
+        command = ["sudo", "-n", "-u", "#1000", "-g", "#1000", "--", sys.executable, "-c",
+                   "import os,pathlib,sqlite3,sys; assert os.getuid()==1000 and os.getgid()==1000; "
+                   "p=pathlib.Path(sys.argv[1]); "
+                   "db=sqlite3.connect(p/'state.db'); db.execute('create table proof (value integer)'); "
+                   "db.execute('insert into proof values (42)'); db.commit(); db.close(); "
+                   "(p/'bootstrap-cache'/'proof').write_text('uid1000'); "
+                   "(p/'bootstrap-cache'/'created-by-runtime').mkdir()"]
+        denied = self.work / "unbridged"
+        denied.mkdir(mode=0o755)
+        (denied / "bootstrap-cache").mkdir(mode=0o755)
+        before = subprocess.run([*command, str(denied)], capture_output=True, text=True)
+        self.assertNotEqual(before.returncode, 0)
+        self.assertIn("unable to open database file", before.stderr)
+        self.assertFalse((denied / "state.db").exists())
+
+        bridge = runtime.prepare_runtime_fixtures(self.work)
+        root = self.work / bridge["path"]
+        fixture = root / ("runtime-" + uuid.uuid4().hex)
+        fixture.mkdir()
+        (fixture / "bootstrap-cache").mkdir()
+        self.assertEqual(fixture.stat().st_uid, 1001)
+        self.assertEqual((fixture / "bootstrap-cache").stat().st_uid, 1001)
+        subprocess.run([*command, str(fixture)], check=True, capture_output=True, text=True)
+        self.assertEqual((fixture / "state.db").stat().st_uid, 1000)
+        self.assertEqual((fixture / "bootstrap-cache/proof").read_text(), "uid1000")
+        self.assertEqual((fixture / "bootstrap-cache/created-by-runtime").stat().st_uid, 1000)
+        with sqlite3.connect(fixture / "state.db") as db:
+            self.assertEqual(db.execute("select value from proof").fetchall(), [(42,)])
+        shutil.rmtree(fixture)
+        self.assertFalse(fixture.exists(), "The runner must retain canonical fixture cleanup access")
+        print("Actual POSIX UID1001 -> UID1000 SQLite/bootstrap regression passed", flush=True)
 
     def test_workflow_remains_manual_main_only_isolated_readonly_registry_and_always_retained(self):
         workflow = (ROOT / ".github/workflows/polish-runtime.yml").read_text()

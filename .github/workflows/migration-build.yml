@@ -28,7 +28,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Registry artifact, provenance and promotion contracts (no publication)
+        env:
+          POLISH_POSIX_UID_REGRESSION: "1"
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends acl
           python3 -B tests/migration/test_ghcr_publish.py
           python3 -B tests/migration/test_polish_runtime.py
 

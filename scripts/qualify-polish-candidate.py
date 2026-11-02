@@ -109,6 +109,19 @@ def player_command(group, plan, run_id, attempt):
     return args, name
 
 
+def prepare_runtime_fixtures(source):
+    work = source / "artifacts/test-results/migration-player-work"
+    require(not any(p.is_symlink() for p in (work, *work.parents)), "Linked runtime fixture destination")
+    work.parent.mkdir(parents=True, exist_ok=True)
+    work.mkdir(mode=0o700)
+    # The unchanged wrapper's UUID directories inherit access for the image's UID.
+    subprocess.run(["setfacl", "--modify",
+                    f"u:1000:rwx,d:u::rwx,d:u:1000:rwx,d:u:{os.getuid()}:rwx,d:g::---,d:o::---",
+                    "--", str(work)], check=True)
+    return {"path": str(work.relative_to(source)), "ownerUid": work.stat().st_uid,
+            "runtimeUid": 1000, "access": "fresh fixture root only; inherited named-user POSIX ACL"}
+
+
 def qualify(source, group):
     require(group in GROUPS and os.getuid() != 0, "A fixed partition and non-root runner are required")
     checked_source(source)
@@ -147,6 +160,7 @@ def qualify(source, group):
         inspected = json.loads(subprocess.check_output(["docker", "image", "inspect", IMAGE], text=True))[0]
         validate_image(inspected)
         receipt.update(imageId=inspected["Id"], actualHostedRegistryPullPassed=True)
+        receipt["fixturePermissions"] = prepare_runtime_fixtures(source)
         save()
         with (out / (group + ".log")).open("w") as log:
             result = subprocess.run(args, cwd=source, stdout=log, stderr=subprocess.STDOUT, timeout=2200)

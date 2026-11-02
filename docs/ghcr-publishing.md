@@ -140,6 +140,18 @@ The mobile partition omits `--cases`, retaining the full native API lifecycle.
 Headful focus retains the original private authenticated Xvfb procedure.
 The token is confined to the draft-input step; registry permission is read-only.
 
+The runner installs `acl` and creates only a **fresh**
+`artifacts/test-results/migration-player-work` directory. A named-user UID1000
+access/default POSIX ACL lets the unchanged wrapper's runner-owned UUID fixtures
+and nested bootstrap cache inherit runtime write access. Existing fixture roots
+and linked destinations are rejected. The default ACL also retains the runner's
+cleanup access to runtime-created subdirectories. No workspace/operator permissions or
+ownership are changed; the image still runs as `1000:1000` with its original
+read-only root filesystem, dropped capabilities and no-new-privileges guard.
+Source CI requires the real Ubuntu UID1001-to-UID1000 SQLite/bootstrap regression,
+including the unbridged permission-denied control. Local runs without
+`POLISH_POSIX_UID_REGRESSION=1` explicitly skip that POSIX-only case, not claim it.
+
 Every partition always uploads its actual raw receipts, logs and PNGs plus a
 `polish/runtime-hosted/GROUP-group.json` header pinning source/digest/config,
 original evidence hashes, workflow run/attempt and raw receipt hashes. Preserve
