@@ -21,6 +21,9 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("polish_runtime", ROOT / "scripts/qualify-polish-candidate.py")
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
+player_spec = importlib.util.spec_from_file_location("headful_runtime", ROOT / "tests/migration/run_player_integration.py")
+player = importlib.util.module_from_spec(player_spec)
+player_spec.loader.exec_module(player)
 
 
 class RuntimeHandoffTests(unittest.TestCase):
@@ -256,6 +259,48 @@ class RuntimeHandoffTests(unittest.TestCase):
             runtime.prepare_runtime_fixtures(self.work)
         acl.assert_not_called()
         self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipUnless(os.environ.get("POLISH_POSIX_UID_REGRESSION") == "1",
+                         "Requires hosted POSIX UID1001 runner and normal Docker tmpfs mounts")
+    def test_actual_headful_tmpfs_stat_and_private_uid1001_authority_write(self):
+        uid, gid = os.getuid(), os.getgid()
+        self.assertEqual(uid, 1001)
+        fixture = self.work / "headful-fixture"
+        fixture.mkdir()
+        for name in ("home", "temp", "screenshots"):
+            (fixture / name).mkdir()
+        subprocess.run(["docker", "pull", "--platform", "linux/amd64", runtime.BROWSER],
+                       check=True, stdout=subprocess.DEVNULL, timeout=180)
+
+        def probe(option):
+            result = subprocess.run([
+                "docker", "run", "--rm", "--pull=never", "--init", "--platform", "linux/amd64",
+                "--user", f"{uid}:{gid}", "--read-only", "--cap-drop=ALL",
+                "--security-opt=no-new-privileges:true", "--network=host", "--shm-size=256m",
+                "--workdir=/workspace", "--tmpfs", option,
+                "--tmpfs", "/var/lib/xkb:rw,nosuid,nodev,size=16m,mode=1777",
+                "--memory=1536m", "--pids-limit=512", "--env", "TMPDIR=" + option.split(":")[0],
+                "--mount", f"type=bind,source={fixture},target=/probe",
+                "--entrypoint", "node", runtime.BROWSER, "-e",
+                "const fs=require('node:fs');const dir=process.env.TMPDIR,s=fs.statSync(dir);"
+                "const r={uid:s.uid,gid:s.gid,mode:s.mode&511,user:process.getuid()};"
+                "try{const p=dir+'/xauthority-regression';fs.writeFileSync(p,'private',"
+                "{mode:0o600,flag:'wx'});const f=fs.statSync(p);"
+                "r.file={uid:f.uid,gid:f.gid,mode:f.mode&511};fs.unlinkSync(p)}"
+                "catch(e){r.writeError=e.code}console.log(JSON.stringify(r));",
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+        before = probe("/probe/temp:rw,nosuid,nodev,size=256m")
+        print("Actual original hardened tmpfs stat/write:", json.dumps(before), flush=True)
+        self.assertEqual(before.get("writeError"), "EACCES")
+        for directory in ("/probe/temp", "/tmp"):
+            with self.subTest(directory=directory):
+                after = probe(player.private_browser_tmpfs(directory, uid, gid))
+                print("Actual private UID/GID tmpfs stat/write:", directory, json.dumps(after), flush=True)
+                self.assertEqual(after, {"uid": uid, "gid": gid, "mode": 0o700, "user": uid,
+                                         "file": {"uid": uid, "gid": gid, "mode": 0o600}})
 
     @unittest.skipUnless(os.environ.get("POLISH_POSIX_UID_REGRESSION") == "1",
                          "Requires hosted POSIX UID1001 runner and normal Docker fixture mounts")
