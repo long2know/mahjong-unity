@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   base, probeRoot, receipt, wire, pageFor, ready, snapshot, capture, recordCaseFailure, rendererSummary,
   manualMeasurements, launchPlayerBrowser, finishPlayerBrowser, pixelDifference,
@@ -187,6 +188,115 @@ async function handControlReachability(page) {
     return { ...point, hitTag: hit?.tagName ?? null, hitId: hit?.id ?? null,
       chatCovered: !!hit?.closest('#chat-panel'), canvasReceivesInput: hit?.id === 'unity-canvas' };
   }), points);
+}
+
+async function qualifyBrowserPolish(page) {
+  const initial = await snapshot(page), measurements = [], drawers = [];
+  for (const [width, height] of [[1280, 800], [360, 800], [390, 844], [500, 900], [844, 390]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForFunction(({ width, height }) => window.game.renderer.state === 'ready'
+      && window.game.renderer.viewport.widthCssPx === width
+      && window.game.renderer.viewport.heightCssPx === height, { width, height });
+    for (const chatOpen of [false, true]) {
+      if (await page.locator('#chat-toggle').getAttribute('aria-expanded') !== String(chatOpen))
+        await page.locator('#chat-toggle').click();
+      await page.waitForTimeout(300);
+      const state = await requirePrivacy(page, 0);
+      assert.deepEqual(sourceState(state), sourceState(initial), 'Chrome must not mutate authoritative tiles');
+      const geometry = await page.evaluate(() => {
+        const rect = element => {
+          const r = element.getBoundingClientRect();
+          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+        };
+        const visible = element => {
+          const style = getComputedStyle(element), r = element.getBoundingClientRect();
+          return !element.hidden && style.display !== 'none' && style.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+        };
+        const variant = document.getElementById('variant-badge');
+        return {
+          width: innerWidth, height: innerHeight, documentWidth: document.documentElement.scrollWidth,
+          shell: rect(document.getElementById('browser-shell')),
+          variant: { text: variant.innerText, scrollWidth: variant.scrollWidth, clientWidth: variant.clientWidth },
+          turn: rect(document.getElementById('turn-banner')),
+          toolbar: [...document.querySelectorAll('.browser-toolbar > button, .chat-panel-collapsed .chat-toggle')]
+            .filter(visible).map(element => {
+              const r = rect(element);
+              return { id: element.id, text: element.innerText, ...r,
+                hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('button')?.id };
+            }),
+        };
+      });
+      assert(geometry.documentWidth <= width, 'Production DOM must not overflow horizontally');
+      assert(geometry.shell.height <= (width <= 600 ? 116 : 96), 'Phone chrome must remain compact');
+      assert(state.viewport.insetsCssPx.top >= geometry.shell.bottom - 1, 'Native table must reserve the real header');
+      assert(geometry.variant.scrollWidth <= geometry.variant.clientWidth + 1, 'Variant label must not clip');
+      assert(geometry.turn.left >= 0 && geometry.turn.right <= width, 'Turn cue must remain in the viewport');
+      for (const button of geometry.toolbar) {
+        assert(button.text.trim() && button.width >= 44 && button.height >= 44
+          && button.left >= 0 && button.right <= width && button.hit === button.id, JSON.stringify(button));
+      }
+      const handCenters = await handControlReachability(page);
+      assert.equal(handCenters.length, 14);
+      assert(handCenters.every(target => target.canvasReceivesInput && !target.chatCovered));
+      const screenshot = `screenshots/polish-${width}x${height}-${chatOpen ? 'chat' : 'table'}-full.png`;
+      await page.screenshot({ path: `${probeRoot}/${screenshot}`, fullPage: true });
+      measurements.push({ ...geometry, chatOpen, handCenters, viewport: state.viewport,
+        instanceId: state.frame.instanceId, renderedFrameId: state.lastRendered, buildId: state.ready.buildId,
+        realFrameRendered: state.bridge.some(message => message.type === 'frameRendered'
+          && message.frameId === state.lastRendered && message.instanceId === state.frame.instanceId
+          && message.sessionId === state.frame.sessionId),
+        screenshot, screenshotSha256: createHash('sha256').update(fs.readFileSync(`${probeRoot}/${screenshot}`)).digest('hex') });
+    }
+    if (width === 390) {
+      await page.locator('#chat-toggle').click();
+      for (const [toggleId, drawerId] of [['settings-button', 'settings-drawer-v2'], ['settings-toggle', 'settings-drawer']]) {
+        await page.locator(`#${toggleId}`).click();
+        await page.waitForFunction(id => document.getElementById(id).getAttribute('aria-hidden') === 'false', drawerId);
+        const bounds = await page.locator(`#${drawerId}`).evaluate(element => {
+          const controls = [...element.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+            .filter(control => control.tabIndex >= 0 && !control.matches(':disabled')
+              && !control.closest('[hidden], [inert]') && control.getClientRects().length > 0);
+          const first = controls[0], last = controls.at(-1);
+          if (!first?.id || !last?.id) throw new Error('Drawer requires real focusable boundary controls');
+          const enteredInside = element.contains(document.activeElement);
+          first.focus();
+          return { first: first.id, last: last.id, enteredInside, inert: element.inert };
+        });
+        assert(bounds.enteredInside && !bounds.inert, 'Opening the production drawer must place focus inside');
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(await page.evaluate(() => document.activeElement.id), bounds.last);
+        await page.keyboard.press('Tab');
+        assert.equal(await page.evaluate(() => document.activeElement.id), bounds.first);
+        await page.keyboard.press('Escape');
+        const closed = await page.locator(`#${drawerId}`).evaluate(element => ({
+          inert: element.inert, hidden: element.getAttribute('aria-hidden'), focused: document.activeElement.id,
+        }));
+        assert.deepEqual(closed, { inert: true, hidden: 'true', focused: toggleId });
+        drawers.push({ toggleId, drawerId, ...bounds, backwardWrap: true, forwardWrap: true, closed });
+      }
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const reduced = await page.locator('#settings-button').evaluate(element => ({
+        matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        transitionDurations: getComputedStyle(element).transitionDuration.split(',').map(parseFloat),
+        animationNames: getComputedStyle(element).animationName.split(',').map(name => name.trim()),
+      }));
+      assert(reduced.matches && reduced.transitionDurations.every(duration => duration >= 0 && duration <= 0.00001)
+        && reduced.animationNames.every(name => name === 'none'));
+      measurements.at(-1).reducedMotion = reduced;
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await page.locator('#lobby-toggle').click();
+      assert(await page.locator('#lobby-panel').isVisible());
+      await page.locator('#lobby-close').click();
+      assert(!await page.locator('#lobby-panel').isVisible());
+    }
+  }
+  if (await page.locator('#chat-toggle').getAttribute('aria-expanded') === 'true')
+    await page.locator('#chat-toggle').click();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForFunction(() => window.game.renderer.state === 'ready'
+    && window.game.renderer.viewport.widthCssPx === 1280);
+  assert.deepEqual(sourceState(await snapshot(page)), sourceState(initial));
+  return { measurements, drawers, lobbyOpenedAndClosed: true, sourceStatePreserved: true };
 }
 
 async function record(name, page, fields = {}) {
@@ -626,6 +736,7 @@ try {
     currentPage = table.page;
     await requirePrivacy(table.page, 0);
     assert.equal(table.state.frame.localHand.entityIds.length, 14);
+    const browserPolish = await qualifyBrowserPolish(table.page);
     const priorFlip = table.state.actions.filter(action => action.intent.kind === 'flip').length;
     const previousDiscard = commands(table.room, 'discard').length;
     await table.page.locator('#unity-canvas').focus();
@@ -642,6 +753,7 @@ try {
     const outcome = await actualDiscard(table.page, table.room);
     await record('actual-auto-csharp-select-discard', table.page, {
       nativeActions: outcome.nativeActions, serverOutcomeVerified: true, nativeWireVerified: true,
+      browserPolish,
       changshaKeyboardViewSmoke: { cameraToggledAndRestored: true, labelsChanged: true, forbiddenFlipNoRuleWrite: true },
     });
     await table.page.context().close();

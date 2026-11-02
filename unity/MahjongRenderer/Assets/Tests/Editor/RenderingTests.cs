@@ -639,6 +639,381 @@ namespace Mahjong.Renderer.Tests
 
         private static string Hex(byte[] bytes) => BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
 
+        [Test]
+        public void FineInsetOutlineHasAnEmptyCenterAndOnlyFortyUpwardFacingTriangles()
+        {
+            Mesh outline;
+            using (var art = new ProceduralArt(Shader.Find("Mahjong/OriginalSurface")))
+            {
+                outline = art.InsetOutline;
+                Assert.That(outline.vertexCount, Is.EqualTo(40));
+                Assert.That(outline.triangles.Length / 3, Is.EqualTo(40));
+                Assert.That(outline.bounds.size, Is.EqualTo(new Vector3(1, 0, 1)));
+                Vector3[] vertices = outline.vertices;
+                int[] triangles = outline.triangles;
+                Assert.That(vertices.All(vertex => Mathf.Max(Mathf.Abs(vertex.x), Mathf.Abs(vertex.z)) >= 0.475f), Is.True);
+                Assert.That(outline.normals.All(normal => normal == Vector3.up), Is.True);
+                for (int n = 0; n < triangles.Length; n += 3)
+                    Assert.That(Vector3.Cross(vertices[triangles[n + 1]] - vertices[triangles[n]],
+                        vertices[triangles[n + 2]] - vertices[triangles[n]]).y, Is.GreaterThan(0));
+                var parent = new GameObject("Inset outline hole contract") { layer = RendererLayers.Table };
+                try
+                {
+                    parent.AddComponent<MeshCollider>().sharedMesh = outline;
+                    Physics.SyncTransforms();
+                    Assert.That(Physics.Raycast(new Ray(Vector3.up, Vector3.down), 2, 1 << RendererLayers.Table), Is.False);
+                    Assert.That(Physics.Raycast(new Ray(new Vector3(0.497f, 1, 0), Vector3.down),
+                        2, 1 << RendererLayers.Table), Is.True);
+                }
+                finally { EngineObjects.Release(parent); }
+            }
+            Assert.That(outline == null, Is.True, "The extra shared mesh must be released with its owning art");
+        }
+
+        [TestCase("rectangular")]
+        [TestCase("classic")]
+        public void FinishedFeltZonesUseSharedOpaqueSeamsWithoutChangingRiverOrTableBounds(string boardLayout)
+        {
+            RendererState state = PolishedTableState("CHANGSHA", 390, 844);
+            RendererFrame frame = SourceFixtures.Copy(state.Frame, "RendererFrame");
+            frame.FrameId++;
+            frame.Presentation.BoardLayout = boardLayout;
+            state.ApplyFrame(frame);
+            var parent = new GameObject("Finished felt zone contract");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            try
+            {
+                LayoutPlan plan = BoardLayout.Build(state.Layout, state.Frame, state.Viewport);
+                scene.Commit(plan, state.Frame, new SemanticActions(state, _ => { }), state.Viewport.ResizeRevision);
+                Bounds table = boardLayout == "classic" ?
+                    new Bounds(Vector3.zero, new Vector3(1.74f, 0.06f, 1.74f)) : plan.BoardBounds;
+                MeshRenderer felt = NamedSurface(parent, "Woven felt");
+                Assert.That(felt.transform.localScale, Is.EqualTo(new Vector3(table.size.x, 0.06f, table.size.z)));
+                Assert.That(felt.transform.localPosition, Is.EqualTo(new Vector3(table.center.x, -0.035f, table.center.z)));
+                MeshRenderer seam = NamedSurface(parent, "Felt inset seam");
+                Mesh shared = seam.GetComponent<MeshFilter>().sharedMesh;
+                Assert.That(seam.transform.localScale, Is.EqualTo(new Vector3(table.size.x - 0.024f, 1, table.size.z - 0.024f)));
+                Assert.That(seam.transform.localPosition.y, Is.EqualTo(-0.0047f));
+                Assert.That(seam.sharedMaterial.GetInt("_ZWrite"), Is.EqualTo(1));
+                Assert.That(seam.GetComponents<Collider>(), Is.Empty);
+                foreach (var river in plan.Rivers)
+                {
+                    MeshRenderer fill = NamedSurface(parent, "Discard river " + river.Key);
+                    MeshRenderer edge = NamedSurface(parent, "Discard river seam " + river.Key);
+                    Assert.That(fill.transform.localPosition, Is.EqualTo(river.Value.center));
+                    Assert.That(fill.transform.localScale, Is.EqualTo(new Vector3(river.Value.size.x, 1, river.Value.size.z)));
+                    Assert.That(edge.transform.localPosition, Is.EqualTo(river.Value.center + Vector3.up * 0.0002f));
+                    Assert.That(edge.transform.localScale, Is.EqualTo(fill.transform.localScale));
+                    Assert.That(edge.GetComponent<MeshFilter>().sharedMesh, Is.SameAs(shared));
+                    Assert.That(edge.sharedMaterial, Is.SameAs(seam.sharedMaterial));
+                    var block = new MaterialPropertyBlock();
+                    fill.GetPropertyBlock(block);
+                    Color riverColor = block.GetColor("_Color");
+                    Assert.That(riverColor.g, Is.EqualTo(0.36f));
+                    Assert.That(riverColor.g / 0.39f, Is.InRange(0.9f, 1),
+                        "Rivers should be quiet subdivisions of the felt, not the old dark rectangular blocks");
+                    Assert.That(block.GetTexture("_MainTex"), Is.SameAs(Resources.Load<Texture2D>("Art/TableFabric")));
+                    Assert.That(fill.sharedMaterial, Is.SameAs(felt.sharedMaterial));
+                    Assert.That(fill.GetComponents<Collider>(), Is.Empty);
+                }
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Count(renderer =>
+                    renderer.name.StartsWith("Discard river seam ", StringComparison.Ordinal)), Is.EqualTo(plan.Rivers.Count));
+                MeshRenderer handEdge = NamedSurface(parent, "Hand band fine edge");
+                Assert.That(handEdge.gameObject.layer, Is.EqualTo(RendererLayers.Hand));
+                Assert.That(handEdge.transform.localScale.z, Is.EqualTo(SourceCoordinates.Unit),
+                    "The hand separator is one CSS pixel, not another reserved input band");
+                Assert.That(parent.GetComponentsInChildren<Collider>().Length,
+                    Is.EqualTo(plan.Entities.Count + plan.Slots.Count + 2), "Native decoration must never add raycast targets");
+            }
+            finally { scene.Dispose(); EngineObjects.Release(parent); }
+        }
+
+        [Test]
+        public void SeatNameGeometryOmitsDuplicateIndicesAndUnknownScoresAndFitsLongPublicNames()
+        {
+            RendererState state = SourceFixtures.State();
+            RendererFrame frame = SourceFixtures.Copy(state.Frame, "RendererFrame");
+            frame.FrameId++;
+            frame.Seats[0].Nick = "  Seat 0  ";
+            frame.Seats[1].Nick = "South";
+            frame.Seats[1].Score = 25000;
+            frame.Seats[2].Nick = "   ";
+            frame.Seats[3].Nick = "ABCDEFGHIJKLMNOPQRST";
+            state.ApplyFrame(frame);
+            var parent = new GameObject("Clean seat typography contract");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            try
+            {
+                LayoutPlan plan = BoardLayout.Build(state.Layout, state.Frame, state.Viewport);
+                scene.Commit(plan, state.Frame, new SemanticActions(state, _ => { }), state.Viewport.ResizeRevision);
+                string[] names = { "Seat 0", "South", "SEAT 2", "ABCDEFGHIJKLMNOP" };
+                for (int seat = 0; seat < 4; seat++)
+                {
+                    MeshRenderer label = NamedSurface(parent, "Seat name " + seat);
+                    AssertActualLabel(label, names[seat]);
+                    int side = SourceCoordinates.RelativeSeat(seat, state.Frame.Session.ViewSeat);
+                    float available = (side % 2 == 0 ? plan.BoardBounds.size.x : plan.BoardBounds.size.z) - 0.16f;
+                    Bounds bounds = label.GetComponent<MeshFilter>().sharedMesh.bounds;
+                    float half = Mathf.Abs(label.transform.localPosition.x);
+                    if (side % 2 == 1) half = Mathf.Abs(label.transform.localPosition.z);
+                    Assert.That(half + bounds.extents.x, Is.LessThanOrEqualTo(available / 2));
+                }
+                AssertActualLabel(NamedSurface(parent, "Seat score 1"), "25000");
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Count(renderer =>
+                    renderer.name.StartsWith("Seat score ", StringComparison.Ordinal)), Is.EqualTo(1));
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Count(renderer =>
+                    renderer.name.StartsWith("Active seat mark ", StringComparison.Ordinal)), Is.EqualTo(1));
+            }
+            finally { scene.Dispose(); EngineObjects.Release(parent); }
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void QuietTurnMarksFollowAuthoritativeSeatAndPovAndClearWithMissingTurn(int viewSeat)
+        {
+            RendererState state = SourceFixtures.State();
+            RendererFrame frame = SourceFixtures.Copy(state.Frame, "RendererFrame");
+            frame.FrameId++;
+            frame.Session.ViewSeat = viewSeat;
+            frame.Entities[0].Interaction.CanDiscard = false;
+            frame.Turn.ActiveSeat = 2;
+            frame.Turn.AwaitingDiscard = false;
+            frame.Seats = frame.Seats.Reverse().ToArray();
+            state.ApplyFrame(frame);
+            var parent = new GameObject("Public turn mark contract");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            try
+            {
+                var actions = new SemanticActions(state, _ => { });
+                LayoutPlan plan = BoardLayout.Build(state.Layout, state.Frame, state.Viewport);
+                scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
+                int side = SourceCoordinates.RelativeSeat(2, viewSeat);
+                Quaternion rotation = Quaternion.AngleAxis(-90 * side, Vector3.up);
+                MeshRenderer centerMark = NamedSurface(parent, "Active turn center mark");
+                Assert.That(Quaternion.Angle(centerMark.transform.localRotation, rotation), Is.LessThan(0.001));
+                Assert.That(Vector3.Dot(centerMark.transform.localPosition, rotation * Vector3.back), Is.GreaterThan(0));
+                MeshRenderer seatMark = NamedSurface(parent, "Active seat mark 2");
+                Assert.That(Quaternion.Angle(seatMark.transform.localRotation, rotation), Is.LessThan(0.001));
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Count(renderer =>
+                    renderer.name.StartsWith("Active seat mark ", StringComparison.Ordinal)), Is.EqualTo(1));
+                var block = new MaterialPropertyBlock();
+                seatMark.GetPropertyBlock(block);
+                Color accent = block.GetColor("_Color");
+                centerMark.GetPropertyBlock(block);
+                Assert.That(block.GetColor("_Color"), Is.EqualTo(accent));
+                Assert.That(block.GetFloat("_Unlit"), Is.EqualTo(1));
+                Assert.That(centerMark.GetComponents<Collider>(), Is.Empty);
+                frame = SourceFixtures.Copy(state.Frame, "RendererFrame");
+                frame.FrameId++;
+                frame.Turn = null;
+                frame.Seats = new[] { frame.Seats.Single(seat => seat.Seat == 0) };
+                state.ApplyFrame(frame);
+                scene.Commit(BoardLayout.Build(state.Layout, state.Frame, state.Viewport), state.Frame, actions,
+                    state.Viewport.ResizeRevision);
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Any(renderer =>
+                    renderer.name.StartsWith("Active seat mark ", StringComparison.Ordinal) ||
+                    renderer.name == "Active turn center mark"), Is.False);
+                Assert.That(parent.GetComponentsInChildren<MeshRenderer>().Count(renderer =>
+                    renderer.name.StartsWith("Seat name ", StringComparison.Ordinal)), Is.EqualTo(1),
+                    "Absent public seats must not acquire invented players or scores");
+            }
+            finally { scene.Dispose(); EngineObjects.Release(parent); }
+        }
+
+        [TestCase(360, 800)]
+        [TestCase(390, 844)]
+        [TestCase(500, 900)]
+        [TestCase(844, 390)]
+        [TestCase(1280, 800)]
+        public void FinishedTablePreservesAllFiveVariantsFullHandPhysicsAndPublicGeometry(int width, int height)
+        {
+            foreach (string gameType in new[] { "CHANGSHA", "FOUR_PLAYER", "THREE_PLAYER", "BAMBOO", "MINEFIELD" })
+            {
+                RendererState state = PolishedTableState(gameType, width, height);
+                var parent = new GameObject("Finished " + gameType + " reachability");
+                var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+                var target = new RenderTexture(width, height, 0);
+                try
+                {
+                    scene.TableCamera.targetTexture = scene.HandCamera.targetTexture = target;
+                    var actions = new SemanticActions(state, _ => { });
+                    var picker = new CameraPicker(scene, state);
+                    foreach (string mode in new[] { "flat", "perspective" })
+                    {
+                        RendererFrame frame = SourceFixtures.Copy(state.Frame, "RendererFrame");
+                        frame.FrameId++;
+                        frame.Presentation.ViewMode = mode;
+                        state.ApplyFrame(frame);
+                        LayoutPlan plan = BoardLayout.Build(state.Layout, state.Frame, state.Viewport);
+                        Bounds originalBounds = plan.BoardBounds;
+                        scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
+                        CameraPose fit = CameraFit.Fit(originalBounds,
+                            plan.Viewport.BoardCss.width / plan.Viewport.BoardCss.height, mode == "flat", 0, 0, plan.Compact);
+                        Assert.That(scene.TableCamera.transform.position, Is.EqualTo(fit.Position));
+                        Assert.That(Vector3.Distance(scene.TableCamera.transform.forward, fit.Rotation * Vector3.forward),
+                            Is.LessThan(0.000001f));
+                        Assert.That(Vector3.Distance(scene.TableCamera.transform.up, fit.Rotation * Vector3.up),
+                            Is.LessThan(0.000001f));
+                        Assert.That(scene.TableCamera.orthographicSize, Is.EqualTo(fit.OrthographicSize));
+                        Assert.That(plan.BoardBounds, Is.EqualTo(originalBounds));
+                        Assert.That(scene.ActiveEntities.Count, Is.EqualTo(frame.Entities.Length));
+                        foreach (var item in plan.Entities)
+                        {
+                            EntityView view = scene.ActiveEntities[item.Key];
+                            Assert.That(view.Root.transform.localPosition, Is.EqualTo(item.Value.Pose.Position), item.Key);
+                            Assert.That(Quaternion.Angle(view.Root.transform.localRotation, item.Value.Pose.Rotation),
+                                Is.LessThan(0.001), item.Key);
+                            Assert.That(view.Root.transform.localScale, Is.EqualTo(Vector3.one * item.Value.Pose.Scale));
+                            Assert.That(view.Root.GetComponent<BoxCollider>().size, Is.EqualTo(SourceCoordinates.MeshSize("TILE")));
+                            if (!item.Value.Entity.Appearance.ShowFace)
+                                Assert.That(view.VisibleFaceIndex, Is.Null, item.Key);
+                        }
+                        Assert.That(frame.LocalHand.EntityIds.Length, Is.EqualTo(14));
+                        foreach (string id in frame.LocalHand.EntityIds)
+                        {
+                            EntityView hand = scene.ActiveEntities[id];
+                            Camera camera = plan.Entities[id].Separate ? scene.HandCamera : scene.TableCamera;
+                            Vector3 screen = camera.WorldToScreenPoint(hand.Root.transform.position);
+                            Assert.That(camera.pixelRect.Contains(screen), Is.True, gameType + " " + mode + " " + id);
+                            Assert.That(picker.Entity(screen, false).Id, Is.EqualTo(id), gameType + " " + mode + " " + id);
+                            if (width < height && width < 768)
+                            {
+                                Bounds box = SourceCoordinates.OrientedBounds(plan.Entities[id].Pose, "TILE");
+                                Assert.That(box.size.x / SourceCoordinates.Unit, Is.GreaterThanOrEqualTo(40));
+                            }
+                        }
+                        if (gameType == "CHANGSHA" && (width < height && mode == "flat" || width >= 1280))
+                            foreach (Entity entity in frame.Entities.Where(entity => entity.Group == "discard"))
+                            {
+                                Transform tile = scene.ActiveEntities[entity.EntityId].Root.transform;
+                                Vector3 low = scene.TableCamera.WorldToScreenPoint(tile.TransformPoint(new Vector3(-0.03f, 0.02f, 0)));
+                                Vector3 high = scene.TableCamera.WorldToScreenPoint(tile.TransformPoint(new Vector3(0.03f, 0.02f, 0)));
+                                Assert.That(Vector2.Distance(low, high), Is.GreaterThanOrEqualTo(width < height ? 17 : 25),
+                                    entity.SlotName + " retains its existing public short-edge CSS-pixel floor");
+                            }
+                        Assert.That(parent.GetComponentsInChildren<Collider>().Length,
+                            Is.EqualTo(plan.Entities.Count + plan.Slots.Count + 2));
+                    }
+                }
+                finally { scene.Dispose(); EngineObjects.Release(target); EngineObjects.Release(parent); }
+            }
+        }
+
+        [Test]
+        public void RepeatedFramesAndIdleVisualStepsReuseFinishedTableResourcesAndDisposeTheirOwnedMesh()
+        {
+            RendererState state = PolishedTableState("CHANGSHA", 390, 844);
+            var parent = new GameObject("Finished table resource lifetime");
+            var scene = new RendererScene(parent.transform, Shader.Find("Mahjong/OriginalSurface"));
+            Mesh outline = null;
+            Material[] materials = null;
+            try
+            {
+                var actions = new SemanticActions(state, _ => { });
+                LayoutPlan plan = BoardLayout.Build(state.Layout, state.Frame, state.Viewport);
+                scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
+                scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
+                outline = NamedSurface(parent, "Felt inset seam").GetComponent<MeshFilter>().sharedMesh;
+                int[] meshes = parent.GetComponentsInChildren<MeshFilter>(true).Select(filter => filter.sharedMesh.GetInstanceID())
+                    .Distinct().OrderBy(id => id).ToArray();
+                materials = parent.GetComponentsInChildren<MeshRenderer>(true).Select(renderer => renderer.sharedMaterial).Distinct().ToArray();
+                Assert.That(materials.Length, Is.EqualTo(4));
+                for (int n = 0; n < 12; n++)
+                {
+                    scene.Commit(plan, state.Frame, actions, state.Viewport.ResizeRevision);
+                    for (int step = 0; step < 30; step++) scene.AdvanceVisual();
+                    Assert.That(parent.GetComponentsInChildren<MeshFilter>(true).Select(filter => filter.sharedMesh.GetInstanceID())
+                        .Distinct().OrderBy(id => id), Is.EqualTo(meshes), "Unchanged text and seams cannot regenerate geometry");
+                    Assert.That(parent.GetComponentsInChildren<MeshRenderer>(true).Select(renderer => renderer.sharedMaterial).Distinct(),
+                        Is.EquivalentTo(materials), "Decoration must reuse the existing four shared materials");
+                }
+            }
+            finally { scene.Dispose(); EngineObjects.Release(parent); }
+            Assert.That(outline == null, Is.True);
+            Assert.That(materials.All(material => material == null), Is.True);
+        }
+
+        private static MeshRenderer NamedSurface(GameObject parent, string name) =>
+            parent.GetComponentsInChildren<MeshRenderer>().Single(renderer => renderer.name == name);
+
+        private static void AssertActualLabel(MeshRenderer renderer, string text)
+        {
+            Mesh actual = renderer.GetComponent<MeshFilter>().sharedMesh;
+            Mesh expected = BitmapGlyphs.Mesh(text, 1);
+            try
+            {
+                Assert.That(actual.vertexCount, Is.EqualTo(expected.vertexCount), renderer.name + " actual text: " + text);
+                Vector3[] a = actual.vertices, b = expected.vertices;
+                float scale = actual.bounds.size.z / expected.bounds.size.z;
+                for (int n = 0; n < a.Length; n++)
+                    Assert.That(Vector3.Distance(a[n], b[n] * scale), Is.LessThan(0.000001f), renderer.name);
+            }
+            finally { EngineObjects.Release(expected); }
+        }
+
+        private static RendererState PolishedTableState(string gameType, int width, int height)
+        {
+            RendererState state = SourceFixtures.State(gameType != "CHANGSHA");
+            long? viewerRevision = state.Frame.Session.ViewerRevision;
+            RendererLayout layout = gameType == "CHANGSHA" ? SourceFixtures.CanonicalChangsha() : SourceFixtures.Lanes(gameType);
+            if (gameType != "CHANGSHA")
+            {
+                Slot prototype = layout.Slots.First(slot => slot.Seat == 0 && slot.Group == "hand");
+                var fullHand = Enumerable.Range(0, 14).Select(index =>
+                {
+                    Slot slot = SourceFixtures.Copy(prototype, "Slot");
+                    slot.SlotName = "hand." + index + "@0";
+                    slot.Indexes = new long[] { index };
+                    foreach (Contract.Pose pose in slot.Poses) pose.Position.X = 49 + index * 6;
+                    return slot;
+                });
+                layout.Slots = layout.Slots.Where(slot => slot.Seat != 0 || slot.Group != "hand").Concat(fullHand).ToArray();
+            }
+            layout.LayoutRevision = state.Layout.LayoutRevision + 1;
+            state.ApplyLayout(layout);
+            RendererFrame frame = SourceFixtures.Empty(layout);
+            frame.FrameId++;
+            frame.LayoutRevision = layout.LayoutRevision;
+            frame.Session.ViewerRevision = viewerRevision;
+            frame.Presentation.BoardLayout = "rectangular";
+            frame.Presentation.HandLayout = width < 768 || height < 520 ? "separate" : "in-table";
+            frame.Entities = layout.Slots.Where(slot => slot.Kind == "TILE" && layout.ActiveSeats.Contains(slot.Seat ?? 0) &&
+                (slot.Group == "wall" || slot.Group == "discard" && slot.Indexes.Length == 2 && slot.Indexes[0] == 0 ||
+                 slot.Group == "hand" && slot.Indexes.Length == 1 && slot.Indexes[0] < (slot.Seat == 0 ? 14 : 13)))
+                .Select(slot =>
+                {
+                    Entity entity = SourceFixtures.Copy(SourceFixtures.Read<RendererFrame>("RendererFrame").Entities[0], "Entity");
+                    entity.EntityId = entity.SlotName = slot.SlotName;
+                    entity.Seat = slot.Seat;
+                    entity.Group = slot.Group;
+                    entity.Indexes = slot.Indexes;
+                    entity.RotationIndex = slot.Group == "hand" && slot.Seat == 0 && slot.Poses.Length > 1 ? 1 : 0;
+                    entity.Pose = slot.Poses[entity.RotationIndex];
+                    bool face = slot.Group == "discard" || slot.Group == "hand" && slot.Seat == 0;
+                    entity.Appearance.KnownFace = entity.Appearance.ShowFace = face;
+                    entity.Appearance.FaceIndex = face ? 0 : (int?)null;
+                    entity.Interaction = new Interaction { CanSelect = slot.Group == "hand" && slot.Seat == 0 };
+                    return entity;
+                }).ToArray();
+            frame.LocalHand.EntityIds = frame.Entities.Where(entity => entity.Seat == 0 && entity.Group == "hand")
+                .Select(entity => entity.EntityId).ToArray();
+            frame.LocalHand.DrawnEntityId = frame.LocalHand.EntityIds.Last();
+            state.ApplyFrame(frame);
+            Viewport viewport = SourceFixtures.Copy(state.Viewport, "Viewport");
+            viewport.ResizeRevision++;
+            viewport.WidthCssPx = width;
+            viewport.HeightCssPx = height;
+            viewport.WidthPx = width * 2;
+            viewport.HeightPx = height * 2;
+            viewport.InsetsCssPx = new Insets { Top = 110, Bottom = 51 };
+            viewport.HandBandCssPx = frame.Presentation.HandLayout == "separate" ?
+                Mathf.Min(180, (height - 161) * 0.3f, Mathf.Max(148, width * 0.24f)) : 0;
+            state.SetViewport(viewport);
+            return state;
+        }
+
         private sealed class Png
         {
             public int Width;

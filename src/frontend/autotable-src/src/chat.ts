@@ -824,6 +824,12 @@ export function installChatPanel(client: Client | null): void {
     setCollapsed(true);
     toggle?.focus();
   });
+  root.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || event.defaultPrevented || state.collapsed) return;
+    event.preventDefault();
+    setCollapsed(true);
+    toggle?.focus();
+  });
   const compact = window.matchMedia(COMPACT_VIEW_QUERY);
   compact.addEventListener('change', () => applyCollapsed(loadCollapsed()));
   onSettingsChange(settings => {

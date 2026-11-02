@@ -169,10 +169,15 @@ namespace Mahjong.Renderer.Rendering
             private readonly SurfaceView board;
             private readonly SurfaceView rail;
             private readonly SurfaceView trim;
+            private readonly SurfaceView feltSeam;
             private readonly SurfaceView centerPlate;
             private readonly SurfaceView centerRim;
+            private readonly SurfaceView turnMark;
             private readonly SurfaceView handBackground;
+            private readonly SurfaceView handEdge;
             private readonly SurfaceView[] rivers = new SurfaceView[4];
+            private readonly SurfaceView[] riverEdges = new SurfaceView[4];
+            private readonly SurfaceView[] seatTurnMarks = new SurfaceView[4];
             private readonly SurfaceView[] diceBody = new SurfaceView[2];
             private readonly SurfaceView[] diceFace = new SurfaceView[2];
             private readonly ProceduralArt art;
@@ -186,12 +191,20 @@ namespace Mahjong.Renderer.Rendering
                 board = new SurfaceView(Root.transform, "Woven felt", art.TableBox, art);
                 rail = new SurfaceView(Root.transform, "Satin walnut rail", art.TableRail, art);
                 trim = new SurfaceView(Root.transform, "Fine brass rail inlay", art.TableRail, art);
+                feltSeam = new SurfaceView(Root.transform, "Felt inset seam", art.InsetOutline, art);
                 centerPlate = new SurfaceView(Root.transform, "Center information inset", art.RoundedBox, art);
                 centerRim = new SurfaceView(Root.transform, "Center fine rim", art.RoundedBox, art);
+                turnMark = new SurfaceView(Root.transform, "Active turn center mark", art.Quad, art);
                 handBackground = new SurfaceView(Root.transform, "Hand band", art.Quad, art);
+                handEdge = new SurfaceView(Root.transform, "Hand band fine edge", art.Quad, art);
                 for (int seat = 0; seat < rivers.Length; seat++)
+                {
                     rivers[seat] = new SurfaceView(Root.transform, "Discard river " + seat, art.Quad, art);
-                labels = Enumerable.Range(0, 8).Select(_ => new LabelView(Root.transform, art)).ToArray();
+                    riverEdges[seat] = new SurfaceView(Root.transform, "Discard river seam " + seat, art.InsetOutline, art);
+                    seatTurnMarks[seat] = new SurfaceView(Root.transform, "Active seat mark " + seat, art.Quad, art);
+                }
+                labels = Enumerable.Range(0, 12).Select(i => new LabelView(Root.transform, art,
+                    i < 4 ? "Seat name " + i : i >= 8 ? "Seat score " + (i - 8) : "Public vector label")).ToArray();
                 for (int i = 0; i < 2; i++)
                 {
                     diceBody[i] = new SurfaceView(Root.transform, "Public die", art.RoundedBox, art);
@@ -239,18 +252,25 @@ namespace Mahjong.Renderer.Rendering
                 trim.Pose(center - Vector3.up * 0.003f, Quaternion.identity,
                     new Vector3(surface.size.x + 0.012f, 0.06f, surface.size.z + 0.012f), RendererLayers.Table);
                 trim.Paint(new Color(0.49f, 0.37f, 0.21f), gloss: 0.25f);
+                feltSeam.Pose(new Vector3(center.x, -0.0047f, center.z), Quaternion.identity,
+                    new Vector3(surface.size.x - 0.024f, 1, surface.size.z - 0.024f), RendererLayers.Table);
+                feltSeam.Paint(new Color(0.24f, 0.45f, 0.37f), gloss: 0, unlit: true);
                 for (int seat = 0; seat < rivers.Length; seat++)
                 {
                     bool visible = plan.Rivers.TryGetValue(seat, out Bounds river);
                     rivers[seat].Object.SetActive(visible);
+                    riverEdges[seat].Object.SetActive(visible);
                     if (!visible) continue;
                     rivers[seat].Pose(river.center, Quaternion.identity,
                         new Vector3(river.size.x, 1, river.size.z), RendererLayers.Table);
-                    rivers[seat].Paint(new Color(0.065f, 0.285f, 0.255f), art.TableFabric,
+                    rivers[seat].Paint(new Color(0.09f, 0.36f, 0.305f), art.TableFabric,
                         new Rect(0, 0, river.size.x * 2.5f, river.size.z * 2.5f), gloss: 0, effect: 3);
+                    riverEdges[seat].Pose(river.center + Vector3.up * 0.0002f, Quaternion.identity,
+                        new Vector3(river.size.x, 1, river.size.z), RendererLayers.Table);
+                    riverEdges[seat].Paint(new Color(0.20f, 0.42f, 0.35f), gloss: 0, unlit: true);
                 }
                 centerRim.Pose(new Vector3(0, -0.003f, 0), Quaternion.identity,
-                    new Vector3(panelWidth + 0.018f, 0.009f, panelDepth + 0.018f), RendererLayers.Table);
+                    new Vector3(panelWidth + 0.010f, 0.009f, panelDepth + 0.010f), RendererLayers.Table);
                 centerRim.Paint(new Color(0.44f, 0.34f, 0.21f), gloss: 0.12f);
                 centerPlate.Pose(new Vector3(0, -0.002f, 0), Quaternion.identity,
                     new Vector3(panelWidth, 0.008f, panelDepth), RendererLayers.Table);
@@ -258,9 +278,14 @@ namespace Mahjong.Renderer.Rendering
                 handBackground.Pose(new Vector3(0, -0.001f, 0), Quaternion.identity,
                     new Vector3(plan.Viewport.HandCss.width * SourceCoordinates.Unit, 1,
                         plan.Viewport.HandCss.height * SourceCoordinates.Unit), RendererLayers.Hand);
-                handBackground.Paint(new Color(0.075f, 0.205f, 0.20f), art.TableFabric,
+                handBackground.Paint(new Color(0.075f, 0.25f, 0.225f), art.TableFabric,
                     new Rect(0, 0, Mathf.Max(1, plan.Viewport.HandCss.width / 240), 1), gloss: 0, effect: 3);
                 handBackground.Object.SetActive(plan.Viewport.HandCss.height > 0);
+                handEdge.Pose(new Vector3(0, -0.0005f, (plan.Viewport.HandCss.height / 2 - 1) * SourceCoordinates.Unit),
+                    Quaternion.identity, new Vector3(plan.Viewport.HandCss.width * SourceCoordinates.Unit, 1,
+                        SourceCoordinates.Unit), RendererLayers.Hand);
+                handEdge.Paint(new Color(0.31f, 0.43f, 0.34f), gloss: 0, unlit: true);
+                handEdge.Object.SetActive(plan.Viewport.HandCss.height > 0);
                 int n = 0;
                 foreach (EntityPlacement item in plan.Entities.Values)
                 {
@@ -278,7 +303,8 @@ namespace Mahjong.Renderer.Rendering
                 }
                 for (int i = n; i < slots.Count; i++) slots[i].Clear();
                 foreach (LabelView label in labels) label.Clear();
-                n = 0;
+                foreach (SurfaceView mark in seatTurnMarks) mark.Object.SetActive(false);
+                Color accent = new Color(0.88f, 0.73f, 0.43f);
                 foreach (SeatDisplay seat in frame.Seats)
                 {
                     int side = SourceCoordinates.RelativeSeat(seat.Seat, frame.Session.ViewSeat);
@@ -286,11 +312,46 @@ namespace Mahjong.Renderer.Rendering
                         side == 1 ? new Vector3(surface.max.x - 0.04f, 0.01f, 0) :
                         side == 2 ? new Vector3(0, 0.01f, surface.max.z - 0.07f) :
                         new Vector3(surface.min.x + 0.04f, 0.01f, 0);
-                    string score = seat.Score.HasValue ? seat.Score.Value.ToString("0", CultureInfo.InvariantCulture) : "-";
-                    string nick = string.IsNullOrEmpty(seat.Nick) ? "" : " " + seat.Nick.Substring(0, Mathf.Min(16, seat.Nick.Length));
-                    labels[n++].Apply(seat.Seat + nick + "  " + score, 0.027f * uiScale, point,
-                        Quaternion.AngleAxis(-90 * side, Vector3.up), RendererLayers.Table,
-                        frame.Turn?.ActiveSeat == seat.Seat ? new Color(0.98f, 0.84f, 0.53f) : new Color(0.82f, 0.89f, 0.87f));
+                    Quaternion rotation = Quaternion.AngleAxis(-90 * side, Vector3.up);
+                    string nick = seat.Nick?.Trim();
+                    nick = string.IsNullOrEmpty(nick) ? "SEAT " + seat.Seat : nick.Substring(0, Mathf.Min(16, nick.Length));
+                    string score = seat.Score?.ToString("0", CultureInfo.InvariantCulture);
+                    float nameHeight = 0.027f * uiScale;
+                    float scoreHeight = nameHeight * 0.82f;
+                    float gap = score == null ? 0 : nameHeight;
+                    float nameWidth = nick.Length * 0.76f * nameHeight;
+                    float scoreWidth = (score?.Length ?? 0) * 0.76f * scoreHeight;
+                    float available = Mathf.Max(0.1f, (side % 2 == 0 ? surface.size.x : surface.size.z) - 0.16f);
+                    float fit = Mathf.Min(1, available / (nameWidth + gap + scoreWidth));
+                    bool activeSeat = frame.Turn?.ActiveSeat == seat.Seat;
+                    labels[seat.Seat].Apply(nick, nameHeight * fit,
+                        point - rotation * Vector3.right * ((scoreWidth + gap) * fit / 2),
+                        rotation, RendererLayers.Table,
+                        activeSeat ? new Color(0.97f, 0.91f, 0.77f) : new Color(0.76f, 0.86f, 0.82f));
+                    if (score != null)
+                        labels[8 + seat.Seat].Apply(score, scoreHeight * fit,
+                            point + rotation * Vector3.right * ((nameWidth + gap) * fit / 2),
+                            rotation, RendererLayers.Table, new Color(0.64f, 0.77f, 0.71f));
+                    if (activeSeat)
+                    {
+                        SurfaceView mark = seatTurnMarks[seat.Seat];
+                        mark.Pose(point + rotation * new Vector3(0, -0.0002f, -0.009f * uiScale),
+                            rotation, new Vector3(Mathf.Min(0.14f * uiScale, available * 0.5f), 1, 0.003f * uiScale),
+                            RendererLayers.Table);
+                        mark.Paint(accent, gloss: 0, unlit: true);
+                        mark.Object.SetActive(true);
+                    }
+                }
+                turnMark.Object.SetActive(frame.Turn?.ActiveSeat != null);
+                if (frame.Turn?.ActiveSeat is int turnSeat)
+                {
+                    int side = SourceCoordinates.RelativeSeat(turnSeat, frame.Session.ViewSeat);
+                    Quaternion rotation = Quaternion.AngleAxis(-90 * side, Vector3.up);
+                    float extent = (side % 2 == 0 ? panelDepth : panelWidth) / 2;
+                    turnMark.Pose(rotation * new Vector3(0, 0.0032f, -extent + 0.006f), rotation,
+                        new Vector3(Mathf.Min(0.085f * uiScale, (side % 2 == 0 ? panelWidth : panelDepth) * 0.55f),
+                            1, 0.006f), RendererLayers.Table);
+                    turnMark.Paint(accent, gloss: 0, unlit: true);
                 }
                 string phase = frame.Turn?.Phase ?? "WAITING";
                 phase = Regex.Replace(phase, "([a-z])([A-Z])", "$1 $2").Replace('-', ' ').Replace('_', ' ').ToUpperInvariant();

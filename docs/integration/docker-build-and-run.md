@@ -487,7 +487,8 @@ The portable runner uses Python 3, Git, Node 20/npm and .NET 10. The
 `source-tools` job also requires Bash, native PowerShell, a running Docker
 daemon, Buildx and Compose. Missing tools, failed public pin fetches and any
 skipped mandatory tests **fail** the job. CI provisions Node/.NET explicitly
-and installs only the existing lockfile/manifests:
+and installs only the existing lockfile/manifests plus that lock-matched
+Playwright Chromium and its OS dependencies for production-CSS DOM checks:
 
 ```bash
 python3 tests/migration/run_source_ci.py source-tools --install-dependencies
@@ -510,9 +511,11 @@ The source-tools runner always fetches the exact public baseline commit
 session path or cached source mirror is required.
 
 Coverage is **33 tooling + 9 import/ignore/real-Docker-context cases**,
-**24 fail-closed player-evidence and runner-environment cases**, **147 combined
-backend/hosting/room/relay/continuation cases**, **107 retained,
-Unity-adapter and actual Game startup/settled-viewport source cases**, distinct
+**26 fail-closed player-evidence and runner-environment cases**, **147 combined
+backend/hosting/room/relay/continuation cases**, **130 retained,
+Unity-adapter, browser-shell/accessibility and actual Game startup/settled-viewport
+source cases** (including production-CSS layout checks, three ordinary relay
+Deal-click regressions and two real-WebGL composition regressions), distinct
 strict primary TypeScript and Vite builds, and Unity metadata/frozen-contract,
 **5 JS bridge cases + 26-file C#9 editor/player syntax parsing**. Workflow
 contract tests also reject conditional source skips, widened evidence uploads,
@@ -535,6 +538,57 @@ environment, dependent on all four source jobs. The optional native published
 API/browser checks remain separate; no skipped browser check is counted as a
 browser pass. Workflow wiring and passing source jobs are not evidence of a
 licensed CI Editor/build execution.
+
+### Issue #20 combined polish qualification
+
+The compact labeled browser toolbar and quieter native felt/seat hierarchy must
+qualify together, not from separate authors' source-only receipts. The canonical
+130-case browser inventory executes every selected test file once; the layout
+file is explicitly selected in addition to `unity-*.test.mjs`. Source receipts
+fingerprint the shell/CSS, drawer helper, production callers and selected tests;
+Unity source metadata includes the art, scene, views and native rendering tests.
+
+Relay Deal controls must start below the fixed toolbar. The toolbar's
+`opacity: .999` is an intentional Chromium compatibility fix: a fully opaque
+header can incorrectly cull a header-height strip from the opposite edge of
+the underlying WebGL canvas until keyboard focus changes its paint layer.
+The desktop and DPR-2 phone regressions inspect actual composited screenshot
+pixels before and after focus, without changing native viewport geometry,
+input coordinates or gameplay thresholds. This source-level WebGL control is
+not a substitute for the genuine Unity camera cases below.
+
+After the final integration commit, run the standard pinned Editor
+`bash scripts/build-unity-webgl.sh --test-and-build` with the previously approved
+process-only HOME/XDG environment. Preserve its actual XML/logs and derived
+receipt under `artifacts/test-results/polish/editor-<commit>/`. Build Vite with
+that full `BUILD_SHA`, stage only the generated Unity files, then build one
+`mahjong-unity:polish-clean-<short-commit>` image with `ALLOW_SOURCE_DIRTY=0` from
+a clean `git archive` context plus those genuine Unity files.
+
+Run `run_runtime_player_integration.py` sequentially against that same immutable
+image/Editor receipt on unused ports 5103–5109. Partition the unchanged gameplay
+inventory into focus, camera, general and relay cases; also run the complete
+twenty-case `--mobile-playability` probe, including the native API lifecycle.
+The union must include all sixteen default gameplay cases and six additional
+geometry/reachability records. `actual-auto-csharp-select-discard` additionally
+checks ten real production desktop/phone/chat layouts, both drawers' keyboard
+focus wrapping/Escape/inert closure, reduced-motion computed styles, lobby
+reachability and all fourteen hand centers. These checks require the real
+matching C# player and save full-page screenshots; they do not fabricate native
+readiness. Headful focus uses a private cookie-authenticated Xvfb TCP display,
+its supported display-FD readiness, and a private keymap RAM mount. Browser
+files stay below the project evidence mount; there are no external X11 sockets
+or lock files.
+
+The final derived receipt belongs in
+`artifacts/test-results/polish/runtime-final/image-receipt.json` and must pin the
+actual image ID, manifest, Editor XML/receipt, all unique runtime cases, raw
+receipt hashes, screenshot provenance and exact-final-commit mandatory CI run.
+Failed attempts remain failed evidence beside any successful retake. View the
+actual desktop, portrait, landscape, progressed and camera PNGs before approval.
+Neither this procedure nor passing source CI claims physical-device validation;
+issue #13 remains separate. Do not replace the healthy port-5086 preview during
+qualification.
 
 ## Troubleshooting and validation limits
 

@@ -43,14 +43,76 @@ def private_browser_tmpfs(directory, uid, gid):
 
 
 def browser_environment(scope, cases, headful):
-    temporary = "/tmp" if headful else "/probe/temp"
     return {
         "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
         "XDG_DATA_HOME": "/probe/home/data", "XDG_CACHE_HOME": "/probe/home/cache",
-        "TMPDIR": temporary, "TMP": temporary, "TEMP": temporary,
+        "TMPDIR": "/probe/temp", "TMP": "/probe/temp", "TEMP": "/probe/temp",
         "MAHJONG_PLAYER_SCOPE": scope, "MAHJONG_PLAYER_CASE": cases,
         "MAHJONG_PLAYER_HEADFUL": "1" if headful else "0",
     }
+
+
+def browser_source_evidence():
+    paths = [
+        "tests/migration/" + name for name in
+        ("run_player_integration.py", "run_runtime_player_integration.py", "browser-player.mjs",
+         "browser-gameplay.mjs", "browser-mobile-playability.mjs", "player-headful.mjs", "player-aim.mjs")
+    ] + [
+        "src/frontend/autotable-src/" + name for name in
+        ("index.html", "src/browser-shell.ts", "src/browser-shell.css", "src/ui/drawer-accessibility.ts",
+         "src/game-bootstrap.ts", "src/game-ui.ts", "src/settings-drawer.ts", "src/chat.ts",
+         "src/move-log.ts", "src/ui/claim-window-overlay.ts", "src/main.css", "src/mobile-table.css",
+         "src/renderer/unity-host.ts", "src/renderer/unity-host.css")
+    ]
+    return {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in paths}
+
+
+def validate_browser_polish(polish, manifest):
+    if (not isinstance(polish, dict) or polish.get("sourceStatePreserved") is not True
+            or polish.get("lobbyOpenedAndClosed") is not True):
+        raise AssertionError("Browser polish omitted actual lobby and unchanged source-state proof")
+    measurements = polish.get("measurements")
+    expected = {(width, height, chat) for width, height in
+                ((1280, 800), (360, 800), (390, 844), (500, 900), (844, 390)) for chat in (False, True)}
+    if (not isinstance(measurements, list) or len(measurements) != len(expected)
+            or {(item.get("width"), item.get("height"), item.get("chatOpen")) for item in measurements} != expected):
+        raise AssertionError("Browser polish requires all ten real production desktop/phone/chat layouts")
+    for item in measurements:
+        width, height = item["width"], item["height"]
+        shell, variant, turn = (item.get(key, {}) for key in ("shell", "variant", "turn"))
+        toolbar, hand = item.get("toolbar", []), item.get("handCenters", [])
+        if (type(item.get("documentWidth")) not in (int, float) or item["documentWidth"] > width
+                or type(shell.get("height")) not in (int, float) or not 0 < shell["height"] <= (116 if width <= 600 else 96)
+                or item.get("viewport", {}).get("insetsCssPx", {}).get("top", -1) < shell.get("bottom", height) - 1
+                or not variant.get("text") or variant.get("scrollWidth", width + 1) > variant.get("clientWidth", 0) + 1
+                or not 0 <= turn.get("left", -1) <= turn.get("right", width + 1) <= width
+                or item.get("buildId") != manifest["buildId"] or item.get("realFrameRendered") is not True
+                or type(item.get("renderedFrameId")) is not int or item["renderedFrameId"] <= 0
+                or not item.get("screenshot") or len(item.get("screenshotSha256", "")) != 64
+                or not isinstance(toolbar, list) or len(toolbar) < 4
+                or not isinstance(hand, list) or len(hand) != 14
+                or len({target.get("entityId") for target in hand}) != 14
+                or any(target.get("canvasReceivesInput") is not True or target.get("chatCovered") is not False for target in hand)):
+            raise AssertionError("Browser polish omitted unclipped production chrome, native frame or all fourteen hand targets")
+        for button in toolbar:
+            if (not button.get("text", "").strip() or button.get("hit") != button.get("id")
+                    or button.get("width", 0) < 44 or button.get("height", 0) < 44
+                    or not 0 <= button.get("left", -1) <= button.get("right", width + 1) <= width):
+                raise AssertionError("Browser polish has an unlabeled, undersized, occluded or overflowing control")
+    reduced = next(item for item in measurements if (item["width"], item["height"], item["chatOpen"]) == (390, 844, True)).get("reducedMotion", {})
+    if (reduced.get("matches") is not True or not reduced.get("transitionDurations")
+            or any(type(value) not in (int, float) or not 0 <= value <= 0.00001 for value in reduced["transitionDurations"])
+            or not reduced.get("animationNames") or any(value != "none" for value in reduced["animationNames"])):
+        raise AssertionError("Browser polish omitted actual reduced-motion styles")
+    drawers = polish.get("drawers", [])
+    if (len(drawers) != 2 or {item.get("drawerId") for item in drawers} != {"settings-drawer", "settings-drawer-v2"}):
+        raise AssertionError("Browser polish omitted both real settings drawers")
+    for drawer in drawers:
+        if (drawer.get("enteredInside") is not True or drawer.get("inert") is not False
+                or drawer.get("backwardWrap") is not True or drawer.get("forwardWrap") is not True
+                or not drawer.get("first") or not drawer.get("last")
+                or drawer.get("closed") != {"inert": True, "hidden": "true", "focused": drawer.get("toggleId")}):
+            raise AssertionError("Browser polish omitted keyboard wrapping, inert closure or real focus return")
 
 
 def validate_editor_evidence(editor, manifest_sha):
@@ -125,6 +187,8 @@ def validate_player_evidence(evidence, manifest, scope, selected_cases=()):
     for case in cases:
         if case.get("state") != "ready":
             raise AssertionError("Player case is not actually ready: " + case["name"])
+        if case["name"] == "actual-auto-csharp-select-discard":
+            validate_browser_polish(case.get("browserPolish"), manifest)
         if case["name"] == "actual-manual-dice-server-roundtrip":
             if case.get("buttonClicked") is not True or case.get("pickup", {}).get("canTake") is not True:
                 raise AssertionError("The manual dice case omitted its real server pickup outcome")
@@ -385,7 +449,7 @@ def main():
     args = parser.parse_args()
     headful = (args.probe == "browser-gameplay.mjs" and args.scope == "gameplay"
                and (not args.cases or IDLE_FOCUS_CASE in args.cases.split(",")))
-    browser_entry = ["xvfb-run", "-a", "node"] if headful else ["node"]
+    browser_entry = ["node", "tests/migration/player-headful.mjs"] if headful else ["node"]
     global OUTPUT
     if not args.output_name.startswith("migration-player-") or "/" in args.output_name:
         parser.error("Output must be a project-local migration-player-* artifact directory")
@@ -447,6 +511,7 @@ def main():
         }
         metadata = load("player_source_metadata", ROOT / "unity/MahjongRenderer/Tools/source_metadata.py")
         receipt["sourceMetadataBefore"] = metadata.metadata(ROOT)
+        receipt["browserSourceSha256Before"] = browser_source_evidence()
         manifest = json.loads(manifest_path.read_text())
         for key, value in receipt["sourceMetadataBefore"].items():
             if manifest[key] != value:
@@ -522,14 +587,16 @@ def main():
             "--shm-size=256m", "--workdir=/workspace",
         ]
         if headful:
-            command.extend(("--tmpfs", private_browser_tmpfs("/tmp", uid, gid),
+            command.extend(("--tmpfs", private_browser_tmpfs("/probe/temp", uid, gid),
+                            "--tmpfs", "/var/lib/xkb:rw,nosuid,nodev,size=16m,mode=1777",
                             "--memory=1536m", "--pids-limit=512"))
         for key, value in browser_environment(args.scope, args.cases, headful).items():
             command.extend(("--env", key + "=" + value))
         for source, target, readonly in (
             *[(ROOT / "tests/migration" / name, "/workspace/tests/migration/" + name, True)
               for name in (["browser-player.mjs"] if args.probe == "browser-player.mjs"
-                           else ["browser-player.mjs", args.probe, "player-aim.mjs"])],
+                           else ["browser-player.mjs", args.probe, "player-aim.mjs"])
+              + (["player-headful.mjs"] if headful else [])],
             (ROOT / "src/frontend/autotable-src/package.json", "/workspace/src/frontend/autotable-src/package.json", True),
             *[
                 (ROOT / "src/frontend/autotable-src/node_modules" / package,
@@ -554,6 +621,9 @@ def main():
         evidence = browser_tools.parse_browser_evidence(result.stdout)
         receipt["browserEvidence"] = evidence
         receipt["sourceMetadataAfter"] = metadata.metadata(ROOT)
+        receipt["browserSourceSha256After"] = browser_source_evidence()
+        if receipt["browserSourceSha256After"] != receipt["browserSourceSha256Before"]:
+            raise AssertionError("Browser production/probe source changed during actual-player tests")
         receipt["rendererSourceUnchanged"] = receipt["sourceMetadataAfter"] == receipt["sourceMetadataBefore"]
         if not receipt["rendererSourceUnchanged"]:
             raise AssertionError("Production renderer source changed during actual-player tests")

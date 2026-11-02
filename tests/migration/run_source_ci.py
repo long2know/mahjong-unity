@@ -53,6 +53,7 @@ def plans():
         "tests/node/hand-result-render-and-wire.test.mjs",
         "tests/node/sc2-slot-owner.invariants.test.mjs",
         "tests/node/perspective-settings.test.mjs",
+        "tests/node/browser-shell-layout.test.mjs",
         *sorted(path.relative_to(ROOT / FRONTEND).as_posix()
                 for path in (ROOT / FRONTEND / "tests/node").glob("unity-*.test.mjs")),
         "../../../tests/migration/browser-source-integration.test.mjs",
@@ -84,7 +85,7 @@ def plans():
             command("player-packaging", ["python3", "tests/migration/test_player_packaging.py", "-v"],
                     kind="unittest", expected=1),
             command("player-evidence", ["python3", "tests/migration/test_browser_evidence.py", "-v"],
-                    kind="unittest", expected=24),
+                    kind="unittest", expected=26),
             command("missing-unity-artifact", [
                 "docker", "build", "--target", "unity-artifacts-check", "--progress", "plain", ".",
             ], kind="missing-unity"),
@@ -109,11 +110,13 @@ def plans():
         "frontend-source": [
             command("dependencies", ["npm", "ci", "--no-audit", "--no-fund"],
                     cwd=FRONTEND, dependency=True),
+            command("browser-dependencies", ["npx", "--no-install", "playwright", "install", "--with-deps", "chromium"],
+                    cwd=FRONTEND, dependency=True),
             command("workflow-contracts", [
                 "node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs",
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
-                    cwd=FRONTEND, kind="node", expected=107),
+                    cwd=FRONTEND, kind="node", expected=130),
             command("renderer-regressions", [
                 "node", "--test", "--test-reporter=tap",
                 "tests/migration/renderer-backend-shape.test.mjs",
@@ -224,7 +227,10 @@ class SourceRun:
             "scope": "SOURCE-ONLY", "job": group, "status": "running",
             "recordedAtUtc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "unityEditorApiShaderEditModeWebGlQualification": False,
-            "browserDeviceQualification": "not-run",
+            "browserDeviceQualification": (
+                "production-source CSS/DOM Chromium only; not Unity player or physical devices"
+                if group == "frontend-source" else "not-run"
+            ),
             "dependencyInstallationRequested": install,
             "baselineRevision": PIN, "commands": [], "producedArtifacts": [],
             "toolVersions": {},
@@ -246,6 +252,8 @@ class SourceRun:
                 "tests/migration/run_backend_tools.py", "tests/migration/test_source_gate.py",
                 "tests/migration/test_player_packaging.py",
                 "tests/migration/test_browser_evidence.py", "tests/migration/run_player_integration.py",
+                "tests/migration/browser-gameplay.mjs", "tests/migration/browser-player.mjs",
+                "tests/migration/player-headful.mjs",
                 FRONTEND + "/src/renderer/renderer-contract.ts",
                 "scripts/import-baseline.py", "scripts/verify-unity-build.py",
                 ".gitignore", ".dockerignore", "Dockerfile",
@@ -267,9 +275,22 @@ class SourceRun:
                 FRONTEND + "/src/renderer/table-camera-controls.ts",
                 FRONTEND + "/src/renderer/unity-host.ts", FRONTEND + "/src/game.ts",
                 FRONTEND + "/src/settings-drawer.ts",
+                FRONTEND + "/index.html", FRONTEND + "/src/browser-shell.ts",
+                FRONTEND + "/src/browser-shell.css", FRONTEND + "/src/ui/drawer-accessibility.ts",
+                FRONTEND + "/src/game-bootstrap.ts", FRONTEND + "/src/game-ui.ts",
+                FRONTEND + "/src/chat.ts", FRONTEND + "/src/move-log.ts",
+                FRONTEND + "/src/ui/claim-window-overlay.ts",
+                FRONTEND + "/src/main.css", FRONTEND + "/src/mobile-table.css",
+                FRONTEND + "/src/renderer/unity-host.css",
             ],
             "unity-source": [SYNTAX_PROJECT, "unity/MahjongRenderer/Tools/CSharpSyntax/Program.cs"],
         }[self.group]
+        if self.group == "frontend-source":
+            source += [
+                (ROOT / FRONTEND / path).resolve().relative_to(ROOT).as_posix()
+                for item in plans()[self.group] if item["name"] == "frontend-tests"
+                for path in item["argv"] if path.endswith(".test.mjs")
+            ]
         if self.group == "unity-source":
             spec = importlib.util.spec_from_file_location(
                 "ci_source_metadata", ROOT / "unity/MahjongRenderer/Tools/source_metadata.py",
