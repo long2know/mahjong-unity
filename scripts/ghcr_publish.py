@@ -79,6 +79,8 @@ def bundle(source, artifacts, source_sha, output):
 def extract(archive_path, destination, expected_hash):
     checked(expected_hash, r"[0-9a-f]{64}", "bundle SHA256")
     require(sha256(archive_path) == expected_hash, "Bundle SHA256 mismatch")
+    require(not any(path.is_symlink() for path in (destination, *destination.parents)),
+            "Linked artifact destination is forbidden")
     require(not destination.exists(), "Artifact destination already exists")
     with tarfile.open(archive_path, "r:gz") as archive:
         members = []

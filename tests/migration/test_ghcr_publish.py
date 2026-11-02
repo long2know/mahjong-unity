@@ -76,6 +76,16 @@ class PublishingTests(unittest.TestCase):
             publish.extract(archive, self.work / "oversize", publish.sha256(archive))
         self.assertFalse((self.work / "oversize").exists())
 
+    def test_existing_linked_destination_parent_cannot_redirect_extraction(self):
+        outside = self.work / "outside"
+        outside.mkdir()
+        linked = self.work / "linked"
+        linked.symlink_to(outside, target_is_directory=True)
+        archive = self.archive([("artifacts/unity-webgl/file", tarfile.REGTYPE)])
+        with self.assertRaisesRegex(ValueError, "Linked artifact destination"):
+            publish.extract(archive, linked / "output", publish.sha256(archive))
+        self.assertEqual(list(outside.iterdir()), [])
+
     def fixture(self):
         source = self.work / "source"
         artifacts = self.work / "artifacts"
