@@ -309,15 +309,24 @@ test('foreign claims, privacy loss, authority changes and removal revoke actual 
 test('an advertised own-turn runtime version invalidates old Changsha contexts without being confused with viewer revision or added to wire', t => {
   const h = gameHarness();
   t.after(h.close);
-  h.join('room-a', 0, 17);
+  const roomId = 'room-704';
+  h.join(roomId, 0, 17);
   const frame = h.snapshot([['4', thing('hand.0@0', 1)]], {
-    extra: [['ownTurn', 0, { gameId: 'room-a', stateVersion: 703, hu: false, concealedKongs: [], addedKongs: [] }]],
+    extra: [['ownTurn', 0, { gameId: roomId, stateVersion: 703, hu: false, concealedKongs: [], addedKongs: [] }]],
   });
   const r = router(h);
-  h.delta([['ownTurn', 0, { gameId: 'room-a', stateVersion: 704, hu: false, concealedKongs: [], addedKongs: [] }]]);
+  h.delta([['ownTurn', 0, { gameId: roomId, stateVersion: 704, hu: false, concealedKongs: [], addedKongs: [] }]]);
   h.sockets.at(-1).sent.length = 0;
   assert.equal(r.send({ kind: 'discard', entityId: frame.entities[0].entityId }, { contextFrameId: frame.frameId }).status, 'rejected');
   assert.equal(r.wire().length, 0);
   assert.equal(h.adapter.latest.session.viewerRevision, 17);
-  assert.equal(JSON.stringify(h.adapter.latest).includes('704'), false);
+  assert.equal(h.adapter.latest.session.gameId, roomId, 'opaque room IDs may contain the private version digits');
+  const assertNoPrivateVersion = value => {
+    if (value === null || typeof value !== 'object') return;
+    assert.equal(Object.hasOwn(value, 'stateVersion'), false, 'private stateVersion must not enter the emitted frame');
+    Object.values(value).forEach(assertNoPrivateVersion);
+  };
+  assertNoPrivateVersion(h.adapter.latest);
+  assert.equal(r.send({ kind: 'discard', entityId: h.adapter.latest.entities[0].entityId }).status, 'submitted');
+  assert.deepEqual(r.wire(), [['discard', 0, { tileId: 4 }]], 'fresh authorized actions retain the unversioned source wire');
 });
