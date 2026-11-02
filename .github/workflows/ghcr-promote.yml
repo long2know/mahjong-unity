@@ -1,0 +1,73 @@
+name: Promote runtime-qualified GHCR digest
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: Exact runtime-qualified sha256 digest (not a tag)
+        required: true
+        type: string
+      source_sha:
+        description: Accepted candidate source SHA, now merged into main
+        required: true
+        type: string
+      candidate_run_id:
+        description: Successful GHCR packaging workflow run ID
+        required: true
+        type: string
+      candidate_run_attempt:
+        description: Successful packaging attempt number
+        required: true
+        type: string
+      acceptance_pr:
+        description: Same-repository PR number with real runtime evidence for this digest
+        required: true
+        type: string
+      confirmation:
+        description: "Explicit authorization: runtime-qualified:sha256:<64 hex digits>"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ghcr-latest
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.repository == 'long2know/mahjong-unity' && github.ref == 'refs/heads/main'
+    environment:
+      name: ghcr-production
+      url: https://github.com/long2know/mahjong-unity/pull/${{ inputs.acceptance_pr }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify protected approval, successful candidate and exact digest; promote without rebuilding
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CANDIDATE_RUN_ATTEMPT: ${{ inputs.candidate_run_attempt }}
+          ACCEPTANCE_PR: ${{ inputs.acceptance_pr }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          python3 -B scripts/ghcr_publish.py promote | tee -a "$GITHUB_STEP_SUMMARY"

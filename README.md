@@ -161,6 +161,7 @@ checked separately; the successful host Hub route does not prove container
 activation or a paid/free headless licensing route.
 
 - [Docker build/run, verified host Editor, cache/output paths, troubleshooting](docs/integration/docker-build-and-run.md)
+- [GHCR candidate publishing, protected latest promotion, and the one-line Compose image swap](docs/ghcr-publishing.md)
 - [Renderer contract, lifecycle, privacy and presentation boundaries](docs/integration/renderer-v1.md)
 - [Licensing, excluded assets and source provenance](docs/integration/licensing-and-provenance.md)
 

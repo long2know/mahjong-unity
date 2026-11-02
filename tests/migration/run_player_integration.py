@@ -38,6 +38,10 @@ def load(name, path):
     return module
 
 
+def private_browser_tmpfs(directory, uid, gid):
+    return f"{directory}:rw,nosuid,nodev,size=256m,uid={uid},gid={gid},mode=0700"
+
+
 def browser_environment(scope, cases, headful):
     return {
         "HOME": "/probe/home", "XDG_CONFIG_HOME": "/probe/home/config",
@@ -583,7 +587,7 @@ def main():
             "--shm-size=256m", "--workdir=/workspace",
         ]
         if headful:
-            command.extend(("--tmpfs", "/probe/temp:rw,nosuid,nodev,size=256m",
+            command.extend(("--tmpfs", private_browser_tmpfs("/probe/temp", uid, gid),
                             "--tmpfs", "/var/lib/xkb:rw,nosuid,nodev,size=16m,mode=1777",
                             "--memory=1536m", "--pids-limit=512"))
         for key, value in browser_environment(args.scope, args.cases, headful).items():
