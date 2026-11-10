@@ -8,6 +8,7 @@ function inputFixture() {
     setPointerCapture() {}, focus() {}, getBoundingClientRect: () => ({ left: 0, top: 0 }),
   });
   const window = new EventTarget(), intents = [];
+  const resume = { allowed: true, calls: 0 };
   let time = 0;
   const frame = { entities: [{ entityId: 'tile', seat: 0, group: 'hand', display: { selected: false },
     interaction: { canSelect: true, canDrag: true, canDiscard: true, canFlip: true, canPickup: false } }] };
@@ -15,6 +16,7 @@ function inputFixture() {
   const input = new WebglInput(canvas, {
     frame: () => frame, pick: () => ({ kind: 'entity', id: 'tile' }), slot: () => 'discard.0.0@0',
     intent: intent => intents.push(plain(intent)), pan() {},
+    resumeGameplay: () => { resume.calls++; return resume.allowed; },
   });
   function pointer(type, values = {}) {
     const event = new Event(type, { cancelable: true });
@@ -23,7 +25,12 @@ function inputFixture() {
     (type === 'pointerdown' ? canvas : window).dispatchEvent(event);
     time += 40;
   }
-  return { input, intents, pointer, frame };
+  const key = value => {
+    const event = new Event('keydown', { cancelable: true });
+    Object.assign(event, { key: value, altKey: false, ctrlKey: false, metaKey: false, repeat: false, shiftKey: false });
+    canvas.dispatchEvent(event);
+  };
+  return { input, intents, pointer, frame, resume, key };
 }
 
 test('ordinary touch emits one semantic discard; duplicate release and compatibility mouse do not replay it', () => {
@@ -49,6 +56,12 @@ test('camera cancellation breaks double click and cancels a real drag without co
   assert.equal(drag[0].gestureId, drag[2].gestureId);
   f.pointer('pointerup');
   assert.equal(f.intents.filter(intent => intent.kind === 'endDrag').length, 1);
+  f.frame.entities[0].display.selected = true;
+  f.resume.allowed = false; f.key('f');
+  assert.equal(f.intents.filter(intent => intent.kind === 'flip').length, 0, 'old contacts still block a keyboard action');
+  f.resume.allowed = true; f.key('f');
+  assert.equal(f.resume.calls, 2);
+  assert.equal(f.intents.filter(intent => intent.kind === 'flip').length, 1, 'a fresh key resumes the shared camera gate once');
   f.input.dispose();
 });
 

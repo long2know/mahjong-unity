@@ -278,7 +278,12 @@ async function relay() {
   await page.mouse.click(selectedAt.x, selectedAt.y); await page.waitForTimeout(100);
   const beforeKeyboard = await snapshot(page), keyboardStart = beforeKeyboard.probe.actions.length;
   const rotation = beforeKeyboard.frame.entities.find(entity => entity.entityId === tile.entityId).rotationIndex;
-  await page.locator('#unity-canvas').focus(); await page.keyboard.press('f');
+  await page.locator('#unity-canvas').focus();
+  const yaw = beforeKeyboard.frame.presentation.camera?.yaw ?? 0;
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForFunction(yaw => (window.game.renderer.scene.committed?.frame.presentation.camera?.yaw ?? 0) !== yaw, yaw);
+  assert.equal(await page.evaluate(() => window.game.tableCamera.blocksGameplay), true);
+  await page.keyboard.press('f');
   await page.waitForFunction(({ id, rotation }) => window.game.renderer.scene.committed.frame.entities
     .some(entity => entity.entityId === id && entity.rotationIndex !== rotation), { id: tile.entityId, rotation });
   state = await snapshot(page);

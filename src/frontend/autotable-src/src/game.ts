@@ -73,6 +73,7 @@ export class Game {
       resumed: () => this.adapter?.refresh(),
       failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Table renderer unavailable.'); },
       notice: message => { document.getElementById('unity-notice')!.textContent = message; },
+      resumeGameplay: () => this.tableCamera?.resumeGameplay() ?? true,
     };
     this.renderer = rendererFactory
       ? rendererFactory(document.getElementById('main')!, hooks)

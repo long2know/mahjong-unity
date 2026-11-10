@@ -8,6 +8,7 @@ export interface HostHooks {
   resumed(): void;
   failure(): void;
   notice(message: string): void;
+  resumeGameplay?(): boolean;
 }
 
 export type HostState = 'idle' | 'loading' | 'awaiting-ready' | 'ready' | 'unavailable' | 'unsupported' | 'failed' | 'disposed';

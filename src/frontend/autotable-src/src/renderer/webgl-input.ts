@@ -7,6 +7,7 @@ export interface WebglInputHooks {
   slot(x: number, y: number): string | null;
   intent(intent: Intent): void;
   pan(dx: number, dy: number): void;
+  resumeGameplay?(): boolean;
 }
 interface Contact {
   pointer: number; x: number; y: number; start: number; target: Target | null;
@@ -33,6 +34,7 @@ export class WebglInput {
     canvas.addEventListener('keydown', event => {
       if (event.key === 'Escape') { this.cancel(); this.hooks.intent({ kind: 'select', entityIds: [] }); }
       if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.repeat && ['f', 'r'].includes(event.key.toLowerCase())) {
+        if (this.hooks.resumeGameplay && !this.hooks.resumeGameplay()) return;
         const entities = this.hooks.frame()?.entities.filter(entity => entity.display.selected && entity.interaction.canFlip) ?? [];
         if (entities.length) {
           event.preventDefault();

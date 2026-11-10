@@ -116,6 +116,7 @@ export class WebglHost implements RendererHost {
         pick: (x, y, touch) => this.actionFrame() ? this.scene!.pick(x, y, touch) : null,
         slot: (x, y) => this.actionFrame() ? this.scene!.pickSlot(x, y) : null,
         intent: intent => this.intent(intent),
+        resumeGameplay: () => this.hooks.resumeGameplay?.() ?? true,
         pan: (dx, dy) => {
           if (!this.scene) return;
           this.inputBlocked = true;
