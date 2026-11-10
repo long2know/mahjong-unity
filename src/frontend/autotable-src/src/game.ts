@@ -10,6 +10,7 @@ import { BufferedRendererSink } from './renderer/renderer-sink';
 import { RendererFrameAdapter } from './renderer/renderer-frame';
 import { RendererActionRouter } from './renderer/renderer-actions';
 import { UnityHost } from './renderer/unity-host';
+import type { HostHooks, RendererHost } from './renderer/renderer-host';
 import { TableCameraControls } from './renderer/table-camera-controls';
 import type { Presentation } from './renderer/renderer-contract';
 import { GameType } from './types';
@@ -17,7 +18,7 @@ import { GameType } from './types';
 export class Game {
   readonly client: Client;
   readonly world: World;
-  readonly renderer: UnityHost;
+  readonly renderer: RendererHost;
   readonly sink = new BufferedRendererSink();
   private readonly clientUi: ClientUi;
   private readonly soundPlayer: SoundPlayer;
@@ -44,7 +45,7 @@ export class Game {
   private lookDownState = 0;
   keys: Set<string> = new Set();
 
-  constructor() {
+  constructor(rendererFactory?: (main: HTMLElement, hooks: HostHooks) => RendererHost) {
     this.lookDown.update();
     this.zoom.update();
     const query = new URLSearchParams(window.location.search);
@@ -60,7 +61,7 @@ export class Game {
       muted: document.getElementById('muted') as HTMLInputElement,
       sticky: document.getElementById('sticky') as HTMLInputElement,
     };
-    this.renderer = new UnityHost(document.getElementById('main')!, {
+    const hooks: HostHooks = {
       action: action => this.actions?.handle(action, this.tableCamera?.blocksGameplay ?? false),
       resized: viewport => {
         this.actions?.cancelGesture();
@@ -70,9 +71,15 @@ export class Game {
         if (this.adapter) this.updateSettings();
       },
       resumed: () => this.adapter?.refresh(),
-      failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Unity renderer unavailable; game commands remain browser-owned.'); },
+      failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Table renderer unavailable.'); },
       notice: message => { document.getElementById('unity-notice')!.textContent = message; },
-    }, { allowUnqualifiedBuild: query.get('unityLocalBuild') === '1' });
+    };
+    this.renderer = rendererFactory
+      ? rendererFactory(document.getElementById('main')!, hooks)
+      : new UnityHost(document.getElementById('main')!, hooks, { allowUnqualifiedBuild: query.get('unityLocalBuild') === '1' });
+    if (query.get('renderer') === 'webgl2' && !rendererFactory) {
+      this.renderer.unavailable('The WebGL2 comparison renderer is not enabled in this build. No fallback was started.');
+    }
     this.adapter = new RendererFrameAdapter(this.renderer.instanceId, this.client, this.world, this.sink, {
       clear: (sessionId, reason) => this.renderer.clear(sessionId, reason),
       publish: (layout, frame) => this.renderer.publish(layout, frame),

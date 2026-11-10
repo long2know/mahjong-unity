@@ -4,7 +4,9 @@ import {
   type Layout, type Presentation, type Ready, type ReceiverMethod, type RendererAction, type RendererError, type Viewport,
 } from './renderer-contract';
 import { rendererViewport } from './renderer-viewport';
+import type { HostHooks, HostState, RendererHost } from './renderer-host';
 import './unity-host.css';
+export type { HostHooks, HostState } from './renderer-host';
 
 export interface UnityInstance {
   SendMessage(receiver: string, method: string, json: string): void;
@@ -15,14 +17,6 @@ interface BridgeWindow extends Window {
   MahjongUnityBridge?: { emit(json: string): void };
   createUnityInstance?: Loader;
 }
-export interface HostHooks {
-  action(action: RendererAction): void;
-  resized(viewport: Viewport): void;
-  resumed(): void;
-  failure(): void;
-  notice(message: string): void;
-}
-export type HostState = 'idle' | 'loading' | 'awaiting-ready' | 'ready' | 'unavailable' | 'unsupported' | 'failed' | 'disposed';
 class HostError extends Error {
   constructor(readonly state: HostState, message: string) { super(message); }
 }
@@ -57,7 +51,7 @@ export function validateBuildManifest(value: unknown, origin: string, allowUnqua
 }
 
 /** Loads only a validated, real Unity build. A missing/failed build never selects another renderer. */
-export class UnityHost {
+export class UnityHost implements RendererHost {
   readonly instanceId = opaqueId('instance');
   readonly canvas: HTMLCanvasElement;
   state: HostState = 'idle';

@@ -246,6 +246,7 @@ const BYTES_PER_FLOAT = 4;
 
 export interface TileMesh {
   vao: WebGLVertexArrayObject;
+  vertexBuffers: WebGLBuffer[];
   indexBuffer: WebGLBuffer;
   modelBuffer: WebGLBuffer;
   tileIdBuffer: WebGLBuffer;
@@ -260,6 +261,7 @@ export interface TileMesh {
 export function createTileMesh(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,
+  capacity = MAX_INSTANCES,
 ): TileMesh {
   const geom = tileGeometry();
 
@@ -267,9 +269,11 @@ export function createTileMesh(
   gl.bindVertexArray(vao);
 
   // Per-vertex buffers (shared across all instances).
-  bindAttribBuffer(gl, program, 'a_position', geom.positions, 3, 0);
-  bindAttribBuffer(gl, program, 'a_uv', geom.uvs, 2, 0);
-  bindAttribBuffer(gl, program, 'a_normal', geom.normals, 3, 0);
+  const vertexBuffers = [
+    bindAttribBuffer(gl, program, 'a_position', geom.positions, 3, 0),
+    bindAttribBuffer(gl, program, 'a_uv', geom.uvs, 2, 0),
+    bindAttribBuffer(gl, program, 'a_normal', geom.normals, 3, 0),
+  ];
 
   // Index buffer.
   const indexBuffer = mustCreate(gl.createBuffer(), 'tile-mesh:indexBuffer');
@@ -277,7 +281,7 @@ export function createTileMesh(
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geom.indices, gl.STATIC_DRAW);
 
   // Per-instance model-matrix buffer (4 vec4 columns × MAX_INSTANCES).
-  const modelData = new Float32Array(MAX_INSTANCES * FLOATS_PER_INSTANCE_MATRIX);
+  const modelData = new Float32Array(capacity * FLOATS_PER_INSTANCE_MATRIX);
   const modelBuffer = mustCreate(gl.createBuffer(), 'tile-mesh:modelBuffer');
   gl.bindBuffer(gl.ARRAY_BUFFER, modelBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, modelData.byteLength, gl.STREAM_DRAW);
@@ -303,7 +307,7 @@ export function createTileMesh(
   }
 
   // Per-instance tile-id buffer (1 float × MAX_INSTANCES).
-  const tileIdData = new Float32Array(MAX_INSTANCES);
+  const tileIdData = new Float32Array(capacity);
   const tileIdBuffer = mustCreate(gl.createBuffer(), 'tile-mesh:tileIdBuffer');
   gl.bindBuffer(gl.ARRAY_BUFFER, tileIdBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, tileIdData.byteLength, gl.STREAM_DRAW);
@@ -321,11 +325,12 @@ export function createTileMesh(
 
   return {
     vao,
+    vertexBuffers,
     indexBuffer,
     modelBuffer,
     tileIdBuffer,
     indexCount: geom.indices.length,
-    capacity: MAX_INSTANCES,
+    capacity,
     modelData,
     tileIdData,
     instanceCount: 0,
@@ -376,6 +381,7 @@ export function drawTileMesh(gl: WebGL2RenderingContext, mesh: TileMesh): void {
 
 /** Release every GL handle owned by the mesh. */
 export function disposeTileMesh(gl: WebGL2RenderingContext, mesh: TileMesh): void {
+  for (const buffer of mesh.vertexBuffers) gl.deleteBuffer(buffer);
   gl.deleteBuffer(mesh.indexBuffer);
   gl.deleteBuffer(mesh.modelBuffer);
   gl.deleteBuffer(mesh.tileIdBuffer);

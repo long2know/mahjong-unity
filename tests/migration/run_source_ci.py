@@ -55,7 +55,8 @@ def plans():
         "tests/node/perspective-settings.test.mjs",
         "tests/node/browser-shell-layout.test.mjs",
         *sorted(path.relative_to(ROOT / FRONTEND).as_posix()
-                for path in (ROOT / FRONTEND / "tests/node").glob("unity-*.test.mjs")),
+                for pattern in ("unity-*.test.mjs", "webgl-*.test.mjs")
+                for path in (ROOT / FRONTEND / "tests/node").glob(pattern)),
         "../../../tests/migration/browser-source-integration.test.mjs",
     ]
     syntax_properties = [
@@ -116,7 +117,7 @@ def plans():
                 "node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs",
             ], kind="node", expected=12),
             command("frontend-tests", ["node", "--test", "--test-reporter=tap", *frontend_tests],
-                    cwd=FRONTEND, kind="node", expected=130),
+                    cwd=FRONTEND, kind="node", expected=141),
             command("renderer-regressions", [
                 "node", "--test", "--test-reporter=tap",
                 "tests/migration/renderer-backend-shape.test.mjs",

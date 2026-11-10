@@ -96,7 +96,7 @@ export function buildPickRay(
  * closest hit.  Returns `null` when no instance is intersected.
  */
 export function pickTile(
-  mesh: TileMesh,
+  mesh: Pick<TileMesh, 'instanceCount' | 'modelData'>,
   ray: PickRay,
 ): PickHit | null {
   let bestHit: PickHit | null = null;
