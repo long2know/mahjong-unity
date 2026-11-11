@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { inflateSync } from 'node:zlib';
 
 const root = process.cwd();
 const require = createRequire(path.join(root, 'src/frontend/autotable-src/package.json'));
@@ -11,7 +12,10 @@ const { chromium } = require('@playwright/test');
 const origin = process.argv[2] ?? 'http://127.0.0.1:5087';
 assert.equal(new URL(origin).hostname, '127.0.0.1');
 assert.notEqual(new URL(origin).port, '5086', 'Interactive checks may only write to a disposable fixture server.');
-const output = path.join(root, 'artifacts/webgl-comparison/browser');
+const artifactName = process.env.MAHJONG_COMPARISON_NAME ?? 'webgl-comparison';
+assert.match(artifactName, /^[a-z0-9-]+$/);
+const work = path.join(root, 'artifacts', artifactName);
+const output = path.join(work, 'browser');
 fs.mkdirSync(path.join(output, 'screenshots'), { recursive: true });
 const receipt = {
   status: 'running',
@@ -20,6 +24,7 @@ const receipt = {
   cases: [], errors: [], consoleErrors: [], actions: [], results: [], rendered: [], wire: [],
   selectedCase: process.env.MAHJONG_WEBGL_CASE ?? 'all',
   source: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+  sourceDirty: execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim().length > 0,
 };
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome', headless: true,
@@ -114,6 +119,7 @@ async function snapshot(page) {
       engine: renderer.engine ?? 'unity', state: renderer.state, status: document.getElementById('unity-status')?.textContent,
       frame: renderer.scene?.committed?.frame ?? window.game.adapter.latest, viewport: renderer.viewport,
       lastRendered: renderer.lastRendered, device: renderer.scene?.device, metrics: renderer.metrics,
+      style: renderer.scene?.style,
       probe: { actions: window.__comparison.actions, results: window.__comparison.results,
         rendered: window.__comparison.rendered, usableAt: window.__comparison.usableAt, raf: window.__comparison.raf,
         unityReady: window.__comparison.unityReady },
@@ -348,6 +354,126 @@ async function manualPickup() {
   await save(page, 'manual-pickup-progressed');
   await context.close();
 }
+function pngRgb(bytes) {
+  let width, height, channels;
+  const chunks = [];
+  for (let offset = 8; offset < bytes.length;) {
+    const length = bytes.readUInt32BE(offset), kind = bytes.subarray(offset + 4, offset + 8).toString();
+    const data = bytes.subarray(offset + 8, offset + 8 + length);
+    if (kind === 'IHDR') {
+      width = data.readUInt32BE(0); height = data.readUInt32BE(4);
+      assert.equal(data[8], 8);
+      channels = data[9] === 6 ? 4 : data[9] === 2 ? 3 : 0;
+      assert(channels, 'actual screenshots must be RGB/RGBA PNGs');
+    }
+    if (kind === 'IDAT') chunks.push(data);
+    offset += length + 12;
+  }
+  const raw = inflateSync(Buffer.concat(chunks)), stride = width * channels;
+  const rgb = Buffer.alloc(width * height * 3);
+  let previous = Buffer.alloc(stride);
+  const paeth = (a, b, c) => {
+    const p = a + b - c, x = Math.abs(p - a), y = Math.abs(p - b), z = Math.abs(p - c);
+    return x <= y && x <= z ? a : y <= z ? b : c;
+  };
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const row = Buffer.from(raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1)));
+    for (let x = 0; x < stride; x++) {
+      const left = x >= channels ? row[x - channels] : 0, up = previous[x], diagonal = x >= channels ? previous[x - channels] : 0;
+      const predictor = [0, left, up, Math.floor((left + up) / 2), paeth(left, up, diagonal)][filter];
+      assert.notEqual(predictor, undefined);
+      row[x] = (row[x] + predictor) & 255;
+    }
+    for (let x = 0; x < width; x++) row.copy(rgb, (y * width + x) * 3, x * channels, x * channels + 3);
+    previous = row;
+  }
+  return { width, height, rgb };
+}
+async function appearance() {
+  const desktop = await newPage();
+  await table(desktop.page);
+  await desktop.page.waitForFunction(() => window.game.renderer.scene.committed?.frame.entities.length > 50);
+  await save(desktop.page, 'style-desktop-perspective');
+  await desktop.page.locator('#unity-canvas').focus();
+  for (let index = 0; index < 5; index++) await desktop.page.keyboard.press('ArrowDown');
+  for (let index = 0; index < 2; index++) await desktop.page.keyboard.press('+');
+  await desktop.page.waitForTimeout(300);
+  await save(desktop.page, 'style-desktop-angled');
+  const closeup = await desktop.page.evaluate(() => {
+    const scene = window.game.renderer.scene;
+    const points = scene.committed.frame.entities.filter(entity => entity.group === 'wall' && entity.seat === 0)
+      .map(entity => scene.project(entity.entityId)).filter(Boolean);
+    const xs = points.map(point => point.x), ys = points.map(point => point.y);
+    const x = Math.max(0, Math.min(...xs) - 36), y = Math.max(0, Math.min(...ys) - 54);
+    return { x, y, width: Math.min(innerWidth - x, Math.max(...xs) - x + 36),
+      height: Math.min(innerHeight - y, Math.max(...ys) - y + 74) };
+  });
+  assert(closeup.width > 40 && closeup.height > 40);
+  await desktop.page.screenshot({ path: path.join(output, 'screenshots/style-tiles-closeup.png'), clip: closeup });
+  await desktop.context.close();
+
+  const phone = await newPage(true);
+  await table(phone.page);
+  await phone.page.waitForFunction(() => window.game.renderer.scene.committed?.frame.entities.length > 50);
+  await phone.page.waitForTimeout(150);
+  const state = await save(phone.page, 'style-phone-flat');
+  assert.equal(state.style.riverCount, 4);
+  assert(state.style.verticesPerInstance <= 200 && state.style.trianglesPerInstance < 128);
+  assert.equal(state.style.frameDrawCalls, 2, 'tile polish retains the table/hand instanced draw-call budget');
+  const samples = await phone.page.evaluate(() => {
+    const scene = window.game.renderer.scene, commit = scene.committed, picks = scene.picking;
+    const project = (matrix, point, rect) => {
+      const out = [0, 0, 0, 0];
+      for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) out[row] += matrix[col * 4 + row] * point[col];
+      return { x: rect.x + (out[0] / out[3] + 1) * rect.width / 2,
+        y: rect.y + (1 - out[1] / out[3]) * rect.height / 2 };
+    };
+    const target = commit.frame.entities.find(entity => entity.group === 'hand' && entity.seat === 2 && entity.indexes[0] === 6);
+    const index = picks.table.targets.findIndex(item => item.id === target.entityId);
+    const model = picks.table.modelData.slice(index * 16, index * 16 + 16), points = [];
+    for (const x of [-.5, .5]) for (const y of [-20 / 24, 20 / 24]) for (const z of [-8 / 24, 8 / 24]) {
+      const world = [0, 0, 0, 0];
+      for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) world[row] += model[col * 4 + row] * [x, y, z, 1][col];
+      points.push(project(picks.matrices[0], world, commit.plan.board));
+    }
+    const minX = Math.min(...points.map(p => p.x)), minY = Math.min(...points.map(p => p.y));
+    const rivers = [...commit.plan.rivers].map(([seat, box]) => {
+      const center = box.getCenter(box.min.clone());
+      const at = project(picks.matrices[0], [center.x, -.00375, -center.z, 1], commit.plan.board);
+      return { seat, ...at, hit: scene.pick(at.x, at.y, false) };
+    });
+    return { dpr: devicePixelRatio, rivers,
+      tile: { x: minX, y: minY, width: Math.max(...points.map(p => p.x)) - minX,
+        height: Math.max(...points.map(p => p.y)) - minY } };
+  });
+  assert(samples.tile.width > 10 && samples.tile.height > 10);
+  const tileBytes = await phone.page.screenshot({ clip: samples.tile });
+  fs.writeFileSync(path.join(output, 'screenshots/style-back-cap-closeup.png'), tileBytes);
+  const tile = pngRgb(tileBytes);
+  let ivory = 0, teal = 0;
+  for (let i = 0; i < tile.rgb.length; i += 3) {
+    const [r, g, b] = tile.rgb.subarray(i, i + 3);
+    if (r > 155 && g > 150 && b > 135 && r > b * 1.02) ivory++;
+    if (g > r * 1.25 && b > r * 1.25 && b > g * .94 && g > 50) teal++;
+  }
+  const count = tile.width * tile.height;
+  assert(ivory / count > .12, 'actual hidden-tile GPU pixels must show an ivory body/rim, not an all-teal block');
+  assert(teal / count > .25, 'actual hidden-tile GPU pixels must retain a substantial muted teal inset');
+  const image = pngRgb(await phone.page.screenshot());
+  const riverPixels = samples.rivers.map(sample => {
+    assert.equal(sample.hit, null, 'a visible discard area must not be a new input target');
+    const x = Math.round(sample.x * samples.dpr), y = Math.round(sample.y * samples.dpr);
+    const rgb = Array.from(image.rgb.subarray((y * image.width + x) * 3, (y * image.width + x) * 3 + 3));
+    assert(rgb.every((value, index) => Math.abs(value - [23, 92, 78][index]) <= 4),
+      `actual river ${sample.seat} must render its subtle felt fill: ${rgb}`);
+    return { seat: sample.seat, rgb };
+  });
+  receipt.cases.push({ name: 'actual-style-geometry-cap-and-four-river-pixels', style: state.style,
+    ivoryFraction: ivory / count, tealFraction: teal / count, riverPixels,
+    scope: 'Real populated-game WebGL screenshots and actual picking; no replacement images or personal photo used' });
+  await phone.context.close();
+}
 async function benchmark(renderer, mobile = false) {
   const { page, context } = await newPage(mobile);
   const network = [], cdp = await context.newCDPSession(page), requests = new Map();
@@ -436,7 +562,7 @@ async function benchmark(renderer, mobile = false) {
     scope: 'Same host Chrome/software GPU, native fixture backend, fixed seed, actual correlated populated-board receipt; two single observations, not statistical device/FPS evidence',
     timingScope: 'Common browser requestAnimationFrame intervals; custom CPU layout/submit is separately scoped, not a Unity GPU timing',
     cacheScope: 'Real HTTP cache enabled; new browser context + cleared cache for cold, same context reload for warm; service workers blocked',
-    unityOrigin: renderer === 'unity' ? JSON.parse(fs.readFileSync(path.join(root, 'artifacts/webgl-comparison/unity-reference-origin.json'))) : null,
+    unityOrigin: renderer === 'unity' ? JSON.parse(fs.readFileSync(path.join(work, 'unity-reference-origin.json'))) : null,
     trials });
   await context.close();
 }
@@ -463,6 +589,7 @@ async function lifecycle() {
 }
 try {
   receipt.browserVersion = await browser.version();
+  if (['all', 'style'].includes(receipt.selectedCase)) await appearance();
   if (['all', 'desktop'].includes(receipt.selectedCase)) await desktop();
   if (['all', 'phone'].includes(receipt.selectedCase)) await phone();
   if (['all', 'relay'].includes(receipt.selectedCase)) await relay();

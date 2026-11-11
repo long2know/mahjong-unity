@@ -11,6 +11,7 @@ export interface SlotPlacement { slot: Layout['slots'][number]; poses: RenderPos
 export interface WebglPlan {
   board: Rect; hand: Rect; bounds: Box3; compact: boolean;
   entities: Map<string, Placement>; slots: Map<string, SlotPlacement>; groups: Map<string, Box3>;
+  rivers: Map<number, Box3>; centerSize: number;
 }
 interface Lane {
   seat: number; name: string; bounds: Box3; translation: Vector3; targets: Map<string, [number, number]>;
@@ -67,7 +68,7 @@ export function buildWebglPlan(layout: Layout, frame: Frame, viewport: Viewport)
   const compact = rectangular && layout.gameType === 'CHANGSHA';
   const plan: WebglPlan = {
     ...rects, bounds: boundsFrom(new Vector3(), new Vector3(1.74, .08, 1.74)), compact,
-    entities: new Map(), slots: new Map(), groups: new Map(),
+    entities: new Map(), slots: new Map(), groups: new Map(), rivers: new Map(), centerSize: .338,
   };
   const view = new Quaternion().setFromAxisAngle(yAxis, (frame.session.viewSeat ?? 0) * Math.PI / 2);
   const lanes = new Map<string, Lane>();
@@ -125,11 +126,16 @@ export function buildWebglPlan(layout: Layout, frame: Frame, viewport: Viewport)
       const rows = Math.max(...grid.map(slot => slot.indexes[0])) + 1;
       const columns = Math.max(...grid.map(slot => slot.indexes[1])) + 1;
       const width = columns * .06 + (columns - 1) * .002;
+      const depth = rows * .09 + (rows - 1) * .002;
       const hole = inner - rows * .09 - (rows - 1) * .002 - .018;
       for (const slot of grid) lane.targets.set(slot.slotName, [
         hole - .006 - width + .03 + slot.indexes[1] * .062,
         -hole - .006 - .045 - slot.indexes[0] * .092,
       ]);
+      const river = boundsFrom(new Vector3(hole - .006 - width / 2, -.004, -hole - .006 - depth / 2),
+        new Vector3(width + .006, 0, depth + .006));
+      plan.rivers.set(lane.seat, rotateBounds(river, view.clone().multiply(seatRotation(lane.seat))));
+      plan.centerSize = Math.min(plan.centerSize, 2 * (hole + .006) - .012);
     }
     let radius = outer + .063;
     const rows = new Map<number, Entity[]>();
@@ -219,7 +225,59 @@ export function buildWebglPlan(layout: Layout, frame: Frame, viewport: Viewport)
   if (separate && frame.localHand.seat !== null) {
     separateHand(plan, layout, frame, localWidth, addedKong);
   }
+  plan.rivers = discardRegions(plan, frame.session.viewSeat);
   return plan;
+}
+
+export function discardRegions(plan: WebglPlan, viewSeat: number | null): Map<number, Box3> {
+  const regions = new Map<number, Box3>();
+  const limitX = Math.min(Math.abs(plan.bounds.min.x), plan.bounds.max.x) - .02;
+  const limitZ = Math.min(Math.abs(plan.bounds.min.z), plan.bounds.max.z) - .02;
+  const gap = Math.min(.09, limitX * .25, limitZ * .25);
+  for (let seat = 0; seat < 4; seat++) {
+    let bounds = plan.rivers.get(seat)?.clone();
+    const side = (seat - (viewSeat ?? 0) + 4) % 4;
+    if (!bounds) {
+      bounds = new Box3();
+      for (const placement of plan.slots.values()) {
+        if (placement.slot.group !== 'discard' || placement.slot.seat !== seat || placement.slot.indexes.length !== 2) continue;
+        const pose = placement.poses[placement.slot.shadowRotationIndex] ?? placement.poses[0];
+        if (pose) bounds.union(poseBounds(pose, placement.slot.kind));
+      }
+      if (bounds.isEmpty()) {
+        const rotation = new Quaternion().setFromAxisAngle(yAxis, -side * Math.PI / 2);
+        const fallback = boundsFrom(new Vector3(-gap * .5, -.004, -(gap + Math.min(limitZ, .46)) / 2),
+          new Vector3(Math.min(limitX, .36), 0, Math.max(.04, Math.min(limitZ, .46) - gap)));
+        bounds = rotateBounds(fallback, rotation);
+      } else {
+        bounds.min.x -= .003; bounds.max.x += .003;
+        bounds.min.z -= .003; bounds.max.z += .003;
+      }
+    }
+    bounds.min.x = Math.max(bounds.min.x, plan.bounds.min.x + .01);
+    bounds.max.x = Math.min(bounds.max.x, plan.bounds.max.x - .01);
+    bounds.min.z = Math.max(bounds.min.z, plan.bounds.min.z + .01);
+    bounds.max.z = Math.min(bounds.max.z, plan.bounds.max.z - .01);
+    // Clip only the decoration around the dice, never a source slot/entity pose.
+    if (side === 0) bounds.max.z = Math.min(bounds.max.z, -gap);
+    if (side === 1) bounds.min.x = Math.max(bounds.min.x, gap);
+    if (side === 2) bounds.min.z = Math.max(bounds.min.z, gap);
+    if (side === 3) bounds.max.x = Math.min(bounds.max.x, -gap);
+    bounds.min.y = bounds.max.y = -.004;
+    regions.set(seat, bounds);
+  }
+  for (let seat = 0; seat < 4; seat++) {
+    const current = regions.get(seat)!, next = regions.get((seat + 1) % 4)!;
+    const overlap = Math.min(current.max.x, next.max.x) - Math.max(current.min.x, next.min.x) > .00001
+      && Math.min(current.max.z, next.max.z) - Math.max(current.min.z, next.min.z) > .00001;
+    if (!overlap) continue;
+    const side = (seat - (viewSeat ?? 0) + 4) % 4;
+    if (side === 0) current.max.x = Math.min(current.max.x, next.min.x);
+    if (side === 1) current.max.z = Math.min(current.max.z, next.min.z);
+    if (side === 2) current.min.x = Math.max(current.min.x, next.max.x);
+    if (side === 3) current.min.z = Math.max(current.min.z, next.max.z);
+  }
+  return regions;
 }
 
 function separateHand(plan: WebglPlan, layout: Layout, frame: Frame, localWidth: (entity: Entity) => number,

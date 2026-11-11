@@ -3,7 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PORT="${MAHJONG_COMPARISON_PORT:-5087}"
-WORK="$ROOT/artifacts/webgl-comparison"
+NAME="${MAHJONG_COMPARISON_NAME:-webgl-comparison}"
+if [[ ! "$NAME" =~ ^[a-z0-9-]+$ ]]; then
+    printf 'MAHJONG_COMPARISON_NAME must be a simple artifact directory name.\n' >&2
+    exit 2
+fi
+WORK="$ROOT/artifacts/$NAME"
 case "$PORT" in
     ''|*[!0-9]*) printf 'MAHJONG_COMPARISON_PORT must be a loopback port number.\n' >&2; exit 2 ;;
 esac

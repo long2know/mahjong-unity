@@ -1,31 +1,58 @@
 import { Matrix4, Vector3 } from 'three';
 import { compileProgram } from '../renderer-webgl2';
 import {
-  createTileMesh, disposeTileMesh, drawTileMesh, setTileInstance, uploadTileInstances,
-  TILE_INSTANCE_VS, type TileMesh,
+  beveledTileGeometry, createTileMesh, disposeTileMesh, drawTileMesh, setTileInstance, uploadTileInstances,
+  TILE_DEPTH, TILE_HEIGHT, TILE_INSTANCE_VS, type TileMesh,
 } from '../renderer-webgl2/tile-mesh';
 import { invertMatrix4, pickTile, type PickRay } from '../renderer-webgl2/picking';
 import type { Frame, Layout, Viewport } from './renderer-contract';
 import { buildWebglPlan, fittedCamera, tileModel, type Rect, type RenderPose, type WebglPlan } from './webgl-layout';
+import { pickableModels, tileMaterialId, tileSurface } from './webgl-style';
 
 const fragment = `#version 300 es
 precision highp float;
 in vec2 v_uv;
 in vec3 v_normal;
+in vec3 v_worldPosition;
 flat in float v_tileId;
 uniform sampler2D u_atlas;
 uniform vec2 u_atlasGrid;
 uniform vec3 u_lightDir;
+uniform vec3 u_eye;
 out vec4 fragColor;
 void main() {
   float row = mod(floor(v_tileId), 64.0);
   float side = clamp(floor(v_uv.x - 0.00001), 0.0, 2.0);
-  vec2 uv = vec2(clamp(fract(v_uv.x), 0.015, 0.985), clamp(1.0-v_uv.y, 0.015, 0.985));
+  vec2 localUv = vec2(fract(v_uv.x),1.0-v_uv.y);
+  vec2 uv = clamp(localUv,vec2(0.015),vec2(0.985));
+  if (row == 61.0) {
+    if (side > 0.5) discard;
+    float edge = length(max(abs(localUv-0.5)-vec2(0.31,0.36),vec2(0.0)));
+    float alpha = (1.0-smoothstep(0.0,0.17,edge))*fract(v_tileId);
+    if (alpha < 0.005) discard;
+    fragColor = vec4(0.012,0.022,0.020,alpha);
+    return;
+  }
+  if (row < 37.0 && side > 0.5 && side < 1.5) row = 37.0+mod(floor(v_tileId/64.0),2.0);
   vec2 cell = vec2(mod(row, 8.0)*3.0+side, floor(row/8.0));
   vec4 base = texture(u_atlas, (cell+uv)/u_atlasGrid);
-  float light = 0.72+0.28*max(0.0, dot(normalize(v_normal), normalize(u_lightDir)));
-  if (row >= 40.0 && row <= 44.0) light = 1.0;
-  fragColor = vec4(base.rgb*light, 1.0);
+  if (row == 62.0 || row == 63.0) {
+    if (side > 0.5) discard;
+    vec2 p = abs(localUv-0.5)-vec2(0.475);
+    float distance = length(max(p,vec2(0.0)))+min(max(p.x,p.y),0.0)-0.025;
+    float aa = max(fwidth(distance),0.0005);
+    float alpha = 1.0-smoothstep(-aa,aa,distance);
+    if (alpha < 0.005) discard;
+    fragColor = vec4(base.rgb,alpha);
+    return;
+  }
+  vec3 n = normalize(v_normal), lightDirection = normalize(u_lightDir);
+  vec3 viewDirection = normalize(u_eye-v_worldPosition);
+  float light = 0.75+0.25*max(0.0,dot(n,lightDirection));
+  float gloss = 0.065*pow(max(0.0,dot(n,normalize(lightDirection+viewDirection))),36.0);
+  float edgeLight = 0.012*pow(1.0-max(0.0,dot(n,viewDirection)),4.0);
+  bool plastic = row < 40.0 || (row >= 45.0 && row <= 57.0);
+  fragColor = vec4(plastic ? base.rgb*light+vec3(gloss+edgeLight) : base.rgb,1.0);
 }`;
 interface Target { kind: 'entity' | 'dice'; id: string | null }
 interface Batch { mesh: TileMesh; targets: Array<Target | null> }
@@ -75,6 +102,8 @@ export class WebglScene {
   committed: SceneCommit | null = null;
   pan: [number, number] = [0, 0];
   drawCount = 0;
+  readonly style: { version: string; verticesPerInstance: number; trianglesPerInstance: number;
+    riverCount: number; renderedInstances: number; submittedTriangles: number; frameDrawCalls: number };
   private disposed = false;
 
   static async create(canvas: HTMLCanvasElement): Promise<WebglScene> {
@@ -105,8 +134,11 @@ export class WebglScene {
     this.program = compileProgram(gl, TILE_INSTANCE_VS, fragment);
     this.atlases = [this.atlas(images[0]), this.atlas(images[1])];
     this.texture = this.atlases[0];
-    this.table = { mesh: createTileMesh(gl, this.program, capacity), targets: [] };
-    this.hand = { mesh: createTileMesh(gl, this.program, capacity), targets: [] };
+    const geometry = beveledTileGeometry();
+    this.table = { mesh: createTileMesh(gl, this.program, capacity, geometry), targets: [] };
+    this.hand = { mesh: createTileMesh(gl, this.program, capacity, geometry), targets: [] };
+    this.style = { version: 'ivory-bevel-teal-rivers-v1', verticesPerInstance: geometry.positions.length / 3,
+      trianglesPerInstance: geometry.indices.length / 3, riverCount: 0, renderedInstances: 0, submittedTriangles: 0, frameDrawCalls: 0 };
     this.labels = document.createElement('div');
     this.labels.className = 'webgl-labels';
     this.labels.setAttribute('aria-label', 'Public seat scores');
@@ -121,19 +153,24 @@ export class WebglScene {
     if (!context) throw Error('Tile texture composition is unavailable.');
     const colors: Record<number, string> = {
       37: '#216c76', 38: '#ad7639', 39: '#f7f3e6', 40: '#0d5748', 41: '#573c2b',
-      42: '#ffd36e', 43: '#60d9da', 44: '#a43e44', 58: '#205d53', 59: '#c4aa57', 60: '#101f2a',
+      42: '#ffd36e', 43: '#60d9da', 44: '#a43e44', 58: '#205d53', 59: '#c4aa57', 60: '#12372f',
+      62: '#175c4e', 63: '#336b59',
     };
     for (let row = 0; row < 64; row++) for (let side = 0; side < 3; side++) {
       const x = ((row % 8) * 3 + side) * 64, y = Math.floor(row / 8) * 96;
-      context.fillStyle = row < 37 ? side === 1 ? '#216c76' : '#f7f3e6' : colors[row] ?? '#f7f3e6';
+      const surface = row < 40 ? tileSurface(row, side) : null;
+      context.fillStyle = surface?.base ?? colors[row] ?? '#f7f3e6';
       context.fillRect(x, y, 64, 96);
-      if (row < 40 || row >= 45 && row <= 57) {
-        context.strokeStyle = row === 37 || side === 1 && row < 37 ? '#338692' : '#dfd8c5';
-        context.lineWidth = 2;
-        context.strokeRect(x + 2, y + 2, 60, 92);
+      if (surface?.cap) {
+        const gradient = context.createLinearGradient(x, y + 4, x, y + 92);
+        gradient.addColorStop(0, surface.cap.top); gradient.addColorStop(1, surface.cap.bottom);
+        context.fillStyle = gradient; context.strokeStyle = surface.cap.edge; context.lineWidth = 1;
+        context.beginPath(); context.roundRect(x + 3, y + 4, 58, 88, 3);
+        context.fill(); context.stroke();
       }
-      if (row < 37 && side === 0) {
-        context.drawImage(image, row % 8 * 192, 1536 - (Math.floor(row / 8) + 1) * 288, 192, 288, x, y, 64, 96);
+      if (surface?.face !== null && surface?.face !== undefined) {
+        const face = surface.face;
+        context.drawImage(image, face % 8 * 192, 1536 - (Math.floor(face / 8) + 1) * 288, 192, 288, x, y, 64, 96);
       }
       if (row >= 45 && row <= 51 && side === 0) {
         context.fillStyle = row === 50 ? '#a42e38' : '#172c3a';
@@ -177,17 +214,30 @@ export class WebglScene {
     const midpoint = plan.bounds.getCenter(new Vector3()), dimensions = plan.bounds.getSize(new Vector3());
     push(this.table, solidPose(midpoint.x, -.035, midpoint.z, dimensions.x + .08, .04, dimensions.z + .08), 41);
     push(this.table, solidPose(midpoint.x, -.01, midpoint.z, dimensions.x, .008, dimensions.z), 40);
+    for (const river of plan.rivers.values()) {
+      const position = river.getCenter(new Vector3()), extent = river.getSize(new Vector3());
+      push(this.table, solidPose(position.x, -.004, position.z, extent.x, .0001, extent.z), 63);
+      push(this.table, solidPose(position.x, -.0038, position.z, Math.max(.001, extent.x - .004), .0001,
+        Math.max(.001, extent.z - .004)), 62);
+    }
+    const plate = Math.max(.14, Math.min(.16, plan.centerSize));
+    push(this.table, solidPose(0, -.003, 0, plate + .006, .004, plate + .006), 63);
+    push(this.table, solidPose(0, -.001, 0, plate, .0005, plate), 60);
     for (const placement of plan.entities.values()) {
       const { entity, pose, separate } = placement, batch = separate ? this.hand : this.table;
       const model = tileModel(pose, entity.kind);
-      const row = entity.kind === 'TILE' ? entity.appearance.faceIndex !== null && entity.appearance.showFace
-        ? entity.appearance.faceIndex : entity.appearance.backIndex % 2 === 0 ? 37 : 38
-        : entity.kind === 'STICK' ? 45 + Math.min(5, Math.max(0, entity.appearance.valueIndex ?? 0)) : 51;
-      if (row < 0 || row > 63) throw Error('Unsupported tile appearance.');
+      const row = tileMaterialId(entity);
+      if (entity.kind === 'TILE') {
+        const halfY = Math.abs(model[1]) * .5 + Math.abs(model[5]) * TILE_HEIGHT / 2 + Math.abs(model[9]) * TILE_DEPTH / 2;
+        const width = Math.abs(model[0]) + Math.abs(model[4]) * TILE_HEIGHT + Math.abs(model[8]) * TILE_DEPTH;
+        const depth = Math.abs(model[2]) + Math.abs(model[6]) * TILE_HEIGHT + Math.abs(model[10]) * TILE_DEPTH;
+        const alpha = Math.max(.045, .15 - Math.max(0, pose.position.y - halfY) * .8);
+        push(batch, solidPose(pose.position.x, separate ? -.0005 : -.0034, pose.position.z, width * 1.14, .00005, depth * 1.14), 61 + alpha);
+      }
       const pickup = frame.pickup?.canTake && frame.pickup.batchPreviewSlotNames.includes(entity.slotName);
       if (entity.display.selected || entity.display.hovered || entity.display.highlight > 0 || entity.display.drawn || pickup) {
         const border = new Matrix4().fromArray(model).multiply(new Matrix4().makeScale(1.10, 1.06, .3));
-        push(batch, Float32Array.from(border.elements), entity.display.selected || pickup ? 42 : 43, { kind: 'entity', id: entity.entityId });
+        push(batch, Float32Array.from(border.elements), entity.display.selected || pickup ? 42 : 43);
       }
       push(batch, model, row, { kind: 'entity', id: entity.entityId });
     }
@@ -215,14 +265,20 @@ export class WebglScene {
     }
     gl.disable(gl.SCISSOR_TEST); gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clearColor(.035, .065, .085, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.useProgram(this.program); gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.atlases[frame.presentation.tileLabels ? 1 : 0] ?? this.texture);
     gl.uniform1i(gl.getUniformLocation(this.program, 'u_atlas'), 0);
     gl.uniform2f(gl.getUniformLocation(this.program, 'u_atlasGrid'), 24, 8);
     gl.uniform3f(gl.getUniformLocation(this.program, 'u_lightDir'), -.3, 1, .4);
+    const drawCount = this.drawCount;
     this.drawBatch(this.table, plan.board, this.matrices[0], viewport);
     if (plan.hand.height > 0) this.drawBatch(this.hand, plan.hand, this.matrices[1], viewport);
+    this.style.riverCount = plan.rivers.size;
+    this.style.renderedInstances = this.table.mesh.instanceCount + this.hand.mesh.instanceCount;
+    this.style.submittedTriangles = this.style.renderedInstances * this.style.trianglesPerInstance;
+    this.style.frameDrawCalls = this.drawCount - drawCount;
     gl.disable(gl.SCISSOR_TEST);
     this.check();
     const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -238,6 +294,10 @@ export class WebglScene {
     gl.enable(gl.SCISSOR_TEST); gl.scissor(x, y, width, height); gl.viewport(x, y, width, height);
     gl.clearColor(.035, .065, .085, 1); gl.clear(gl.DEPTH_BUFFER_BIT | (batch === this.hand ? gl.COLOR_BUFFER_BIT : 0));
     gl.uniformMatrix4fv(gl.getUniformLocation(this.program, 'u_viewProj'), false, matrix);
+    const inverse = new Matrix4().fromArray(matrix).invert();
+    const near = new Vector3(0, 0, -1).applyMatrix4(inverse), far = new Vector3(0, 0, 1).applyMatrix4(inverse);
+    const eye = near.clone().addScaledVector(near.clone().sub(far).normalize(), .01);
+    gl.uniform3f(gl.getUniformLocation(this.program, 'u_eye'), eye.x, eye.y, eye.z);
     uploadTileInstances(gl, batch.mesh); drawTileMesh(gl, batch.mesh); this.drawCount++;
   }
 
@@ -250,8 +310,7 @@ export class WebglScene {
     if (result === gl.WAIT_FAILED) throw Error('GPU frame fence failed.');
     gl.deleteSync(sync); this.pending = null;
     this.committed = commit;
-    const snapshot = (batch: Batch): PickBatch => ({ modelData: batch.mesh.modelData.slice(0, batch.mesh.instanceCount * 16),
-      instanceCount: batch.mesh.instanceCount, targets: batch.targets.slice() });
+    const snapshot = (batch: Batch): PickBatch => pickableModels(batch.mesh.modelData, batch.targets, batch.mesh.instanceCount);
     const slots = (batch: SlotBatch): SlotBatch => ({ modelData: batch.modelData.slice(0, batch.instanceCount * 16),
       instanceCount: batch.instanceCount, names: batch.names.slice() });
     this.picking = { table: snapshot(this.table), hand: snapshot(this.hand), tableSlots: slots(this.tableSlots),

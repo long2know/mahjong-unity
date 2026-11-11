@@ -95,7 +95,7 @@ test('actual frontend command covers retained/Unity/production callers plus dist
   assertRegressionCommands(description);
   const source = named('frontend-source', 'frontend-tests');
   assert.equal(source.cwd, 'src/frontend/autotable-src');
-  assert.equal(source.expected, 141);
+  assert.equal(source.expected, 146);
   assert.equal(named('frontend-source', 'workflow-contracts').expected, 12);
   for (const path of [
     'tests/node/room-startup-readiness.test.mjs',
@@ -107,6 +107,7 @@ test('actual frontend command covers retained/Unity/production callers plus dist
     'tests/node/unity-browser-shell.test.mjs',
     'tests/node/webgl-renderer.test.mjs',
     'tests/node/webgl-build.test.mjs',
+    'tests/node/webgl-style.test.mjs',
     'tests/node/browser-shell-layout.test.mjs',
     '../../../tests/migration/browser-source-integration.test.mjs',
   ]) assert(source.argv.includes(path), path);

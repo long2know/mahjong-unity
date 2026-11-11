@@ -146,6 +146,66 @@ export function tileGeometry(): TileGeometry {
   return { positions, uvs, normals, indices };
 }
 
+/** The Unity tile's small chamfer: six flat faces, twelve smooth edges and eight corner facets. */
+export function beveledTileGeometry(): TileGeometry {
+  type V = [number, number, number];
+  const radius = .055, core = .5 - radius;
+  const positions: number[] = [], normals: number[] = [], uvs: number[] = [], indices: number[] = [];
+  const dimensions: V = [TILE_WIDTH, TILE_HEIGHT, TILE_DEPTH];
+  const dot = (a: V, b: V): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a: V, b: V): V => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const add = (...vectors: V[]): V => vectors.reduce<V>((a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], [0, 0, 0]);
+  const scale = (v: V, value: number): V => [v[0] * value, v[1] * value, v[2] * value];
+  const polygon = (normal: V, points: V[], smooth?: V[], face?: number): void => {
+    const start = positions.length / 3;
+    points.forEach((point, index) => {
+      positions.push(...point.map((value, axis) => value * dimensions[axis]));
+      const source = smooth?.[index] ?? normal;
+      const n = source.map((value, axis) => value / dimensions[axis]) as V;
+      const length = Math.hypot(...n);
+      normals.push(...n.map(value => value / length));
+      if (face === undefined) uvs.push(2.5, .5);
+      else uvs.push(face + (index === 0 || index === 3 ? 0 : 1), index < 2 ? 0 : 1);
+    });
+    const edge0 = add(points[1], scale(points[0], -1)), edge1 = add(points[2], scale(points[0], -1));
+    const reverse = dot(cross(edge0, edge1), normal) < 0;
+    for (let index = 1; index < points.length - 1; index++) {
+      indices.push(start, start + (reverse ? index + 1 : index), start + (reverse ? index : index + 1));
+    }
+  };
+  const axes: V[] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (const axis of axes) for (const sign of [-1, 1]) {
+    const n = scale(axis, sign);
+    const tangent: V = Math.abs(n[1]) > .5 ? [1, 0, 0] : cross([0, 1, 0], n);
+    const bitangent = cross(n, tangent), middle = scale(n, .5);
+    polygon(n, [
+      add(middle, scale(tangent, -core), scale(bitangent, -core)),
+      add(middle, scale(tangent, core), scale(bitangent, -core)),
+      add(middle, scale(tangent, core), scale(bitangent, core)),
+      add(middle, scale(tangent, -core), scale(bitangent, core)),
+    ], undefined, n[2] > .5 ? 0 : n[2] < -.5 ? 1 : 2);
+  }
+  for (let a = 0; a < 3; a++) for (let b = a + 1; b < 3; b++) for (const sa of [-1, 1]) for (const sb of [-1, 1]) {
+    const na = scale(axes[a], sa), nb = scale(axes[b], sb), along = scale(cross(na, nb), core);
+    polygon(add(na, nb), [
+      add(scale(na, .5), scale(nb, core), scale(along, -1)),
+      add(scale(na, .5), scale(nb, core), along),
+      add(scale(na, core), scale(nb, .5), along),
+      add(scale(na, core), scale(nb, .5), scale(along, -1)),
+    ], [na, na, nb, nb]);
+  }
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const nx = scale(axes[0], x), ny = scale(axes[1], y), nz = scale(axes[2], z);
+    polygon(add(nx, ny, nz), [
+      add(scale(nx, .5), scale(ny, core), scale(nz, core)),
+      add(scale(nx, core), scale(ny, .5), scale(nz, core)),
+      add(scale(nx, core), scale(ny, core), scale(nz, .5)),
+    ]);
+  }
+  return { positions: Float32Array.from(positions), normals: Float32Array.from(normals),
+    uvs: Float32Array.from(uvs), indices: Uint16Array.from(indices) };
+}
+
 // ── Instanced vertex shader ───────────────────────────────────────
 //
 // Per-vertex attributes:  a_position (vec3), a_uv (vec2), a_normal (vec3)
@@ -178,13 +238,23 @@ uniform vec2 u_atlasGrid;
 
 out vec2 v_uv;
 out vec3 v_normal;
+out vec3 v_worldPosition;
 flat out float v_tileId;
 
 void main() {
   mat4 model = mat4(a_modelCol0, a_modelCol1, a_modelCol2, a_modelCol3);
-  gl_Position = u_viewProj * model * vec4(a_position, 1.0);
+  vec3 position = a_position;
+  float material = mod(floor(a_tileId), 64.0);
+  // Flat decorations reuse the batch; their chamfer strips collapse to zero-area edges.
+  if (material >= 40.0 && !(material >= 52.0 && material <= 57.0) && material != 60.0)
+    position = sign(position) * vec3(${TILE_WIDTH / 2}, ${TILE_HEIGHT / 2}, ${TILE_DEPTH / 2});
+  vec4 world = model * vec4(position, 1.0);
+  gl_Position = u_viewProj * world;
   v_uv = a_uv;
-  v_normal = mat3(model) * a_normal;
+  mat3 basis = mat3(model);
+  vec3 squaredScale = vec3(dot(basis[0], basis[0]), dot(basis[1], basis[1]), dot(basis[2], basis[2]));
+  v_normal = basis * (a_normal / max(squaredScale, vec3(0.000000000001)));
+  v_worldPosition = world.xyz;
   v_tileId = a_tileId;
 }
 `;
@@ -262,9 +332,8 @@ export function createTileMesh(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,
   capacity = MAX_INSTANCES,
+  geom = tileGeometry(),
 ): TileMesh {
-  const geom = tileGeometry();
-
   const vao = mustCreate(gl.createVertexArray(), 'tile-mesh:createVertexArray');
   gl.bindVertexArray(vao);
 
