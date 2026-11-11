@@ -44,7 +44,7 @@ origin. Combining them does not create a new qualified Unity build/image.
 Set `MAHJONG_COMPARISON_NAME=webgl-style` on both the runner and browser check to
 keep a style follow-up's synthetic fixtures and evidence separate from the
 original comparison. The tile finish uses a small shared ivory chamfer, inset
-teal/amber back caps and cheap directional plastic highlights. Four subtle
+teal/amber back caps, per-vertex satin highlights and back-face culling. Four subtle
 world-space felt rivers and contact shadows are decorations only: they never
 enter the canonical picking catalog or change game/entity poses.
 

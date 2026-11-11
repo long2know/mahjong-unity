@@ -444,10 +444,14 @@ async function appearance() {
       return { seat, ...at, hit: scene.pick(at.x, at.y, false) };
     });
     return { dpr: devicePixelRatio, rivers,
+      culling: { enabled: scene.gl.isEnabled(scene.gl.CULL_FACE), mode: scene.gl.getParameter(scene.gl.CULL_FACE_MODE),
+        back: scene.gl.BACK },
       tile: { x: minX, y: minY, width: Math.max(...points.map(p => p.x)) - minX,
         height: Math.max(...points.map(p => p.y)) - minY } };
   });
   assert(samples.tile.width > 10 && samples.tile.height > 10);
+  assert(samples.culling.enabled && samples.culling.mode === samples.culling.back,
+    'actual styled geometry must cull back faces rather than rasterizing hidden plastic surfaces');
   const tileBytes = await phone.page.screenshot({ clip: samples.tile });
   fs.writeFileSync(path.join(output, 'screenshots/style-back-cap-closeup.png'), tileBytes);
   const tile = pngRgb(tileBytes);
@@ -471,6 +475,7 @@ async function appearance() {
   });
   receipt.cases.push({ name: 'actual-style-geometry-cap-and-four-river-pixels', style: state.style,
     ivoryFraction: ivory / count, tealFraction: teal / count, riverPixels,
+    culling: samples.culling,
     scope: 'Real populated-game WebGL screenshots and actual picking; no replacement images or personal photo used' });
   await phone.context.close();
 }

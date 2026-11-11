@@ -12,13 +12,10 @@ import { pickableModels, tileMaterialId, tileSurface } from './webgl-style';
 const fragment = `#version 300 es
 precision highp float;
 in vec2 v_uv;
-in vec3 v_normal;
-in vec3 v_worldPosition;
+in vec2 v_lighting;
 flat in float v_tileId;
 uniform sampler2D u_atlas;
 uniform vec2 u_atlasGrid;
-uniform vec3 u_lightDir;
-uniform vec3 u_eye;
 out vec4 fragColor;
 void main() {
   float row = mod(floor(v_tileId), 64.0);
@@ -46,13 +43,8 @@ void main() {
     fragColor = vec4(base.rgb,alpha);
     return;
   }
-  vec3 n = normalize(v_normal), lightDirection = normalize(u_lightDir);
-  vec3 viewDirection = normalize(u_eye-v_worldPosition);
-  float light = 0.75+0.25*max(0.0,dot(n,lightDirection));
-  float gloss = 0.065*pow(max(0.0,dot(n,normalize(lightDirection+viewDirection))),36.0);
-  float edgeLight = 0.012*pow(1.0-max(0.0,dot(n,viewDirection)),4.0);
   bool plastic = row < 40.0 || (row >= 45.0 && row <= 57.0);
-  fragColor = vec4(plastic ? base.rgb*light+vec3(gloss+edgeLight) : base.rgb,1.0);
+  fragColor = vec4(plastic ? base.rgb*v_lighting.x+vec3(v_lighting.y) : base.rgb,1.0);
 }`;
 interface Target { kind: 'entity' | 'dice'; id: string | null }
 interface Batch { mesh: TileMesh; targets: Array<Target | null> }
@@ -265,7 +257,7 @@ export class WebglScene {
     }
     gl.disable(gl.SCISSOR_TEST); gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clearColor(.035, .065, .085, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.disable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.useProgram(this.program); gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.atlases[frame.presentation.tileLabels ? 1 : 0] ?? this.texture);

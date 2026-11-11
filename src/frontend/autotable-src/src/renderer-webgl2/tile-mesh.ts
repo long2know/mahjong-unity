@@ -235,10 +235,12 @@ in float a_tileId;
 
 uniform mat4 u_viewProj;
 uniform vec2 u_atlasGrid;
+uniform vec3 u_lightDir;
+uniform vec3 u_eye;
 
 out vec2 v_uv;
 out vec3 v_normal;
-out vec3 v_worldPosition;
+out vec2 v_lighting;
 flat out float v_tileId;
 
 void main() {
@@ -254,7 +256,14 @@ void main() {
   mat3 basis = mat3(model);
   vec3 squaredScale = vec3(dot(basis[0], basis[0]), dot(basis[1], basis[1]), dot(basis[2], basis[2]));
   v_normal = basis * (a_normal / max(squaredScale, vec3(0.000000000001)));
-  v_worldPosition = world.xyz;
+  // Match the reference's cheap per-vertex satin light, not per-pixel plastic shading.
+  vec3 normal = normalize(v_normal), light = normalize(u_lightDir), view = normalize(u_eye-world.xyz);
+  float highlight = max(0.0,dot(normal,normalize(light+view)));
+  float square = highlight*highlight, fourth = square*square, eighth = fourth*fourth;
+  float sixteenth = eighth*eighth;
+  float edge = 1.0-max(0.0,dot(normal,view));
+  v_lighting = vec2(0.75+0.25*max(0.0,dot(normal,light)),
+    0.065*sixteenth*sixteenth*fourth+0.012*edge*edge*edge*edge);
   v_tileId = a_tileId;
 }
 `;
