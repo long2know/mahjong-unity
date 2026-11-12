@@ -113,15 +113,18 @@ export function installInputTrace({ capacity = 256 } = {}) {
     const original = object?.[key];
     if (typeof original !== 'function') throw new Error(`Missing trace surface: ${label}`);
     object[key] = function (...args) {
+      const calledAt = summarize || withState ? performance.now() : null;
       calls.push(label);
-      if (withState) observe(label + ':before', { reason: typeof args[0] === 'string' ? args[0] : null }, true);
+      if (withState) observe(label + ':before', {
+        calledAt, reason: label === 'host.clear' ? args[1] ?? null : label === 'input.rejected' ? args[0] ?? null : null,
+      }, true);
       try {
         const result = Reflect.apply(original, this, args);
-        if (summarize) observe(label + ':return', () => summarize(args, result), withState);
-        else if (withState) observe(label + ':return', {}, true);
+        if (summarize) observe(label + ':return', () => ({ calledAt, ...summarize(args, result) }), withState);
+        else if (withState) observe(label + ':return', { calledAt }, true);
         return result;
       } catch (error) {
-        observe(label + ':throw', { errorName: typeof error?.name === 'string' ? error.name : null }, withState);
+        observe(label + ':throw', { calledAt, errorName: typeof error?.name === 'string' ? error.name : null }, withState);
         throw error;
       } finally { calls.pop(); }
     };

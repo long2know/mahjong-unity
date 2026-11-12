@@ -94,6 +94,9 @@ test('trace forwards actual input calls once and retains ordinary double-click s
   assert.equal(trace.records.filter(value => value.kind === 'native:before').length, 4);
   assert.equal(trace.records.filter(value => value.kind === 'native:after').length, 4);
   assert.equal(trace.records.filter(value => value.kind === 'hooks.pick:return').length, 4);
+  assert(trace.records.filter(value => value.kind === 'hooks.pick:return').every(value => value.calledAt <= value.processedAt));
+  assert(trace.records.filter(value => value.kind === 'hooks.frame:return' && value.returnedEntity)
+    .every(value => value.returnedEntity.interaction.canDiscard));
   const release = trace.records.filter(value => value.kind === 'native:before' && value.event.type === 'pointerup').at(-1);
   assert.equal(release.state.contact.target.id, 'tile');
   assert.equal(release.state.click.ageMilliseconds, 40);
@@ -128,6 +131,8 @@ test('trace retains the cancellation call chain and rejected reason instead of a
   assert.equal(canceled.state.contact.target.id, 'tile');
   f.input.rejected('stale-entity');
   assert.equal(f.trace().records.find(value => value.kind === 'input.rejected:before').reason, 'stale-entity');
+  f.renderer.clear('different-session', 'disconnect');
+  assert.equal(f.trace().records.find(value => value.kind === 'host.clear:before').reason, 'disconnect');
 });
 
 test('observer wrappers preserve this, return identity and the original exception, even when observation fails', () => {
