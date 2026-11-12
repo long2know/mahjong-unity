@@ -7,21 +7,21 @@ import { sourceLoader, root, require } from './renderer-test-support.mjs';
 const ts = require('typescript');
 
 function fixture(base) {
-  const calls = [], window = { location: new URL(`https://host.test${base}/autotable/?gameId=fixture`) };
+  const calls = [], window = { location: new URL(`https://host.test${base}/?gameId=fixture`) };
   const loader = sourceLoader({ window, fetch: async (...args) => { calls.push(args); return new Response('ok'); } });
   return { ...loader.load('app-url.ts'), calls, window };
 }
 
 test('one runtime resolver preserves root, nested and escaped mount paths without affecting external links', async () => {
-  for (const prefix of ['', '/mahjong', '/games/mahjong', '/My%20Game', '/api', '/autotable']) {
+  for (const prefix of ['', '/mahjong', '/games/mahjong', '/My%20Game', '/api']) {
     const f = fixture(prefix);
     assert.equal(f.appBasePath(), prefix);
-    for (const endpoint of ['/api/identity', '/hubs/changsha', '/autotable/', '/health?simple=1']) {
+    for (const endpoint of ['/api/identity', '/hubs/changsha', '/', '/health?simple=1']) {
       assert.equal(f.appUrl(endpoint), prefix + endpoint);
       await f.appFetch(endpoint, { credentials: 'same-origin' });
       assert.equal(f.calls.at(-1)[0], prefix + endpoint);
     }
-    assert.equal(f.appWebSocketUrl('/autotable/ws'), `wss://host.test${prefix}/autotable/ws`);
+    assert.equal(f.appWebSocketUrl('/ws'), `wss://host.test${prefix}/ws`);
     assert.equal(f.appUrl('https://outside.test/api'), 'https://outside.test/api');
     assert.equal(f.appUrl('//outside.test/path'), '//outside.test/path');
     assert.equal(f.appUrl('./sw.js'), './sw.js');
@@ -32,13 +32,13 @@ test('one runtime resolver preserves root, nested and escaped mount paths withou
 });
 
 test('room invitations and hub/native socket construction use the same mounted namespace', () => {
-  const calls = [], window = { location: new URL('http://host.test/games/mahjong/autotable/') };
+  const calls = [], window = { location: new URL('http://host.test/games/mahjong/') };
   const loader = sourceLoader({ window });
   const { buildRoomJoinUrl } = loader.load('room-join-url.ts');
-  assert.equal(buildRoomJoinUrl('my-table'), '/games/mahjong/autotable/?gameId=my-table&variant=changsha&join=1');
+  assert.equal(buildRoomJoinUrl('my-table'), '/games/mahjong/?gameId=my-table&variant=changsha&join=1');
   assert.equal(buildRoomJoinUrl('my-table', true),
-    'http://host.test/games/mahjong/autotable/?gameId=my-table&variant=changsha&join=1');
-  assert.equal(loader.load('app-url.ts').appWebSocketUrl('/autotable/ws'), 'ws://host.test/games/mahjong/autotable/ws');
+    'http://host.test/games/mahjong/?gameId=my-table&variant=changsha&join=1');
+  assert.equal(loader.load('app-url.ts').appWebSocketUrl('/ws'), 'ws://host.test/games/mahjong/ws');
 });
 
 test('every production direct fetch call is bound to the shared adapter, not an unmounted global', () => {
@@ -61,11 +61,11 @@ test('every production direct fetch call is bound to the shared adapter, not an 
 function worker(prefix) {
   const handlers = {}, fetched = [], deleted = [], opened = [], added = [];
   const namespace = `mahjong-web:${encodeURIComponent(prefix || '/')}:`;
-  const self = { location: new URL(`https://host.test${prefix}/autotable/sw.js`),
+  const self = { location: new URL(`https://host.test${prefix}/sw.js`),
     addEventListener: (name, handler) => { handlers[name] = handler; }, skipWaiting: async () => {},
     clients: { claim: async () => {} } };
   const caches = {
-    keys: async () => [namespace + 'v1-static', 'mahjong-web:%2Fother:v1-static'],
+    keys: async () => [namespace + 'v1-static', namespace + 'v2-static', 'mahjong-web:%2Fother:v1-static'],
     delete: async key => { deleted.push(key); },
     open: async key => {
       opened.push(key);
@@ -88,17 +88,18 @@ test('real service worker install resolves precache against its mount and activa
     const f = worker(prefix);
     let task;
     f.handlers.install({ waitUntil: promise => { task = promise; } }); await task;
-    assert.deepEqual(Array.from(f.added), [`https://host.test${prefix}/autotable/index.html`,
-      `https://host.test${prefix}/autotable/main.1234abcd.js`]);
-    assert(f.fetched.every(url => url.startsWith(`https://host.test${prefix}/autotable/`)));
+    assert.deepEqual(Array.from(f.added), [`https://host.test${prefix}/index.html`,
+      `https://host.test${prefix}/main.1234abcd.js`]);
+    assert(f.fetched.every(url => url.startsWith(`https://host.test${prefix}/`)));
     f.handlers.activate({ waitUntil: promise => { task = promise; } }); await task;
-    assert.deepEqual(f.deleted, [f.namespace + 'v1-static']);
+    assert.deepEqual(f.deleted, [f.namespace + 'v1-static', f.namespace + 'v2-static']);
   }
 });
 
 test('mounted service worker never caches private API/hub traffic or another application path', async () => {
   const f = worker('/games/mahjong');
-  for (const suffix of ['/api/identity', '/api/auth/me', '/hubs/changsha/negotiate']) {
+  for (const suffix of ['/api/identity', '/api/auth/me', '/hubs/changsha/negotiate',
+    '/api/private.1234abcd.js', '/hubs/private.1234abcd.js', '/ws']) {
     let handled = false;
     f.handlers.fetch({ request: { url: 'https://host.test/games/mahjong' + suffix, method: 'GET' },
       respondWith() { handled = true; } });

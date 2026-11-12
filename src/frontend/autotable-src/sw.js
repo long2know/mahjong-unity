@@ -17,15 +17,15 @@
 // Phase K Wave 3 — Install-time pre-cache.
 // `scripts/generate-sw-manifest.js` emits `manifest-precache.json`
 // after every parcel build.  The install handler fetches it and
-// pre-warms `STATIC_CACHE` with the eager lobby chain (autotable-src.
+// pre-warms `STATIC_CACHE` with the eager lobby chain (mahjong.
 // {js,css}, game-bootstrap.{js}, PWA icons, index.html).  A returning
 // user with a flaky network now sees a cached lobby on page-load
 // rather than a spinner.
 
 const STATIC_ROOT = new URL('./', self.location.href).pathname;
-const APP_BASE = STATIC_ROOT.replace(/\/autotable\/$/, '');
+const APP_BASE = STATIC_ROOT.replace(/\/$/, '');
 const CACHE_NAMESPACE = `mahjong-web:${encodeURIComponent(APP_BASE || '/')}:`;
-const CACHE_VERSION = `${CACHE_NAMESPACE}v2`;
+const CACHE_VERSION = `${CACHE_NAMESPACE}v3`;
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const LOBBY_CACHE = `${CACHE_VERSION}-lobby`;
 const PRECACHE_MANIFEST_URL = new URL('manifest-precache.json', self.location.href).href;
@@ -49,6 +49,7 @@ self.addEventListener('install', (event) => {
           // stale entry doesn't fail the whole install.
           const reachable = [];
           for (const asset of manifest.assets) {
+            if (typeof asset !== 'string' || !asset.startsWith('./') || asset.slice(2).includes('/')) continue;
             const resolved = new URL(asset, self.location.href);
             if (resolved.origin !== self.location.origin || !resolved.pathname.startsWith(STATIC_ROOT)) continue;
             const url = resolved.href;
@@ -105,19 +106,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed parcel artefacts + img directory: cache-first, never expire.
+  // Live API + hub traffic — network-only.  Don't even attempt cache,
+  // so a stale `/api/auth/me` never lets an unauthenticated client
+  // appear authenticated.
+  if (logicalPath.startsWith('/api/') || logicalPath.startsWith('/hubs/') || logicalPath === '/ws') {
+    return;
+  }
+
+  // Hashed artefacts + img directory: cache-first, never expire.
   if (HASHED_ASSET_RE.test(url.pathname) || logicalPath.startsWith('/img/')) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
-
-  // Live API + hub traffic — network-only.  Don't even attempt cache,
-  // so a stale `/api/auth/me` never lets an unauthenticated client
-  // appear authenticated.
-  if (logicalPath.startsWith('/api/') || logicalPath.startsWith('/hubs/')) {
-    return;
-  }
-
   // HTML / everything else — network-first with a cached fallback so
   // the bundle still boots offline (returning a cached index.html lets
   // the SPA shell render its own offline banner).

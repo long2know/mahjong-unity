@@ -197,7 +197,7 @@ public sealed class BishopUatEndpointContractsTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
         var ws = await wsClient.ConnectAsync(new Uri(server.BaseAddress, path), CancellationToken.None);
         return new WsSession(ws);
     }
@@ -232,7 +232,7 @@ public sealed class BishopUatEndpointContractsTests : IAsyncLifetime
         var gameId = $"uat-{Guid.NewGuid():N}";
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
         var ws = await wsClient.ConnectAsync(new Uri(server.BaseAddress, path), CancellationToken.None);
         var session = new WsSession(ws);
 

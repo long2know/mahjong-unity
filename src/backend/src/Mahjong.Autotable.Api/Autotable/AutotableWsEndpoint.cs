@@ -13,14 +13,8 @@ namespace Mahjong.Autotable.Api.Autotable;
 /// <summary>
 /// ASP.NET Core WebSocket endpoint that speaks the upstream pwmarcz/autotable
 /// <c>NEW</c> / <c>JOIN</c> / <c>JOINED</c> / <c>UPDATE</c> protocol verbatim.
-/// The byte-identical vendored bundle (under <c>src/frontend/autotable-src/</c>)
-/// connects here unchanged.
-///
-/// <para><b>Path:</b> <c>/autotable/ws</c> — verified against upstream
-/// <c>client-ui.ts:getUrl()</c>:
-/// <c>path.substring(1, path.lastIndexOf('/')+1) + 'ws'</c> with
-/// <c>window.location.pathname = '/autotable/'</c> resolves to
-/// <c>autotable/ws</c> (Default #7, Stephen accepted).</para>
+/// <para><b>Path:</b> <c>/ws</c>, relative to the configured public mount.
+/// The retained browser client uses the same protocol at this clean route.</para>
 ///
 /// <para><b>Phase D-backend (this layer, current):</b> the Changsha rules engine
 /// drives the autotable scene end-to-end. Each runtime <c>StateChanged</c>
@@ -46,7 +40,7 @@ namespace Mahjong.Autotable.Api.Autotable;
 /// </summary>
 public static class AutotableWsEndpoint
 {
-    public const string Path = "/autotable/ws";
+    public const string Path = "/ws";
     /// <summary>
     /// Fallback relay gameId used when a connection does not supply <c>?gameId=</c>
     /// in the WS handshake and JOIN messages omit the field. Phase I Wave 3 lifted

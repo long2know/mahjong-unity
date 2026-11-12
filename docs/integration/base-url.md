@@ -19,10 +19,16 @@ optional `TRUSTED_PROXY_IP` into the **runtime environment**, not build args.
 
 | Runtime value | Public entry |
 |---|---|
-| unset, empty or `/` | `/` redirects to `/autotable/` |
-| `/mahjong` or `/mahjong/` | `/mahjong` and `/mahjong/` redirect to `/mahjong/autotable/` |
-| `/games/mahjong` | `/games/mahjong/autotable/` |
-| `/My%20Game` or literal `/My Game` | `/My%20Game/autotable/` |
+| unset, empty or `/` | UI directly at `/` |
+| `/mahjong` or `/mahjong/` | UI directly at `/mahjong/`; `/mahjong` only gains its trailing slash |
+| `/games/mahjong` | UI directly at `/games/mahjong/` |
+| `/My%20Game` or literal `/My Game` | UI directly at `/My%20Game/` |
+
+For **https://games.long2know.com/mahjong/** use **`BASE_URL=/mahjong`**.
+The canonical entry returns the actual game HTML with no suffix redirect.
+Bookmarks/query parameters, module/artwork URLs, worker scope and navigation use
+that same mount root; the raw relay is `/mahjong/ws`. Retired `/autotable/`
+paths return 404 rather than serving a second copy of the app.
 
 This setting is a site path, **not an absolute public-origin URL** and not Vite's
 build-time `BASE_URL`. It normalizes one trailing slash. Invalid relative/full
@@ -35,7 +41,7 @@ not repurposed.
 All application APIs, raw WebSockets, SignalR negotiation/reconnect, guest/auth
 cookies, OAuth callback links, livestream aliases/returned playlist URLs,
 public navigation and static assets live under
-the prefix. `/autotable/` remains the compatibility route **inside** that mount.
+the prefix.
 Wrong-root APIs are rejected, not silently served as a second installation.
 The unprefixed `/health` remains available for the internal Docker HEALTHCHECK;
 the prefixed `/mahjong/health` also works.
@@ -92,11 +98,12 @@ and explicit WebSocket Upgrade forwarding.
 ## Evidence
 
 `tests/migration/container_proxy_smoke.py` runs the **same canonical image**
-at `/mahjong`, `/games/mahjong` and an escaped-space prefix behind a pinned real
+at root, `/mahjong`, `/games/mahjong` and an escaped-space prefix behind a pinned real
 nginx TLS proxy, with synthetic state and explicit known peer IPs. It checks
 unchanged build-manifest bytes, strict CSP, correct HTTPS cookies, actual
 browser drawing/discard, raw relay WebSocket, SignalR negotiation/reconnect,
-worker scope/cache paths and absence of wrong-root requests. Synthetic test
+worker scope/cache paths, direct 200 mount-root HTML, query-preserving slash
+canonicalization and absence of wrong-root or legacy-suffix app requests. Synthetic test
 certificates/keys are deleted and not uploaded. No operator credentials,
 production persistence or registry publication is part of that check.
 

@@ -201,7 +201,7 @@ public sealed class LeaveSeatViaNullSeatTests : IAsyncLifetime
         // bots=false ⇒ no auto bot-fill, so the seat-take does NOT fill all four seats and
         // therefore BE-3's server-start-on-seat-fill does not fire — this suite exercises the
         // seat lifecycle (leave / idempotent re-leave / reseat) in the Seating phase.
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode={dealMode}&botCount={botCount}&bots=false";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode={dealMode}&botCount={botCount}&bots=false";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);

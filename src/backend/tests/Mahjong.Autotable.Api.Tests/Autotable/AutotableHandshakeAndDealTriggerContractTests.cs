@@ -229,7 +229,7 @@ public sealed class AutotableHandshakeAndDealTriggerContractTests : IAsyncLifeti
         var gameId = $"c120-{Guid.NewGuid():N}";
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?{query}&gameId={Uri.EscapeDataString(gameId)}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         var session = new WsSession(ws);

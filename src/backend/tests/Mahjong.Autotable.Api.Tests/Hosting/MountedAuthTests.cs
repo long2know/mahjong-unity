@@ -17,9 +17,20 @@ public sealed class MountedAuthTests
     {
         var fixture = Path.Combine(AppContext.BaseDirectory, "mount-auth-fixtures", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(fixture);
+        var contentRoot = Path.Combine(fixture, "backend", "src", "Mahjong.Autotable.Api");
+        var webRoot = Path.Combine(contentRoot, "wwwroot");
+        var publicRoot = Path.GetFullPath(Path.Combine(contentRoot, "../../../frontend/autotable"));
+        Directory.CreateDirectory(webRoot);
+        Directory.CreateDirectory(publicRoot);
+        const string gameHtml = "<title>DIRECT ROOT GAME</title><button id=\"new-game\">New Game</button>";
+        await File.WriteAllTextAsync(Path.Combine(publicRoot, "index.html"), gameHtml);
+        await File.WriteAllTextAsync(Path.Combine(webRoot, "index.html"),
+            "<meta http-equiv=\"refresh\" content=\"0;url=/autotable/\">");
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
+            builder.UseContentRoot(contentRoot);
+            builder.UseWebRoot(webRoot);
             builder.UseSetting("BASE_URL", prefix);
             builder.UseSetting("ConnectionStrings:Sqlite", $"Data Source={Path.Combine(fixture, "fixture.db")}");
             builder.UseSetting("Authentication:Google:Enabled", "true");
@@ -30,6 +41,10 @@ public sealed class MountedAuthTests
         try
         {
             using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+            using var entry = await client.GetAsync(prefix + "/?gameId=synthetic");
+            Assert.Equal(HttpStatusCode.OK, entry.StatusCode);
+            Assert.Null(entry.Headers.Location);
+            Assert.Equal(gameHtml, await entry.Content.ReadAsStringAsync());
             using var identity = await client.PostAsync(prefix + "/api/identity", null);
             Assert.Equal(HttpStatusCode.OK, identity.StatusCode);
             var cookie = identity.Headers.GetValues("Set-Cookie").Single(value => value.StartsWith("mahjong_pid="));

@@ -31,7 +31,7 @@ artifacts/
 /.work/
 **/bin/
 **/obj/
-**/node_modules/
+**/node_modules
 **/.vite/
 **/.cache/
 **/.test-fixtures/

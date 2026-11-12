@@ -79,7 +79,7 @@ public class VariantSwitchAcceptanceTests
     private static async Task<System.Net.WebSockets.WebSocket> ConnectAsync(
         WebApplicationFactory<Program> factory, string queryString)
     {
-        var uri = new Uri(factory.Server.BaseAddress, $"autotable/ws?{queryString}");
+        var uri = new Uri(factory.Server.BaseAddress, $"ws?{queryString}");
         return await factory.Server.CreateWebSocketClient().ConnectAsync(uri, CancellationToken.None);
     }
 

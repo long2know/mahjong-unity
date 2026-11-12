@@ -18,6 +18,8 @@ test('ordinary default Vite build contains only WebGL2 and local artwork; no pre
   }
   assert.equal(graph.modules.some(module => /unity-host|\/unity\/|renderer-webgl2|node_modules\/.*autotable/i.test(module)), false);
   assert(output.some(asset => /FacesLabelled\..*\.png$/.test(asset.fileName)));
+  assert(output.some(asset => /^mahjong\.[0-9a-f]+\.js$/.test(asset.fileName)));
+  assert.equal(output.some(asset => /autotable/i.test(asset.fileName)), false);
   assert.equal(output.some(asset => /\.wasm$|\.data$|\.loader\.js$|\.framework\.js$|renderer-build\.json/.test(asset.fileName)), false);
   const math = output.find(asset => /^model-math\..*\.js$/.test(asset.fileName));
   assert.equal(math.code.includes('WebGLRenderer'), false);

@@ -3,7 +3,7 @@
 // Registers the service worker shipped alongside the bundle so the
 // app gets:
 //   • Cache-first delivery for the immutable parcel artefacts
-//     (`autotable-src.<hash>.js`, hashed CSS, tile textures, fonts).
+//     (`mahjong.<hash>.js`, hashed CSS, tile textures, fonts).
 //     The 8-char content-hash on each filename makes them effectively
 //     immutable — when parcel re-builds, new filenames appear and the
 //     SW happily cohabits the old ones until the next install cycle.
@@ -32,7 +32,7 @@ export async function registerServiceWorker(): Promise<void> {
   if (window.location.protocol === 'file:') return;
 
   try {
-    registration = await navigator.serviceWorker.register(appUrl('/autotable/sw.js'), { scope: appUrl('/autotable/') });
+    registration = await navigator.serviceWorker.register(appUrl('/sw.js'), { scope: appUrl('/') });
     // When a new SW takes control mid-session, swap in fresh assets
     // on next reload — never auto-reload the page out from under the
     // user.  Apone reviewed the no-auto-reload choice in Wave 1.

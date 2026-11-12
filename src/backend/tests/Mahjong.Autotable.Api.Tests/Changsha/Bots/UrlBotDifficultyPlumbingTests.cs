@@ -188,7 +188,7 @@ public class UrlBotDifficultyPlumbingTests : IAsyncLifetime
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
         var uri = new Uri(server.BaseAddress,
-            $"autotable/ws?seat=-1&botCount=4&botDifficulty={Uri.EscapeDataString(botDifficulty)}&gameId={Uri.EscapeDataString(relayGameId)}");
+            $"ws?seat=-1&botCount=4&botDifficulty={Uri.EscapeDataString(botDifficulty)}&gameId={Uri.EscapeDataString(relayGameId)}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
 
         var session = new SpectatorSession(ws);

@@ -12,8 +12,8 @@ public static class BrowserStaticHosting
         app.Use(async (context, next) =>
         {
             var request = context.Request.Path.Value ?? "";
-            if (context.Request.Path.StartsWithSegments("/autotable/unity") ||
-                request.StartsWith("/autotable/", StringComparison.OrdinalIgnoreCase) &&
+            if (context.Request.Path.StartsWithSegments("/autotable") ||
+                context.Request.Path.StartsWithSegments("/unity") ||
                 (request.EndsWith(".wasm", StringComparison.OrdinalIgnoreCase) ||
                  request.EndsWith(".data", StringComparison.OrdinalIgnoreCase) ||
                  request.EndsWith(".loader.js", StringComparison.OrdinalIgnoreCase) ||
@@ -23,7 +23,7 @@ public static class BrowserStaticHosting
                 context.Response.Headers.CacheControl = "no-cache, must-revalidate";
                 return;
             }
-            if (request is "/autotable/COPYING" or "/autotable/UPSTREAM_SHA")
+            if (request is "/COPYING" or "/UPSTREAM_SHA")
             {
                 var notice = Path.Combine(path, Path.GetFileName(request));
                 if (!File.Exists(notice))
@@ -48,10 +48,10 @@ public static class BrowserStaticHosting
         contentTypes.Mappings[".js"] = "application/javascript";
         contentTypes.Mappings[".json"] = "application/json";
         var files = new PhysicalFileProvider(path);
-        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files, RequestPath = "/autotable" });
+        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
         app.UseStaticFiles(new StaticFileOptions
         {
-            FileProvider = files, RequestPath = "/autotable", ContentTypeProvider = contentTypes
+            FileProvider = files, ContentTypeProvider = contentTypes
         });
     }
 }

@@ -34,7 +34,6 @@ public sealed class BrowserStaticHostingTests : IAsyncLifetime
         app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseAutotableFiles(fixtures, builder.Configuration, app.Logger);
         app.MapGet("/api/probe", () => new { testOnly = true });
-        app.MapFallback(() => Microsoft.AspNetCore.Http.Results.Content("<html>TEST FALLBACK</html>", "text/html"));
         await app.StartAsync();
         client = app.GetTestClient();
     }
@@ -47,11 +46,11 @@ public sealed class BrowserStaticHostingTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("/autotable/", "text/html")]
-    [InlineData("/autotable/table.1234abcd.js", "application/javascript")]
-    [InlineData("/autotable/web-build.json", "application/json")]
-    [InlineData("/autotable/COPYING", "text/plain")]
-    [InlineData("/autotable/UPSTREAM_SHA", "text/plain")]
+    [InlineData("/", "text/html")]
+    [InlineData("/table.1234abcd.js", "application/javascript")]
+    [InlineData("/web-build.json", "application/json")]
+    [InlineData("/COPYING", "text/plain")]
+    [InlineData("/UPSTREAM_SHA", "text/plain")]
     public async Task BrowserFilesWorkWithStrictCspAndNoPlayer(string path, string mime)
     {
         using var response = await client!.GetAsync(path);
@@ -73,6 +72,11 @@ public sealed class BrowserStaticHostingTests : IAsyncLifetime
     [InlineData("/autotable/missing.data")]
     [InlineData("/autotable/old.loader.js")]
     [InlineData("/autotable/old.framework.js")]
+    [InlineData("/autotable/")]
+    [InlineData("/unity/renderer-build.json")]
+    [InlineData("/unexpected.wasm")]
+    [InlineData("/missing.js")]
+    [InlineData("/api/missing")]
     public async Task RetiredEngineFilesCannotBeServedEvenWhenPresent(string path)
     {
         using var response = await client!.GetAsync(path);
@@ -84,7 +88,7 @@ public sealed class BrowserStaticHostingTests : IAsyncLifetime
     [Fact]
     public async Task BrowserFilesRetainConditionalHeadAndRangeSemantics()
     {
-        const string path = "/autotable/table.1234abcd.js";
+        const string path = "/table.1234abcd.js";
         using var first = await client!.GetAsync(path);
         using var head = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, path));
         Assert.Equal(HttpStatusCode.OK, head.StatusCode);

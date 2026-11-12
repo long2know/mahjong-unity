@@ -265,7 +265,7 @@ public sealed class TableInvitationTests
         Assert.Equal(recipient.Id, invite.GetProperty("recipientPlayerId").GetString());
         Assert.Equal(room.Alias, invite.GetProperty("gameId").GetString());
         var relative = invite.GetProperty("joinUrl").GetString()!;
-        Assert.StartsWith("/autotable/?", relative);
+        Assert.StartsWith("/?", relative);
         var uri = new Uri(new Uri("https://table.invalid"), relative);
         Assert.Equal("table.invalid", uri.Host);
         Assert.Empty(uri.Fragment);

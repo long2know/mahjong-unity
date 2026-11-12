@@ -120,7 +120,7 @@ internal sealed class LobbyRepairFixture : IAsyncDisposable
         client.ConfigureRequest = request => request.Headers["Cookie"] = player.Cookie;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var socket = await client.ConnectAsync(new Uri(server.BaseAddress,
-            $"autotable/ws?variant={Uri.EscapeDataString(variant)}&gameId={Uri.EscapeDataString(roomId)}&{query}"), timeout.Token);
+            $"ws?variant={Uri.EscapeDataString(variant)}&gameId={Uri.EscapeDataString(roomId)}&{query}"), timeout.Token);
         var peer = new LobbyWsPeer(socket);
         _transports.Add(peer);
         await peer.SendAsync(command == "NEW" ? new { type = "NEW" } : (object)new { type = "JOIN", gameId = roomId });

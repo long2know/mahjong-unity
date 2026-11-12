@@ -88,23 +88,27 @@ def main():
         assert "no-new-privileges:true" in info["HostConfig"]["SecurityOpt"]
         receipt["hardening"] = {"user": "1000:1000", "readOnly": True, "capDrop": ["ALL"],
                                 "noNewPrivileges": True, "syntheticEphemeralStateOnly": True}
-        status, headers, body = request("/autotable/web-build.json")
+        status, headers, body = request("/web-build.json")
         build = json.loads(body)
         assert status == 200 and build["engine"] == "webgl2" and build["sourceRevision"] == args.source_sha
         assert "'wasm-unsafe-eval'" not in headers["Content-Security-Policy"]
         assert "'unsafe-eval'" not in headers["Content-Security-Policy"]
         for entry in build["files"]:
             assert re.fullmatch(r"[A-Za-z0-9_.-]+", entry["path"])
-            status, _, content = request("/autotable/" + entry["path"])
+            assert "autotable" not in entry["path"].lower()
+            status, file_headers, content = request("/" + entry["path"])
             assert status == 200 and len(content) == entry["bytes"]
             assert hashlib.sha256(content).hexdigest() == entry["sha256"]
-        status, _, content = request("/autotable/")
+            if entry["path"].endswith(".js"):
+                assert file_headers.get_content_type() == "application/javascript"
+        status, _, content = request("/")
         assert status == 200 and b"Mahjong Web" in content
-        status, _, content = request("/autotable/renderer-module-graph.json")
+        status, _, content = request("/renderer-module-graph.json")
         graph = json.loads(content)
         assert status == 200 and graph["engine"] == "webgl2"
         assert not any(re.search(r"unity-host|/unity/|node_modules/.*autotable", path, re.I) for path in graph["modules"])
-        for path in ("/autotable/unity/renderer-build.json", "/autotable/unity/player.wasm", "/autotable/old.loader.js"):
+        for path in ("/autotable/", "/autotable/ws", "/unity/renderer-build.json",
+                     "/old.wasm", "/old.loader.js", "/missing.js", "/api/missing"):
             status, _, data = request(path)
             assert status == 404 and not data
         inventory = command("docker", "exec", name, "find", "/frontend/autotable", "-type", "f").splitlines()
