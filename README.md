@@ -75,6 +75,12 @@ for nested/escaped paths, WebSocket forwarding, trusted proxies and healthchecks
   unfocused windows suspend visual publication, retain only the newest frame,
   and continue normal networking.
 
+Active visual updates follow browser animation opportunities without a fixed
+30 Hz producer or draw cap. The renderer still permits only one GPU frame in
+flight and acknowledges it only after its fence completes. WebGL2 does not
+guarantee physical GPU acceleration; local software-renderer measurements and
+browser animation callbacks are not device FPS guarantees.
+
 ## Source lineage, not an external dependency
 
 The browser still uses derived `Client`, `World`, `Setup`, `Slot`, `Thing` and

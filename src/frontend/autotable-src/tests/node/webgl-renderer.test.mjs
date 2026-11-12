@@ -200,7 +200,10 @@ function hostFixture() {
   let now = 0, counter = 0, canFinish = false, disposed = 0, failures = 0;
   const scene = {
     committed: null, pending: null, drawCount: 0, pan: [0, 0],
-    draw(layout, frame, viewport) { draws.push(frame.frameId); this.pending = { frame, viewport, plan: {}, milliseconds: 2 }; },
+    draw(layout, frame, viewport) {
+      assert.equal(this.pending, null, 'never submit a second GPU frame before completion');
+      draws.push(frame.frameId); this.pending = { frame, viewport, plan: {}, milliseconds: 2 };
+    },
     poll() {
       if (!canFinish || !this.pending) return null;
       this.committed = this.pending; this.pending = null; return this.committed;
@@ -228,9 +231,58 @@ function hostFixture() {
     presentation: { viewMode: 'flat', boardLayout: 'classic', handLayout: 'in-table', tileLabels: true, lookDown: 0, zoom: 0 },
     entities: [], seats: [], localHand: { seat: null, entityIds: [], drawnEntityId: null }, turn: null, pickup: null, dice: null, match: null,
   });
-  const tick = () => { now += 34; const callbacks = [...jobs.values()]; jobs.clear(); callbacks.forEach(callback => callback(now)); };
+  const tick = (milliseconds = 34) => {
+    now += milliseconds;
+    const callbacks = [...jobs.values()]; jobs.clear(); callbacks.forEach(callback => callback(now));
+  };
   return { host, layout, frame, tick, window, document, scene, draws, receipts, jobs,
     finish: () => { canFinish = true; }, disposed: () => disposed, failures: () => failures };
+}
+
+for (const hz of [60, 120]) {
+  test(`production host submits the latest frame on each ${hz}Hz opportunity without a post-receipt bubble`, async t => {
+    const f = hostFixture(); t.after(() => f.host.dispose()); f.finish(); await f.host.mount();
+    for (let frame = 1; frame <= hz; frame++) {
+      for (let update = 2; update >= 0; update--) f.host.publish(f.layout, f.frame(frame * 3 - update));
+      f.tick(1000 / hz);
+      assert.equal(f.draws.length, frame, 'a completed fence must permit the latest queued draw in this same rAF');
+      assert.equal(f.draws.at(-1), frame * 3, 'superseded pending snapshots must not be submitted');
+      assert(f.jobs.size <= 1);
+    }
+    f.tick(1000 / hz);
+    assert.deepEqual(f.receipts.map(value => value.receipt.frameId), f.draws);
+    assert.equal(f.jobs.size, 0, 'idle hosts must stop scheduling after the final genuine completion');
+  });
+
+  test(`production Game feeds ${hz}Hz animation opportunities only while focused and stops after disposal`, () => {
+    const document = { hidden: false, hasFocus: () => focused };
+    let focused = true, count = 0, handle = 0;
+    const jobs = new Map();
+    const { Game } = sourceLoader({
+      window: { innerWidth: 960, innerHeight: 640 }, document,
+      requestAnimationFrame: callback => { const id = ++handle; jobs.set(id, callback); return id; },
+    }, {
+      'world.ts': {}, 'client.ts': {}, 'client-ui.ts': {}, 'sound-player.ts': {},
+      'settings-drawer.ts': { getSettings: () => ({}), syncCameraInputs() {} },
+      'renderer/renderer-sink.ts': {}, 'renderer/renderer-frame.ts': {},
+      'renderer/renderer-actions.ts': {}, 'renderer/webgl-host.ts': {}, 'renderer/table-camera-controls.ts': {},
+    }).load('game.ts');
+    const game = Object.assign(Object.create(Game.prototype), {
+      disposed: false, lastUpdate: -Infinity, width: 960, height: 640,
+      lookDown: { update() {} }, zoom: { update() {} },
+      presentation: () => ({}), cameraPitch: () => 45,
+      adapter: { setPresentation() {}, refresh() { count++; } },
+    });
+    const tick = time => { const callbacks = [...jobs.values()]; jobs.clear(); callbacks.forEach(callback => callback(time)); };
+    game.mainLoop(0);
+    for (let frame = 1; frame <= hz; frame++) tick(frame * 1000 / hz);
+    assert.equal(count, hz + 1, 'World/adapter animation production must not retain an independent 30Hz gate');
+    focused = false; tick(1100); assert.equal(count, hz + 1);
+    focused = true; document.hidden = true; tick(1200); assert.equal(count, hz + 1);
+    document.hidden = false; tick(1300); assert.equal(count, hz + 2);
+    game.disposed = true; tick(1400); assert.equal(count, hz + 2);
+    assert.equal(jobs.size, 0);
+  });
 }
 
 test('WebGL host acknowledges only a completed GPU frame and coalesces to the newest correlated publication', async t => {
