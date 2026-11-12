@@ -29,7 +29,8 @@ export Persistence__Provider=Sqlite ConnectionStrings__Sqlite="Data Source=$FIXT
 export Authentication__JwtSigningKeys__0="$(openssl rand -base64 48)"
 export Auth__JwtSigningKeys__0="$(openssl rand -base64 48)"
 export Logging__LogLevel__Default=Warning Sentry__Dsn= DOTNET_EnableDiagnostics=0 Security__CspStrict=true
-printf 'Mahjong Web: http://127.0.0.1:%s/autotable/\n' "$PORT"
+PUBLIC_MOUNT="${BASE_URL:-}"
+printf 'Mahjong Web: http://127.0.0.1:%s%s/\n' "$PORT" "${PUBLIC_MOUNT%/}"
 printf 'Synthetic fixture only: %s\n' "$FIXTURE"
 cd "$WORK/backend/src/Mahjong.Autotable.Api"
 exec dotnet Mahjong.Autotable.Api.dll

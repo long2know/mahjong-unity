@@ -477,7 +477,7 @@ public sealed class DealerExtraTransitionsToAwaitingDiscardTests : IAsyncLifetim
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode={dealMode}&botCount=3";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode={dealMode}&botCount=3";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);

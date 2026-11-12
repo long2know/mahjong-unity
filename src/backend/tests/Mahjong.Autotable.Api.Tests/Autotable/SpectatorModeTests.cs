@@ -394,7 +394,7 @@ public class SpectatorModeTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
         if (botCount.HasValue) path += $"&botCount={botCount.Value}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
@@ -405,7 +405,7 @@ public class SpectatorModeTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?gameId={Uri.EscapeDataString(gameId)}&botCount={botCount}";
+        var path = $"ws?gameId={Uri.EscapeDataString(gameId)}&botCount={botCount}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);

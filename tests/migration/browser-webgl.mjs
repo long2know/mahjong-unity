@@ -85,7 +85,7 @@ async function newPage(mobile = false, dimensions = mobile ? { width: 390, heigh
 }
 async function table(page, { variant = 'changsha', dealMode = 'auto' } = {}) {
   const room = `webgl-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
-  await page.goto(`${origin}/autotable/?${new URLSearchParams({
+  await page.goto(`${origin}/?${new URLSearchParams({
     gameId: room, createGame: room, variant, seat: '0',
     botCount: variant === 'changsha' ? '3' : '0', dealMode, seed: '20261010',
   })}`, { waitUntil: 'domcontentloaded' });
@@ -564,7 +564,7 @@ async function lifecycle() {
   await context.close();
 }
 async function dependencyClosure() {
-  const response = await fetch(origin + '/autotable/web-build.json');
+  const response = await fetch(origin + '/web-build.json');
   assert.equal(response.status, 200);
   const identity = await response.json();
   assert.equal(identity.engine, 'webgl2');
@@ -573,7 +573,7 @@ async function dependencyClosure() {
   assert(!response.headers.get('content-security-policy').includes("'wasm-unsafe-eval'"));
   for (const file of identity.files) {
     assert.match(file.path, /^[A-Za-z0-9_.-]+$/);
-    const asset = await fetch(origin + '/autotable/' + file.path);
+    const asset = await fetch(origin + '/' + file.path);
     const data = Buffer.from(await asset.arrayBuffer());
     assert.equal(asset.status, 200);
     assert.equal(data.length, file.bytes);
@@ -608,7 +608,7 @@ async function dependencyClosure() {
   const unsupported = await newPage();
   await unsupported.page.addInitScript(() => { delete window.WebGL2RenderingContext; });
   const room = `unsupported-webgl-${Date.now()}`;
-  await unsupported.page.goto(origin + '/autotable/?' + new URLSearchParams({
+  await unsupported.page.goto(origin + '/?' + new URLSearchParams({
     gameId: room, createGame: room, variant: 'changsha', seat: '0', botCount: '3', seed: '20261010',
   }));
   await unsupported.page.waitForFunction(() => window.game?.renderer?.state === 'unsupported');

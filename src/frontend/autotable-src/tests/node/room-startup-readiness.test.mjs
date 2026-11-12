@@ -19,7 +19,7 @@ function harness({ status = 200, deferMetadata = false } = {}) {
   const requests = [], sockets = [], deferred = [], identityListeners = [], hubListeners = [];
   const identity = { playerId: 'verified-player', displayName: 'Verified player', avatarColor: '#234567', isFirstVisit: false };
   let verified = identity, globalConnections = 0;
-  const location = new URL('http://readiness.test/autotable/?variant=changsha&gameId=room-a');
+  const location = new URL('http://readiness.test/?variant=changsha&gameId=room-a');
   const rootClasses = new Map();
   const rootElement = Object.assign(new EventTarget(), {
     hidden: true, style: {}, classList: { toggle: (name, value) => rootClasses.set(name, value) }, setAttribute() {},
@@ -68,7 +68,7 @@ function harness({ status = 200, deferMetadata = false } = {}) {
       subscribeLobbyPresence() {}, inviteExpired: () => false, markInvitesRead() {},
       sendTableInvite() {}, startLobbyPresence() {},
     },
-    './room-join-url': { buildRoomJoinUrl: id => '/autotable/?gameId=' + id },
+    './room-join-url': { buildRoomJoinUrl: id => '/?gameId=' + id },
     './session-url': { readConcreteGameId: search => new URLSearchParams(search).get('gameId') },
     './settings-drawer': { getSettings: () => ({ mobileInfoPanel: 'none' }), onSettingsChange() {}, setSettings() {} },
     './mobile-overlay-policy': { COMPACT_VIEW_QUERY: '(max-width:900px)', toggleMobilePanel: () => 'none' },
@@ -108,7 +108,7 @@ function harness({ status = 200, deferMetadata = false } = {}) {
   chat.installChatPanel(client);
   const start = (room, create = false, variant = 'changsha') => {
     location.search = new URLSearchParams({ variant, gameId: room }).toString();
-    const url = 'ws://readiness.test/autotable/ws?variant=' + variant + '&gameId=' + room;
+    const url = 'ws://readiness.test/ws?variant=' + variant + '&gameId=' + room;
     if (create) client.new(url);
     else client.join(url, room);
     const socket = sockets.at(-1);

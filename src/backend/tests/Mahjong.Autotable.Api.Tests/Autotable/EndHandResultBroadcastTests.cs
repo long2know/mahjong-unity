@@ -71,7 +71,7 @@ public sealed class EndHandResultBroadcastTests : IAsyncLifetime
         var wsClient = server.CreateWebSocketClient();
         // ?botCount=4 with no ?seat= auto-promotes to spectator; the server fills all four
         // seats with bots and self-plays (TryAutoDealForSpectatorAsync). handCount=4 => MaxHands=4.
-        var path = $"autotable/ws?gameId={Uri.EscapeDataString(gameId)}&botCount=4&dealMode=auto&handCount=4";
+        var path = $"ws?gameId={Uri.EscapeDataString(gameId)}&botCount=4&dealMode=auto&handCount=4";
         var ws = await wsClient.ConnectAsync(new Uri(server.BaseAddress, path), CancellationToken.None);
         await using var session = new WsSession(ws);
         await session.SendJoinAsync(gameId);

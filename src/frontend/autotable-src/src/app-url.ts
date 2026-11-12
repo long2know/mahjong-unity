@@ -1,9 +1,6 @@
-/** Public mount inferred from the canonical /autotable/ page, not a Vite build-time setting. */
+/** Capture the canonical mount-root entry before client-side history changes. */
 function baseFrom(href: string): string {
-  const path = new URL(href).pathname;
-  const at = path.lastIndexOf('/autotable');
-  return at >= 0 && (path.length === at + 10 || path[at + 10] === '/')
-    ? encodeURI(decodeURIComponent(path.slice(0, at))) : '';
+  return encodeURI(decodeURIComponent(new URL(href).pathname.replace(/\/$/, '')));
 }
 const initialHref = typeof window === 'undefined' ? 'http://localhost/' :
   window.location?.href ?? `${window.location?.origin ?? 'http://localhost'}${window.location?.pathname ?? '/'}`;

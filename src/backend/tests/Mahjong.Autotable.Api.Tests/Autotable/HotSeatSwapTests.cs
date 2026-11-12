@@ -313,7 +313,7 @@ public class HotSeatSwapTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
         if (botCount is not null) path += $"&botCount={botCount.Value}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);

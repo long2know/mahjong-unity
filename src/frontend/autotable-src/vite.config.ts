@@ -58,7 +58,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/hubs': { target: process.env.AUTOTABLE_BACKEND ?? 'http://localhost:5000', ws: true, changeOrigin: true },
-      '/autotable/ws': { target: process.env.AUTOTABLE_BACKEND ?? 'http://localhost:5000', ws: true, changeOrigin: true },
+      '/ws': { target: process.env.AUTOTABLE_BACKEND ?? 'http://localhost:5000', ws: true, changeOrigin: true },
       '/api': { target: process.env.AUTOTABLE_BACKEND ?? 'http://localhost:5000', changeOrigin: true },
     },
   },
@@ -74,7 +74,7 @@ export default defineConfig({
       output: {
         assetFileNames: '[name].[hash:8].[ext]',
         chunkFileNames: '[name].[hash:8].js',
-        entryFileNames: 'autotable-src.[hash:8].js',
+        entryFileNames: 'mahjong.[hash:8].js',
         hashCharacters: 'hex',
         manualChunks(id) {
           if (id.includes('node_modules/hls.js/')) return 'hls';

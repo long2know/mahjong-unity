@@ -217,7 +217,7 @@ public sealed class AutotableConfigJoinSemanticsTests : IAsyncLifetime
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
         wsClient.ConfigureRequest = request => request.Headers["Cookie"] = cookie;
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?{query}&gameId={Uri.EscapeDataString(gameId)}");
+        var uri = new Uri(server.BaseAddress, $"ws?{query}&gameId={Uri.EscapeDataString(gameId)}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         var session = new WsSession(ws, playerId);
         await session.SendJoinAsync(gameId);

@@ -627,7 +627,7 @@ export class ClientUi {
       return 'ws://localhost:1235';
     }
 
-    return appWebSocketUrl('/autotable/ws');
+    return appWebSocketUrl('/ws');
   }
 
   onNickChange(): void {

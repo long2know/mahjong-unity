@@ -59,28 +59,19 @@ public sealed record AppMount(PathString Path, IReadOnlyList<IPAddress> TrustedP
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
-            // Cookies and worker scope must agree even when an entry URL escapes unreserved letters.
-            if (Path.HasValue &&
-                (context.Request.Path == "/autotable/" || context.Request.Path == "/autotable/index.html"))
-            {
-                var raw = context.Features.Get<IHttpRequestFeature>()?.RawTarget?.Split('?')[0];
-                if (!string.IsNullOrEmpty(raw))
-                {
-                    var rawBase = string.Join('/', raw.Split('/').Take(Path.Value!.Count(character => character == '/') + 1));
-                    var canonical = context.Request.PathBase.ToUriComponent();
-                    if (rawBase != canonical)
-                    {
-                        context.Response.Redirect(canonical + context.Request.Path.ToUriComponent() + context.Request.QueryString);
-                        return;
-                    }
-                }
-            }
-            if ((context.Request.Path == "/" || !context.Request.Path.HasValue) &&
+            // Only canonicalize the entry's trailing slash/escaping; the mount itself serves the UI.
+            if ((context.Request.Path == "/" || !context.Request.Path.HasValue || context.Request.Path == "/index.html") &&
                 (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)))
             {
-                context.Response.Redirect(context.Request.PathBase.Add("/autotable/").ToUriComponent()
-                    + context.Request.QueryString);
-                return;
+                var canonical = context.Request.PathBase.Add("/").ToUriComponent();
+                var raw = context.Features.Get<IHttpRequestFeature>()?.RawTarget?.Split('?')[0];
+                if (string.IsNullOrEmpty(raw))
+                    raw = context.Request.PathBase.Add(context.Request.Path).ToUriComponent();
+                if (!context.Request.Path.HasValue || context.Request.Path == "/index.html" || raw != canonical)
+                {
+                    context.Response.Redirect(canonical + context.Request.QueryString);
+                    return;
+                }
             }
             await next(context);
         });

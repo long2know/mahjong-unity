@@ -237,7 +237,7 @@ public class Sc2SharedStoreEndpointLeakTests : IAsyncLifetime
         // grants ViewerSeat/projection), and bots=false keeps the post-deal seat-take from
         // triggering bot-fill / server-start side effects in these leak tests. A seated
         // viewer establishes ViewerSeat the legitimate way, via TakeSeat (see TakeSeatAsync).
-        var path = $"autotable/ws?seat={seat}&bots=false&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?seat={seat}&bots=false&gameId={Uri.EscapeDataString(gameId)}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);

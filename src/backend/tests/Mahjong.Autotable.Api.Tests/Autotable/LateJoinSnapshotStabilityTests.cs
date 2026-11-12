@@ -77,7 +77,7 @@ public class LateJoinSnapshotStabilityTests : IAsyncLifetime
         Assert.NotNull(_factory);
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?variant=four_player&seat={seat}");
+        var uri = new Uri(server.BaseAddress, $"ws?variant=four_player&seat={seat}");
         return await wsClient.ConnectAsync(uri, CancellationToken.None);
     }
 

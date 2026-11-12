@@ -473,7 +473,7 @@ public class AutotableWsRelayTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?variant={variant}&seat={seat}");
+        var uri = new Uri(server.BaseAddress, $"ws?variant={variant}&seat={seat}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new RelaySession(ws);
     }

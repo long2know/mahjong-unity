@@ -1304,7 +1304,7 @@ if (rateLimitingEnabled)
 app.UseMiddleware<Mahjong.Autotable.Api.Audit.IdempotencyMiddleware>();
 
 // Raw WebSockets (separate transport from SignalR) — required for the
-// upstream pwmarcz/autotable bundle's WS protocol at /autotable/ws.
+// retained tabletop client protocol at /ws within the public mount.
 app.UseWebSockets();
 
 using (var scope = app.Services.CreateScope())
@@ -1319,9 +1319,6 @@ using (var scope = app.Services.CreateScope())
 // hub/WS subscriber is wired so no inbound command can race the load.
 var changshaRuntime = app.Services.GetRequiredService<IChangshaGameRuntime>();
 await changshaRuntime.HydrateAsync(app.Services, app.Lifetime.ApplicationStopping);
-
-app.UseDefaultFiles();
-app.UseStaticFiles();
 
 var autotablePath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "../../../frontend/autotable"));
 Mahjong.Autotable.Api.Hosting.BrowserStaticHosting.UseAutotableFiles(app, autotablePath, app.Configuration, app.Logger);

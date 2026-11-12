@@ -71,7 +71,7 @@ internal sealed class HudsonOwnTurnWsFixture : IAsyncDisposable
         var token = _factory.Services.GetRequiredService<PlayerIdentityService>().Protect(playerId);
         client.ConfigureRequest = request =>
             request.Headers["Cookie"] = $"{PlayerIdentityService.CookieName}={token}";
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?{query}");
+        var uri = new Uri(server.BaseAddress, $"ws?{query}");
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         _output?.WriteLine($"WS connect player={playerId} query={query}");
         return await client.ConnectAsync(uri, cancellation.Token);

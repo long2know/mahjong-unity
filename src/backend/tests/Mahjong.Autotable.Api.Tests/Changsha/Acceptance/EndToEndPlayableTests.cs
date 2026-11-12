@@ -160,7 +160,7 @@ public class EndToEndPlayableTests
                 manager.BindRuntimeGameForTest(Mahjong.Autotable.Api.Autotable.AutotableWsEndpoint.DefaultGameId, runtimeGameId);
 
                 using var ws = await factory.Server.CreateWebSocketClient()
-                    .ConnectAsync(new Uri(factory.Server.BaseAddress, "autotable/ws?seat=0&bots=false"), CancellationToken.None);
+                    .ConnectAsync(new Uri(factory.Server.BaseAddress, "ws?seat=0&bots=false"), CancellationToken.None);
 
                 // JOIN — endpoint coerces gameId to DefaultGameId regardless.
                 var joinMsg = System.Text.Json.JsonSerializer.Serialize(new { type = "JOIN", gameId = Mahjong.Autotable.Api.Autotable.AutotableWsEndpoint.DefaultGameId });

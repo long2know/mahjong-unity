@@ -51,28 +51,42 @@ async function ready() {
 }
 try {
   const health = await (await context.request.get(target.origin + prefix + '/health')).json();
-  const buildResponse = await context.request.get(publicRoot + '/autotable/web-build.json');
+  const buildResponse = await context.request.get(publicRoot + '/web-build.json');
   const build = await buildResponse.json();
   assert.equal(health.status, 'healthy'); assert.equal(build.engine, 'webgl2');
   assert.equal(build.sourceRevision, health.buildSha);
   if (process.env.EXPECTED_SOURCE_SHA) assert.equal(build.sourceRevision, process.env.EXPECTED_SOURCE_SHA);
   receipt.source = build.sourceRevision;
   assert(!buildResponse.headers()['content-security-policy'].includes("'wasm-unsafe-eval'"));
+  const entry = await context.request.get(publicRoot + '/?action=none', { maxRedirects: 0 });
+  assert.equal(entry.status(), 200, 'the public mount must serve the UI directly, never redirect to a legacy suffix');
+  assert.equal(entry.headers().location, undefined);
+  assert(entry.headers()['content-type'].startsWith('text/html'));
+  assert((await entry.text()).includes('Mahjong Web'));
+  receipt.entryResponse = { status: entry.status(), location: null };
+  if (prefix) {
+    const bare = await context.request.get(publicRoot + '?action=none', { maxRedirects: 0 });
+    assert.equal(bare.status(), 302);
+    assert.equal(bare.headers().location, prefix + '/?action=none');
+    receipt.trailingSlashRedirect = { status: bare.status(), location: bare.headers().location };
+  }
   await page.goto(publicRoot + '/?action=none', { waitUntil: 'domcontentloaded' });
-  assert.equal(new URL(page.url()).pathname, prefix + '/autotable/');
+  assert.equal(new URL(page.url()).pathname, prefix + '/');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15000 });
   const sw = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
     return { scope: registration.scope, script: registration.active.scriptURL };
   });
-  assert.equal(sw.scope, publicRoot + '/autotable/');
-  assert.equal(sw.script, publicRoot + '/autotable/sw.js');
-  receipt.cases.push({ name: 'mounted-root-landing-and-worker', ...sw });
-  const manifest = await (await context.request.get(publicRoot + '/autotable/manifest.webmanifest')).json();
+  assert.equal(sw.scope, publicRoot + '/');
+  assert.equal(sw.script, publicRoot + '/sw.js');
+  receipt.cases.push({ name: 'direct-mount-root-ui-and-worker', ...sw });
+  const manifest = await (await context.request.get(publicRoot + '/manifest.webmanifest')).json();
+  assert.equal(new URL(manifest.start_url, publicRoot + '/manifest.webmanifest').pathname, prefix + '/');
+  assert.equal(new URL(manifest.scope, publicRoot + '/manifest.webmanifest').pathname, prefix + '/');
   assert(manifest.shortcuts.every(shortcut => shortcut.url.startsWith('./')));
 
   const room = `prefix-changsha-${Date.now()}`;
-  await page.goto(publicRoot + '/autotable/?' + new URLSearchParams({
+  await page.goto(publicRoot + '/?' + new URLSearchParams({
     gameId: room, createGame: room, variant: 'changsha', seat: '0', botCount: '3', dealMode: 'auto', seed: '20261010',
   }));
   await ready();
@@ -102,17 +116,27 @@ try {
   await page.locator('#settings-button').click(); await page.keyboard.press('Escape');
   await page.locator('#lobby-toggle').click();
   assert.equal(new URL(page.url()).origin, target.origin);
-  assert(new URL(page.url()).pathname.startsWith(prefix + '/'));
+  assert.equal(new URL(page.url()).pathname, prefix + '/');
+  await page.locator('#lobby-close').click();
+  const previousRoom = new URL(page.url()).searchParams.get('gameId');
+  await Promise.all([
+    page.waitForURL(url => url.searchParams.get('gameId') !== previousRoom && url.pathname === prefix + '/'),
+    page.locator('#new-game').click(),
+  ]);
+  await ready();
+  assert.equal(new URL(page.url()).pathname, prefix + '/');
+  receipt.cleanRootNewGameNavigation = { gameIdChanged: true, snapshotReady: true };
 
   const relayRoom = `prefix-relay-${Date.now()}`;
-  await page.goto(publicRoot + '/autotable/?' + new URLSearchParams({
+  await page.goto(publicRoot + '/?' + new URLSearchParams({
     gameId: relayRoom, createGame: relayRoom, variant: 'four_player', seat: '0', botCount: '0',
   }));
   await ready();
   assert.equal(await page.evaluate(() => window.game.client.connectionMode), 'relay');
-  assert(receipt.sockets.some(socket => socket.path === prefix + '/autotable/ws'));
-  receipt.cases.push({ name: 'actual-relay-raw-websocket-mounted', realSnapshotReady: true });
-  const cookies = await context.cookies(publicRoot + '/autotable/');
+  assert(receipt.sockets.some(socket => socket.path === prefix + '/ws'));
+  assert(receipt.sockets.every(socket => !socket.path.toLowerCase().includes('autotable')));
+  receipt.cases.push({ name: 'actual-clean-relay-websocket-mounted', realSnapshotReady: true });
+  const cookies = await context.cookies(publicRoot + '/');
   const identity = cookies.find(cookie => cookie.name === 'mahjong_pid');
   assert(identity && identity.path === (prefix || '') + '/');
   if (target.protocol === 'https:') assert.equal(identity.secure, true, 'trusted nginx forwarded scheme must reach real cookie issuance');
@@ -127,14 +151,17 @@ try {
     return result;
   });
   assert(cachePaths.length > 0);
-  assert(cachePaths.every(entry => entry.path.startsWith(prefix + '/autotable/') ||
-    entry.path === prefix + '/api/games/public'));
+  const publicAssets = new Set(build.files.map(file => prefix + '/' + file.path));
+  assert(cachePaths.every(entry => publicAssets.has(entry.path) || entry.path === prefix + '/'
+    || entry.path === prefix + '/api/games/public'));
+  assert(cachePaths.every(entry => !entry.path.toLowerCase().includes('autotable')));
   receipt.cachePaths = cachePaths;
   assert(receipt.requests.some(request => request.path === prefix + '/api/identity'));
   assert(receipt.requests.some(request => request.path === prefix + '/hubs/changsha/negotiate'));
   assert(receipt.requests.some(request => /Faces(?:Labelled)?\.[0-9a-f]+\.png$/.test(request.path)));
   assert.deepEqual(receipt.requests.filter(request => request.origin !== target.origin
     || !request.path.startsWith(prefix + '/')), []);
+  assert.deepEqual(receipt.requests.filter(request => request.path.toLowerCase().includes('autotable')), []);
   assert.deepEqual(receipt.pageErrors, []);
   receipt.status = 'passed';
 } catch (error) {

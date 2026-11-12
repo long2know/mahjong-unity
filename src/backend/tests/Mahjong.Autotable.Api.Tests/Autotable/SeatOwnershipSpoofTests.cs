@@ -237,7 +237,7 @@ public sealed class SeatOwnershipSpoofTests : IAsyncLifetime
             wsClient.ConfigureRequest = req => req.Headers["Cookie"] = $"mahjong_pid={signed}";
         }
         var sep = queryString.Contains('?') ? "&" : "?";
-        var uri = new Uri(server.BaseAddress, $"autotable/ws{queryString}{sep}gameId={Uri.EscapeDataString(gameId)}");
+        var uri = new Uri(server.BaseAddress, $"ws{queryString}{sep}gameId={Uri.EscapeDataString(gameId)}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);
     }
