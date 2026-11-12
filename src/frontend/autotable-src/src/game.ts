@@ -29,7 +29,6 @@ export class Game {
   private readonly events = new AbortController();
   private unsubscribeSettings: (() => void) | null = null;
   private frameHandle = 0;
-  private lastUpdate = -Infinity;
   private started = false;
   private disposed = false;
   private width = window.innerWidth;
@@ -162,11 +161,9 @@ export class Game {
     this.frameHandle = requestAnimationFrame(time => this.mainLoop(time));
   }
 
-  mainLoop(time: number): void {
+  mainLoop(_time: number): void {
     if (this.disposed) return;
     this.frameHandle = requestAnimationFrame(next => this.mainLoop(next));
-    if (time - this.lastUpdate < 1000 / 30) return;
-    this.lastUpdate = time;
     this.lookDown.update();
     this.zoom.update();
     const presentation = this.presentation(getSettings());

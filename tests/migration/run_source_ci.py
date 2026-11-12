@@ -65,7 +65,7 @@ def plans():
             command("dependencies", ["npm", "ci", "--no-audit", "--no-fund"], cwd=FRONTEND, dependency=True),
             command("workflow-contracts", ["node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs"],
                     kind="node", expected=4),
-            command("frontend-tests", ["node", "--test", "--test-reporter=tap", *tests], cwd=FRONTEND, kind="node", expected=136),
+            command("frontend-tests", ["node", "--test", "--test-reporter=tap", *tests], cwd=FRONTEND,                                                 kind="node", expected=146),
             command("renderer-regressions", ["node", "--test", "--test-reporter=tap",
                     "tests/migration/renderer-backend-shape.test.mjs", "tests/migration/relay-authority-delta.test.mjs"],
                     kind="node", expected=6),

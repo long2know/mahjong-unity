@@ -20,6 +20,7 @@ export class WebglInput {
   private panning: { pointer: number; x: number; y: number } | null = null;
   private click: { id: string; at: number } | null = null;
   private hovered: string | null = null;
+  private lastPointerTime = 0;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly hooks: WebglInputHooks) {
     const signal = this.events.signal;
@@ -49,6 +50,14 @@ export class WebglInput {
     const rect = this.canvas.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
+  private pointerTime(event: PointerEvent): number | null {
+    const time = event.timeStamp;
+    if (!Number.isFinite(time) || time < 0 || time > performance.now() || time < this.lastPointerTime) {
+      this.cancel(); return null;
+    }
+    this.lastPointerTime = time;
+    return time;
+  }
   private entity(id: string | null): Entity | null {
     return id ? this.hooks.frame()?.entities.find(entity => entity.entityId === id) ?? null : null;
   }
@@ -59,6 +68,8 @@ export class WebglInput {
   }
   private readonly down = (event: PointerEvent): void => {
     if (event.defaultPrevented || event.altKey || event.button === 1 || !event.isPrimary) { this.cancel(); return; }
+    const time = this.pointerTime(event);
+    if (time === null) return;
     if (!this.hooks.frame()) return;
     const at = this.point(event);
     if (event.button === 2 && event.shiftKey) {
@@ -71,7 +82,8 @@ export class WebglInput {
     if (event.button !== 0 && event.button !== 2) return;
     this.cancelContact();
     const target = this.hooks.pick(at.x, at.y, event.pointerType === 'touch');
-    this.contact = { pointer: event.pointerId, ...at, start: performance.now(), target,
+    // Frame receipt/picking work must not consume the native gesture's timing budget.
+    this.contact = { pointer: event.pointerId, ...at, start: time, target,
       touch: event.pointerType === 'touch', right: event.button === 2, moved: false, drag: null, slot: null };
     this.canvas.focus({ preventScroll: true });
     this.canvas.setPointerCapture(event.pointerId);
@@ -124,6 +136,8 @@ export class WebglInput {
     if (this.panning?.pointer === event.pointerId) { this.panning = null; return; }
     const contact = this.contact;
     if (!contact || contact.pointer !== event.pointerId) return;
+    const time = this.pointerTime(event);
+    if (time === null) return;
     this.contact = null;
     if (contact.drag) {
       this.hooks.intent({ kind: 'endDrag', gestureId: contact.drag, commit: contact.slot !== null });
@@ -131,7 +145,7 @@ export class WebglInput {
     }
     const at = this.point(event);
     if (event.defaultPrevented || contact.moved || Math.hypot(at.x - contact.x, at.y - contact.y) > (contact.touch ? 10 : 6)
-      || performance.now() - contact.start > 650) { this.click = null; return; }
+      || time - contact.start > 650) { this.click = null; return; }
     const target = this.hooks.pick(at.x, at.y, contact.touch);
     if (target?.kind !== contact.target?.kind || target?.id !== contact.target?.id) { this.click = null; return; }
     if (target?.kind === 'dice') {
@@ -147,11 +161,11 @@ export class WebglInput {
       this.hooks.intent({ kind: 'takePickup', triggerEntityId: entity.entityId }); this.click = null; return;
     }
     if (contact.touch && entity.interaction.canDiscard || !contact.right && entity.interaction.canDiscard
-      && this.click?.id === entity.entityId && performance.now() - this.click.at < 400) {
+      && this.click?.id === entity.entityId && time - this.click.at < 400) {
       this.hooks.intent({ kind: 'discard', entityId: entity.entityId }); this.click = null; return;
     }
     if (contact.touch && entity.interaction.canSelect) this.hooks.intent({ kind: 'select', entityIds: [entity.entityId] });
-    this.click = !contact.right ? { id: entity.entityId, at: performance.now() } : null;
+    this.click = !contact.right ? { id: entity.entityId, at: time } : null;
   };
   private readonly canceled = (event: PointerEvent): void => {
     if (this.contact?.pointer === event.pointerId || this.panning?.pointer === event.pointerId) this.cancel();

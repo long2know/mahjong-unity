@@ -15,6 +15,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from runtime_probe import artifact_output, probe_provenance
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "artifacts/base-url/hosted-nginx"
@@ -29,12 +30,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
     parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--output-dir", default="artifacts/base-url/hosted-nginx",
+                        help="Checkout-relative artifact directory; defaults preserve publisher paths.")
     args = parser.parse_args()
-    OUT.mkdir(parents=True, exist_ok=True)
+    output = artifact_output(ROOT, args.output_dir)
+    browser_output = output if output != OUT else ROOT / "artifacts/base-url"
+    trace_output = output if output != OUT else ROOT / "artifacts/runtime-input-trace/canonical"
+    if not trace_output.is_relative_to(ROOT / "artifacts/runtime-input-trace"):
+        raise ValueError("Isolated diagnostic outputs must remain under artifacts/runtime-input-trace.")
+    output.mkdir(parents=True, exist_ok=True)
     receipt = {"status": "running", "source": args.source_sha, "image": args.image, "nginx": NGINX,
+               "applicationSourceSha": args.source_sha, **probe_provenance(ROOT),
                "scope": "Actual hardened app image behind nginx TLS and path-preserving proxy; real host-Chrome input/WS/SW",
                "recordedAtUtc": datetime.datetime.now(datetime.timezone.utc).isoformat(), "cases": []}
-    save = lambda: (OUT / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    save = lambda: (output / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     environment = dict(os.environ, Authentication__JwtSigningKeys__0=base64.b64encode(os.urandom(48)).decode(),
                        Auth__JwtSigningKeys__0=base64.b64encode(os.urandom(48)).decode())
     context = ssl._create_unverified_context()  # Synthetic loopback test certificate only.
@@ -47,7 +56,7 @@ def main():
         for index, prefix in enumerate(("", "/mahjong", "/games/mahjong", "/My%20Game")):
             name = "base-url-" + uuid.uuid4().hex
             network, app, proxy = name + "-net", name + "-app", name + "-nginx"
-            fixture = OUT / name
+            fixture = output / name
             fixture.mkdir()
             case = {"prefix": prefix, "status": "running"}
             receipt["cases"].append(case)
@@ -136,17 +145,21 @@ http {
                         assert error.code == 404
                 browser_name = "hosted-nginx-" + str(index)
                 env = dict(os.environ, TMPDIR=str(ROOT / ".work"), PREFIX_CASE_NAME=browser_name,
+                           PREFIX_OUTPUT_ROOT=browser_output.relative_to(ROOT).as_posix(),
+                           PREFIX_TRACE_ROOT=trace_output.relative_to(ROOT).as_posix(),
                            PREFIX_QUALIFICATION="Actual pinned nginx TLS/prefix proxy to hardened canonical Docker image",
                            EXPECTED_SOURCE_SHA=args.source_sha)
                 (ROOT / ".work").mkdir(exist_ok=True)
                 with (fixture / "browser.log").open("w") as stream:
                     subprocess.run(["node", "tests/migration/browser-prefix.mjs", origin + prefix],
                                    cwd=ROOT, env=env, stdout=stream, stderr=subprocess.STDOUT, check=True)
-                proof = json.loads((ROOT / "artifacts/base-url" / browser_name / "receipt.json").read_text())
+                proof = json.loads((browser_output / browser_name / "receipt.json").read_text())
                 assert proof["status"] == "passed" and proof["source"] == args.source_sha
+                assert proof["probeSourceSha"] == receipt["probeSourceSha"] and proof["probeFiles"] == receipt["probeFiles"]
                 assert proof["identityCookie"]["secure"] and proof["identityCookie"]["path"] == prefix + "/"
                 assert all(socket["protocol"] == "wss:" and socket["path"].startswith(prefix + "/") for socket in proof["sockets"])
-                case.update(status="passed", origin=origin, browserReceipt=f"artifacts/base-url/{browser_name}/receipt.json",
+                case.update(status="passed", origin=origin,
+                            browserReceipt=(browser_output / browser_name / "receipt.json").relative_to(ROOT).as_posix(),
                             trustedProxyIp=proxy_ip, transport="TLS/WSS, path preserved, explicit known immediate peer",
                             fixtureConfigSha256=hashlib.sha256(config.encode()).hexdigest())
                 save()
