@@ -9,17 +9,21 @@ function inputFixture() {
   });
   const window = new EventTarget(), intents = [];
   const resume = { allowed: true, calls: 0 };
+  const frameWork = { milliseconds: 0 };
   let time = 0;
   const frame = { entities: [{ entityId: 'tile', seat: 0, group: 'hand', display: { selected: false },
     interaction: { canSelect: true, canDrag: true, canDiscard: true, canFlip: true, canPickup: false } }] };
   const { WebglInput } = sourceLoader({ window, performance: { now: () => time } }).load('renderer/webgl-input.ts');
   const input = new WebglInput(canvas, {
-    frame: () => frame, pick: () => ({ kind: 'entity', id: 'tile' }), slot: () => 'discard.0.0@0',
+    frame: () => { time += frameWork.milliseconds; return frame; },
+    pick: () => ({ kind: 'entity', id: 'tile' }), slot: () => 'discard.0.0@0',
     intent: intent => intents.push(plain(intent)), pan() {},
     resumeGameplay: () => { resume.calls++; return resume.allowed; },
   });
-  function pointer(type, values = {}) {
+  function pointer(type, values = {}, timing = {}) {
+    if ('processedAt' in timing) time = timing.processedAt;
     const event = new Event(type, { cancelable: true });
+    Object.defineProperty(event, 'timeStamp', { value: 'timeStamp' in timing ? timing.timeStamp : time });
     Object.assign(event, { clientX: 20, clientY: 20, button: 0, buttons: type === 'pointerup' ? 0 : 1,
       pointerId: 1, pointerType: 'mouse', isPrimary: true, altKey: false, shiftKey: false, ...values });
     (type === 'pointerdown' ? canvas : window).dispatchEvent(event);
@@ -30,8 +34,71 @@ function inputFixture() {
     Object.assign(event, { key: value, altKey: false, ctrlKey: false, metaKey: false, repeat: false, shiftKey: false });
     canvas.dispatchEvent(event);
   };
-  return { input, intents, pointer, frame, resume, key };
+  return { input, intents, pointer, frame, resume, key, frameWork };
 }
+
+test('native double-click timing survives queued delivery and frame-hook work across the 400ms processing boundary', () => {
+  for (const delayedBy of ['frame', 'queue']) {
+    const f = inputFixture();
+    const schedule = delayedBy === 'queue'
+      ? [[80, 80], [100, 100], [120, 520], [140, 540]]
+      : [[0, 0], [20, 20], [340, 340], [368, 368]];
+    for (const [index, [timeStamp, processedAt]] of schedule.entries()) {
+      if (delayedBy === 'frame' && index === 3) f.frameWork.milliseconds = 75;
+      f.pointer(index % 2 ? 'pointerup' : 'pointerdown', {}, { timeStamp, processedAt });
+    }
+    assert.deepEqual(f.intents.map(intent => intent.kind), ['select', 'select', 'discard'], delayedBy);
+    f.pointer('pointerup', {}, { timeStamp: 600, processedAt: 1000 });
+    assert.equal(f.intents.filter(intent => intent.kind === 'discard').length, 1, 'a duplicate release cannot replay it');
+    f.input.dispose();
+  }
+});
+
+test('native 400ms double-click and 650ms contact boundaries cannot be extended by compressed delivery or click detail', () => {
+  for (const [gap, expected] of [[399, 1], [400, 0], [401, 0]]) {
+    const f = inputFixture();
+    f.pointer('pointerdown', {}, { timeStamp: 80, processedAt: 1000 });
+    f.pointer('pointerup', {}, { timeStamp: 100, processedAt: 1010 });
+    f.pointer('pointerdown', { detail: 2 }, { timeStamp: 80 + gap, processedAt: 1020 });
+    f.pointer('pointerup', { detail: 2 }, { timeStamp: 100 + gap, processedAt: 1030 });
+    assert.equal(f.intents.filter(intent => intent.kind === 'discard').length, expected, `native release gap ${gap}`);
+    f.input.dispose();
+  }
+  for (const [held, processedAt, expected] of [[650, 2000, 1], [651, 1010, 0], [20, 2000, 1]]) {
+    const f = inputFixture();
+    f.pointer('pointerdown', { pointerType: 'touch' }, { timeStamp: 100, processedAt: 1000 });
+    f.pointer('pointerup', { pointerType: 'touch' }, { timeStamp: 100 + held, processedAt });
+    assert.equal(f.intents.filter(intent => intent.kind === 'discard').length, expected, `native contact ${held}`);
+    f.input.dispose();
+  }
+});
+
+test('native timestamps reject invalid or reordered endpoints and recover without retaining an eligible click', () => {
+  const invalid = [NaN, Infinity, -Infinity, -1, undefined, null, '120', 2000];
+  const pairs = [...invalid.map(value => [value, 140]), ...invalid.map(value => [120, value]),
+    [99, 140], [120, 119]];
+  for (const [down, up] of pairs) {
+    const f = inputFixture();
+    f.pointer('pointerdown', {}, { timeStamp: 80, processedAt: 1000 });
+    f.pointer('pointerup', {}, { timeStamp: 100, processedAt: 1010 });
+    f.pointer('pointerdown', {}, { timeStamp: down, processedAt: 1020 });
+    f.pointer('pointerup', {}, { timeStamp: up, processedAt: 1030 });
+    assert.equal(f.intents.some(intent => intent.kind === 'discard'), false, `invalid/reordered ${down}/${up}`);
+    f.pointer('pointerdown', {}, { timeStamp: 160, processedAt: 1100 });
+    f.pointer('pointerup', {}, { timeStamp: 180, processedAt: 1110 });
+    assert.equal(f.intents.some(intent => intent.kind === 'discard'), false, 'invalid timing clears the old click');
+    f.pointer('pointerdown', {}, { timeStamp: 200, processedAt: 1120 });
+    f.pointer('pointerup', {}, { timeStamp: 220, processedAt: 1130 });
+    assert.equal(f.intents.filter(intent => intent.kind === 'discard').length, 1, 'fresh valid contacts recover once');
+    f.input.dispose();
+  }
+  const coarse = inputFixture();
+  for (const [type, processedAt] of [['pointerdown', 1000], ['pointerup', 1010], ['pointerdown', 1020], ['pointerup', 1030]]) {
+    coarse.pointer(type, {}, { timeStamp: 0, processedAt });
+  }
+  assert.equal(coarse.intents.filter(intent => intent.kind === 'discard').length, 1, 'equal coarse native timestamps remain valid');
+  coarse.input.dispose();
+});
 
 test('ordinary touch emits one semantic discard; duplicate release and compatibility mouse do not replay it', () => {
   const f = inputFixture();

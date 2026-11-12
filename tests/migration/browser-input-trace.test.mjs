@@ -105,17 +105,19 @@ test('trace forwards actual input calls once and retains ordinary double-click s
   assert.equal(trace.records.find(value => value.kind === 'actions.handle:return').result.actionId, 'action');
 });
 
-test('trace distinguishes native event spacing from the unchanged real input processing-clock expiry', () => {
+test('trace separates queued processing age from the corrected native double-click interval without changing input', () => {
   const f = fixture();
   f.pointer('pointerdown', 80, 80); f.pointer('pointerup', 100, 100);
   f.pointer('pointerdown', 520, 120); f.pointer('pointerup', 540, 140);
-  assert.equal(f.intents.filter(value => value.kind === 'discard').length, 0);
+  assert.equal(f.intents.filter(value => value.kind === 'discard').length, 1);
   const before = f.trace().records.filter(value => value.kind === 'native:before' && value.event.type === 'pointerup').at(-1);
   assert.equal(before.event.dispatchAgeMilliseconds, 400);
-  assert.equal(before.state.contact.ageMilliseconds, 20);
+  assert.equal(before.state.contact.ageMilliseconds, 420);
+  assert.equal(before.event.eventTimeStamp - before.state.contact.start, 20);
   assert.equal(before.state.click.ageMilliseconds, 440);
+  assert.equal(before.event.eventTimeStamp - before.state.click.at, 40);
   assert.equal(before.state.contactEntity.interaction.canDiscard, true);
-  assert.equal(f.input.click.at, 540, 'real input replaces the expired first click; tracing must not repair it');
+  assert.equal(f.input.click, null, 'the real input consumes the valid native double-click exactly once');
 });
 
 test('trace retains the cancellation call chain and rejected reason instead of attributing every loss to timing', () => {

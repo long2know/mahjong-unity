@@ -33,7 +33,7 @@ test('frontend inventory retains authority/input/layout/privacy callers and actu
     assert(tests.argv.includes(`tests/node/${name}.test.mjs`));
   }
   assert.equal(new Set(tests.argv).size, tests.argv.length);
-  assert.equal(tests.expected, 143);
+  assert.equal(tests.expected, 146);
   const commands = JSON.stringify(description.plans);
   assert.doesNotMatch(commands, /UNITY_LICENSE|unity-webgl|verify-unity|build_unity|baseline-fetch/);
 });
