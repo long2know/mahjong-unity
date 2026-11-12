@@ -20,6 +20,7 @@ BACKEND_SELECTORS = (
     ".Autotable.ChangshaPrivacyProjectorDelegationTests", ".Autotable.HumanClaimWireContractTests",
     ".Autotable.ResultTombstoneLifecycleTests", ".Chat.ChatMessageTests",
     ".Changsha.Acceptance.VariantSwitchAcceptanceTests", ".Hosting.BrowserStaticHostingTests",
+    ".Hosting.AppMountTests", ".Hosting.MountedAuthTests",
     ".Observability.SecurityHeadersMiddlewareTests", ".Autotable.ExistingRoomJoinTests",
     ".Autotable.AutotableWsRelayTests", ".Autotable.AutotableConfigJoinSemanticsTests",
     ".Autotable.HandResultAckWsTests", ".Autotable.AutotableHandshakeAndDealTriggerContractTests",
@@ -33,7 +34,7 @@ def command(name, argv, cwd=".", kind=None, expected=None, dependency=False):
 def plans():
     tests = ["tests/node/room-startup-readiness.test.mjs", "tests/node/hand-result-render-and-wire.test.mjs",
              "tests/node/sc2-slot-owner.invariants.test.mjs", "tests/node/perspective-settings.test.mjs",
-             "tests/node/browser-shell-layout.test.mjs",
+             "tests/node/browser-shell-layout.test.mjs", "tests/node/app-url.test.mjs",
              *sorted(path.relative_to(ROOT / FRONTEND).as_posix()
                      for pattern in ("renderer-*.test.mjs", "webgl-*.test.mjs")
                      for path in (ROOT / FRONTEND / "tests/node").glob(pattern)),
@@ -51,7 +52,7 @@ def plans():
                     "-p:UseSharedCompilation=false", "--filter",
                     "|".join("FullyQualifiedName~" + selector for selector in BACKEND_SELECTORS),
                     "--logger", "trx;LogFileName=backend.trx", "--results-directory", RESULTS + "/backend"],
-                    kind="trx", expected=140),
+                    kind="trx", expected=172),
             command("api-publish", ["dotnet", "publish", "src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj",
                     "--no-restore", "--disable-build-servers", "-p:UseSharedCompilation=false", "-p:UseAppHost=false",
                     "-c", "Release", "-o", "artifacts/web-source-api"], kind="publish"),
@@ -60,7 +61,7 @@ def plans():
             command("dependencies", ["npm", "ci", "--no-audit", "--no-fund"], cwd=FRONTEND, dependency=True),
             command("workflow-contracts", ["node", "--test", "--test-reporter=tap", "tests/migration/source-ci.test.mjs"],
                     kind="node", expected=4),
-            command("frontend-tests", ["node", "--test", "--test-reporter=tap", *tests], cwd=FRONTEND, kind="node", expected=131),
+            command("frontend-tests", ["node", "--test", "--test-reporter=tap", *tests], cwd=FRONTEND, kind="node", expected=136),
             command("renderer-regressions", ["node", "--test", "--test-reporter=tap",
                     "tests/migration/renderer-backend-shape.test.mjs", "tests/migration/relay-authority-delta.test.mjs"],
                     kind="node", expected=6),

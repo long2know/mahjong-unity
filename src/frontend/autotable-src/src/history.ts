@@ -602,3 +602,4 @@ function filenameFor(format: Format): string {
   const stamp = new Date().toISOString().slice(0, 10);
   return `mahjong-history-${stamp}.${format}`;
 }
+import { appFetch as fetch } from './app-url';

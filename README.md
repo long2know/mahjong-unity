@@ -56,6 +56,11 @@ rollback image, not silently redirected; the new publishing path uses
 `ghcr.io/long2know/mahjong-web` and requires separate candidate/digest acceptance.
 No registry promotion occurs during a source build or PR CI.
 
+To host below a path instead of site root, set runtime **`BASE_URL=/mahjong`**
+and open `/mahjong/autotable/` (or `/mahjong`, which redirects there).
+No image rebuild is needed. See [runtime mount/nginx configuration](docs/integration/base-url.md)
+for nested/escaped paths, WebSocket forwarding, trusted proxies and healthchecks.
+
 ## Controls
 
 - Touch once to discard an eligible tile; double-click with a mouse.

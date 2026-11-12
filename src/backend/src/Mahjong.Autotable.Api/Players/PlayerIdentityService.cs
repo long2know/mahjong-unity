@@ -171,7 +171,7 @@ public sealed class PlayerIdentityService
             Secure = context.Request.IsHttps || _options.RequireSecureCookie,
             SameSite = SameSiteMode.Lax,
             MaxAge = EffectiveCookieMaxAge,
-            Path = "/",
+            Path = Hosting.AppMount.CookiePath(context.Request),
             IsEssential = true,
         };
         context.Response.Cookies.Append(CookieName, _protector.Protect(playerId), options);

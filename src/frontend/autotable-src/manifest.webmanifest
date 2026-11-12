@@ -1,5 +1,5 @@
 {
-  "id": "/?source=pwa",
+  "id": "./?source=pwa",
   "name": "Mahjong Web",
   "short_name": "Mahjong",
   "description": "Browser mahjong: Changsha and the four established tabletop variants",
@@ -20,19 +20,19 @@
       "name": "New game",
       "short_name": "New",
       "description": "Start a new mahjong table with bots or open seats",
-      "url": "/?action=new-game"
+      "url": "./?action=new-game"
     },
     {
       "name": "Spectate",
       "short_name": "Spectate",
       "description": "Join an active game as a spectator",
-      "url": "/?action=spectate"
+      "url": "./?action=spectate"
     },
     {
       "name": "Tournament dashboard",
       "short_name": "Tournaments",
       "description": "Browse and join the tournament bracket dashboard",
-      "url": "/?action=tournament"
+      "url": "./?action=tournament"
     }
   ]
 }

@@ -341,7 +341,9 @@ public sealed class SecurityHeadersMiddleware
             {
                 // Append (single source of truth — directives are
                 // semicolon-separated; trailing ';' is tolerated by every UA).
-                csp = csp.TrimEnd(';', ' ') + "; report-uri " + instance._reportUri;
+                var reportUri = instance._reportUri.StartsWith('/') && !instance._reportUri.StartsWith("//")
+                    ? ctx.Request.PathBase.ToUriComponent() + instance._reportUri : instance._reportUri;
+                csp = csp.TrimEnd(';', ' ') + "; report-uri " + reportUri;
             }
             headers[headerName] = csp;
         }

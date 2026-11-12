@@ -5,6 +5,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import { bootstrapIdentity, getIdentityBootstrapState } from './identity';
+import { appUrl } from './app-url';
 
 export interface HubStatus {
   state: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'unavailable';
@@ -30,7 +31,7 @@ function publishConnected(local: HubConnection): void {
 
 function buildConnection(): HubConnection {
   const local = new HubConnectionBuilder()
-    .withUrl('/hubs/changsha')
+    .withUrl(appUrl('/hubs/changsha'))
     .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
     .configureLogging(LogLevel.Warning)
     .build();

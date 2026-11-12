@@ -230,14 +230,15 @@ public sealed class AuthTokenController : ControllerBase
         }
 
         var origin = $"{Request.Scheme}://{Request.Host}";
+        var publicRoot = origin + Request.PathBase.ToUriComponent();
         var issuer = string.IsNullOrEmpty(keys.ConfiguredIssuer) ? origin : keys.ConfiguredIssuer;
         Response.Headers.CacheControl = "public, max-age=3600";
         return Ok(new
         {
             issuer,
-            jwks_uri = $"{origin}/api/auth/.well-known/jwks.json",
-            token_endpoint = $"{origin}/api/auth/token",
-            introspection_endpoint = $"{origin}/api/auth/introspect",
+            jwks_uri = $"{publicRoot}/api/auth/.well-known/jwks.json",
+            token_endpoint = $"{publicRoot}/api/auth/token",
+            introspection_endpoint = $"{publicRoot}/api/auth/introspect",
             introspection_endpoint_auth_methods_supported = new[] { "client_secret_basic" },
             grant_types_supported = new[] { "password", "authorization_code" },
             id_token_signing_alg_values_supported = new[] { "RS256" },

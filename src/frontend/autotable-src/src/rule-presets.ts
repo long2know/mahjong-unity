@@ -575,3 +575,4 @@ function buildEditorForm(draft: RulePreset, editable: boolean): HTMLDivElement {
   form.appendChild(actions);
   return form;
 }
+import { appFetch as fetch } from './app-url';

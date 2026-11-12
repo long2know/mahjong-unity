@@ -217,3 +217,4 @@ export function parseTilesJson(json: string): number[] {
   } catch { /* ignore */ }
   return [];
 }
+import { appFetch as fetch } from './app-url';

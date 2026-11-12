@@ -1840,3 +1840,4 @@ export function refreshTournamentsPanel(): void {
   void refreshList();
   void ensureHubSubscription();
 }
+import { appFetch as fetch } from './app-url';

@@ -1206,3 +1206,4 @@ function buildRulePresetsPanel(): HTMLDivElement {
   renderRulePresetsEditor();
   return panel;
 }
+import { appFetch as fetch } from './app-url';

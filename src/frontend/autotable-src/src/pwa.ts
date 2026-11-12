@@ -19,7 +19,7 @@
 // `manifest.webmanifest` is referenced from `index.html`; the parcel
 // build copies it through unchanged.
 
-const SW_URL = './sw.js';
+import { appUrl } from './app-url';
 
 let registration: ServiceWorkerRegistration | null = null;
 
@@ -32,7 +32,7 @@ export async function registerServiceWorker(): Promise<void> {
   if (window.location.protocol === 'file:') return;
 
   try {
-    registration = await navigator.serviceWorker.register(SW_URL, { scope: './' });
+    registration = await navigator.serviceWorker.register(appUrl('/autotable/sw.js'), { scope: appUrl('/autotable/') });
     // When a new SW takes control mid-session, swap in fresh assets
     // on next reload — never auto-reload the page out from under the
     // user.  Apone reviewed the no-auto-reload choice in Wave 1.

@@ -609,3 +609,4 @@ function repositionSpotlight(step: TourStep): void {
   card.style.left = `${cardX}px`;
   card.style.top = `${cardY}px`;
 }
+import { appFetch as fetch } from './app-url';

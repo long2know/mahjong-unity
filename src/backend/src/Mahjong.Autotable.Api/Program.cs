@@ -89,6 +89,8 @@ if (args.Contains("verify-oauth"))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+var appMount = Mahjong.Autotable.Api.Hosting.AppMount.Read(builder.Configuration);
+appMount.ConfigureProxyServices(builder.Services);
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "data"));
 
 // Phase J Wave 5 — structured logging contract (Apone, DevOps). Production
@@ -1284,6 +1286,8 @@ app.UseMiddleware<Mahjong.Autotable.Api.Audit.CorrelationIdMiddleware>();
 // its own Cache-Control.
 app.UseMiddleware<Mahjong.Autotable.Api.Observability.SecurityHeadersMiddleware>();
 
+appMount.Use(app);
+app.UseRouting();
 app.UseCors(ChangshaCorsPolicy);
 
 if (rateLimitingEnabled)
@@ -1820,13 +1824,14 @@ app.MapGet("/.well-known/openid-configuration", (
             statusCode: StatusCodes.Status404NotFound);
     }
     var origin = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var publicRoot = origin + ctx.Request.PathBase.ToUriComponent();
     var issuer = string.IsNullOrEmpty(keys.ConfiguredIssuer) ? origin : keys.ConfiguredIssuer;
     ctx.Response.Headers.CacheControl = "public, max-age=3600";
     return Results.Ok(new
     {
         issuer,
-        jwks_uri = $"{origin}/api/auth/.well-known/jwks.json",
-        token_endpoint = $"{origin}/api/auth/token",
+        jwks_uri = $"{publicRoot}/api/auth/.well-known/jwks.json",
+        token_endpoint = $"{publicRoot}/api/auth/token",
         grant_types_supported = new[] { "password", "authorization_code" },
         id_token_signing_alg_values_supported = new[] { "RS256" },
         response_types_supported = new[] { "token" },

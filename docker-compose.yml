@@ -46,6 +46,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       BUILD_SHA: ${BUILD_SHA:-local}
+      BASE_URL: ${BASE_URL:-}
+      ReverseProxy__KnownProxies__0: ${TRUSTED_PROXY_IP:-}
       # Required base64 HMAC signing key — sourced from your local .env.
       # `:?` makes compose abort with this message when it is unset/empty,
       # converting a silent Production crash-loop into a one-time setup fix.

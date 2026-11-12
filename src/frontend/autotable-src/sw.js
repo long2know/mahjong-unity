@@ -22,10 +22,13 @@
 // user with a flaky network now sees a cached lobby on page-load
 // rather than a spinner.
 
-const CACHE_VERSION = 'autotable-unity-v1';
+const STATIC_ROOT = new URL('./', self.location.href).pathname;
+const APP_BASE = STATIC_ROOT.replace(/\/autotable\/$/, '');
+const CACHE_NAMESPACE = `mahjong-web:${encodeURIComponent(APP_BASE || '/')}:`;
+const CACHE_VERSION = `${CACHE_NAMESPACE}v2`;
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const LOBBY_CACHE = `${CACHE_VERSION}-lobby`;
-const PRECACHE_MANIFEST_URL = 'manifest-precache.json';
+const PRECACHE_MANIFEST_URL = new URL('manifest-precache.json', self.location.href).href;
 
 const HASHED_ASSET_RE = /\.[0-9a-f]{8}\.(?:js|css|png|jpg|jpeg|svg|woff2?|otf|ttf|wav|mp4|glb)$/i;
 
@@ -45,7 +48,10 @@ self.addEventListener('install', (event) => {
           // Filter out anything that 404s on a HEAD probe so a single
           // stale entry doesn't fail the whole install.
           const reachable = [];
-          for (const url of manifest.assets) {
+          for (const asset of manifest.assets) {
+            const resolved = new URL(asset, self.location.href);
+            if (resolved.origin !== self.location.origin || !resolved.pathname.startsWith(STATIC_ROOT)) continue;
+            const url = resolved.href;
             try {
               const head = await fetch(url, { method: 'HEAD' });
               if (head.ok) reachable.push(url);
@@ -68,7 +74,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.map((key) => {
-      if (key.startsWith('autotable-') && !key.startsWith(CACHE_VERSION)) {
+      if (key.startsWith(CACHE_NAMESPACE) && !key.startsWith(CACHE_VERSION)) {
         return caches.delete(key);
       }
       return Promise.resolve();
@@ -82,6 +88,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (APP_BASE && !url.pathname.startsWith(APP_BASE + '/')) return;
+  const logicalPath = url.pathname.slice(APP_BASE.length);
 
   // Skip the service worker itself + manifest (Chrome refetches the
   // manifest on every install — we never want a stale one).
@@ -90,17 +98,15 @@ self.addEventListener('fetch', (event) => {
   // Phase K Wave 3 — the precache manifest is also always fetched
   // fresh so the next install cycle picks up the latest hashed names.
   if (url.pathname.endsWith('/manifest-precache.json')) return;
-  // Unity manifest/loader/framework/data/wasm must never reuse a previous build's SW cache.
-  if (url.pathname.startsWith('/autotable/unity/')) return;
 
   // Lobby browse fallback — network-first, cache-on-success.
-  if (url.pathname === '/api/games/public' || url.pathname.startsWith('/api/games/public?')) {
+  if (logicalPath === '/api/games/public') {
     event.respondWith(networkFirst(req, LOBBY_CACHE));
     return;
   }
 
   // Hashed parcel artefacts + img directory: cache-first, never expire.
-  if (HASHED_ASSET_RE.test(url.pathname) || url.pathname.startsWith('/img/')) {
+  if (HASHED_ASSET_RE.test(url.pathname) || logicalPath.startsWith('/img/')) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
@@ -108,7 +114,7 @@ self.addEventListener('fetch', (event) => {
   // Live API + hub traffic — network-only.  Don't even attempt cache,
   // so a stale `/api/auth/me` never lets an unauthenticated client
   // appear authenticated.
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/hubs/')) {
+  if (logicalPath.startsWith('/api/') || logicalPath.startsWith('/hubs/')) {
     return;
   }
 

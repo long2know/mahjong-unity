@@ -3,7 +3,7 @@ export function buildRoomJoinUrl(gameId: string, absolute = false): string {
   if (!/^[A-Za-z0-9_.-]{1,64}$/.test(gameId)) {
     throw new Error('Invalid table ID.');
   }
-  const url = new URL('/autotable/', window.location.origin);
+  const url = new URL(appUrl('/autotable/'), window.location.origin);
   url.searchParams.set('gameId', gameId);
   url.searchParams.set('variant', 'changsha');
   url.searchParams.set('join', '1');
@@ -15,3 +15,4 @@ export function isJoinOnly(search = window.location.search): boolean {
   return params.get('join') === '1'
     && (params.get('variant') ?? 'changsha').toLowerCase() === 'changsha';
 }
+import { appUrl } from './app-url';

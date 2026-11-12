@@ -115,7 +115,7 @@ public sealed class AuthCookieService
         }
         context.Response.Cookies.Delete(CookieName, new CookieOptions
         {
-            Path = "/",
+            Path = Hosting.AppMount.CookiePath(context.Request),
             HttpOnly = true,
             Secure = context.Request.IsHttps,
             SameSite = SameSiteMode.Lax,
@@ -142,7 +142,7 @@ public sealed class AuthCookieService
             Secure = context.Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             MaxAge = SessionLifetime,
-            Path = "/",
+            Path = Hosting.AppMount.CookiePath(context.Request),
             IsEssential = true,
         };
         context.Response.Cookies.Append(CookieName, token, options);

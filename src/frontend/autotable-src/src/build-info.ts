@@ -142,3 +142,4 @@ export function installBuildInfo(): () => void {
   void refresh();
   return installed;
 }
+import { appFetch as fetch } from './app-url';

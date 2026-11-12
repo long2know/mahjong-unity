@@ -430,3 +430,4 @@ export function refreshAdminStatus(): void {
     }
   });
 }
+import { appFetch as fetch } from './app-url';

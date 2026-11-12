@@ -848,7 +848,7 @@ function wireSignInModal(): void {
       // doesn't return JSON so we navigate directly.
       if (provider === 'microsoft') {
         const returnUrl = encodeURIComponent(window.location.href);
-        window.location.href = `/api/auth/login?provider=microsoft&returnUrl=${returnUrl}`;
+        window.location.href = appUrl(`/api/auth/login?provider=microsoft&returnUrl=${returnUrl}`);
         return;
       }
       const result = await startOAuth(provider, 'login');
@@ -1105,3 +1105,4 @@ function wireMagicLinkLanding(): void {
     });
   }
 }
+import { appFetch as fetch, appUrl } from './app-url';

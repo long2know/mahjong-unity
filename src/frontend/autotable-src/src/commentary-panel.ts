@@ -595,3 +595,4 @@ function parseTileIdShape(tileId: string): TileReference {
   if (id in honors) return { tileId, suit: 'honor', rank: honors[id] };
   return { tileId, suit: 'unknown', rank: 0 };
 }
+import { appFetch as fetch } from './app-url';
