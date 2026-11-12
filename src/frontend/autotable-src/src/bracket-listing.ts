@@ -240,7 +240,7 @@ function wireCloseHandler(overlay: HTMLElement): void {
     closeOverlay();
     try {
       const url = new URL(window.location.href);
-      url.pathname = '/';
+      url.pathname = appUrl('/');
       url.search = '';
       window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
     } catch { /* ignore */ }
@@ -305,3 +305,4 @@ export async function openBracketListing(tournamentId: string): Promise<void> {
   overlay.innerHTML = renderBracketGrid(tournamentId, records);
   wireCloseHandler(overlay);
 }
+import { appFetch as fetch, appUrl } from './app-url';

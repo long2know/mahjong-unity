@@ -793,3 +793,4 @@ function appendNumCell(row: HTMLElement, value: string): void {
   td.textContent = value;
   row.appendChild(td);
 }
+import { appFetch as fetch } from './app-url';

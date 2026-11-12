@@ -92,7 +92,7 @@ function parseInvite(raw: unknown): TableInvite {
   const o = record(raw);
   const gameId = requiredString(o.gameId);
   const joinUrl = buildRoomJoinUrl(gameId);
-  const suppliedUrl = new URL(requiredString(o.joinUrl), window.location.origin);
+  const suppliedUrl = new URL(appUrl(requiredString(o.joinUrl)), window.location.origin);
   const allowedUrl = new URL(joinUrl, window.location.origin);
   if (suppliedUrl.origin !== allowedUrl.origin || suppliedUrl.pathname !== allowedUrl.pathname
       || suppliedUrl.username !== '' || suppliedUrl.password !== ''
@@ -366,3 +366,4 @@ export async function sendTableInvite(gameId: string, recipientPlayerId: string)
   }
   throw new Error('Invalid SendTableInvite response.');
 }
+import { appUrl } from './app-url';

@@ -627,12 +627,7 @@ export class ClientUi {
       return 'ws://localhost:1235';
     }
 
-    let path = window.location.pathname;
-    path = path.substring(1, path.lastIndexOf('/')+1);
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.host;
-    const wsPath = path + 'ws';
-    return `${wsProtocol}//${wsHost}/${wsPath}`;
+    return appWebSocketUrl('/autotable/ws');
   }
 
   onNickChange(): void {
@@ -1313,3 +1308,4 @@ function readCompleteFlagFromUi(v: GameCompleteEntry): boolean {
     || v.IsGameComplete,
   );
 }
+import { appWebSocketUrl } from './app-url';

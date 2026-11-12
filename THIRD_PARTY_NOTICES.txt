@@ -1,4 +1,4 @@
-THIRD-PARTY NOTICES — FIRST SOURCE ITERATION
+THIRD-PARTY NOTICES — MAHJONG WEB
 
 Scope
 -----
@@ -51,7 +51,7 @@ Assets and references not imported
 The inherited noncommercial tile artwork, generated tile/icon/atlas/model
 derivatives, external sound/font assets, and cheatsheet PDFs are not
 included in this iteration. Their exclusion is not a new license grant.
-Browser labels/icons and Unity meshes/presentation are original procedural work;
+Browser labels/icons and retained procedural meshes/presentation are original work;
 the owner must select the license for those new contributions as well.
 
 ArcturusZhang/Mahjong at c833d787146210f55e2ceec2cfcded40ecf53a4d was an
@@ -69,7 +69,7 @@ Mahjong tile artwork by FluffyStuff, riichi-mahjong-tiles, CC0 1.0 Universal.
 Source: https://github.com/FluffyStuff/riichi-mahjong-tiles
 Revision: 26e127ba2117f45cdce5ea0225748cc0cfad3169
 37 Regular face PNGs, one back and their SVG masters are retained unchanged in
-unity/MahjongRenderer/Assets/Art/FluffyStuff, with the creator's byte-identical
+src/frontend/autotable-src/art/source/FluffyStuff, with the creator's byte-identical
 LICENSE.md. The player uses resized/padded atlases and two recolored back styles.
 These standalone originals are not the excluded noncommercial Kanojo atlas,
 sample model or cheatsheet art. CC0 does not require credit; this project retains
@@ -81,16 +81,20 @@ f801a7ebe1431cd954a9963b180869eba3557bc3 at
 d10d351e543aa3e341960de9800828b6c0662a82; only its material tint/tiling changes.
 Earlier ambientCG-to-fork image processing is unspecified; no new PBR maps
 or external geometry are imported. License: https://docs.ambientcg.com/license/
+That fabric paragraph records the historical renderer input; the current WebGL
+felt is procedural and does not load the old fabric material.
 Full original-file pins/hashes, face mapping, atlas rectangles, transformations
-and derivative hashes: unity/MahjongRenderer/Documentation/art-provenance.json.
+and derivative hashes: src/frontend/autotable-src/art/tiles/import-provenance.json
+(historical generation receipt, including its original engine paths).
 This CC0 asset disposition does not select a license for original game code.
 
 Dependency and engine notice gate
 --------------------------------
-The npm lockfile, NuGet project/restore graph, and Unity package manifest
-identify separate dependencies. A package.json MIT field does not relicense
-them. Unity Editor/runtime and GameCI/container tooling also have their own
-applicable terms. Build tools are separate from the ASP.NET hosting image.
+The npm lockfile and NuGet project/restore graph identify separate dependencies.
+A package.json MIT field does not relicense them. The Unity project, package
+manifest, Editor/runtime and activation/build tooling have been removed from
+the current application; they are not current build/distribution inputs.
+Node/.NET build tools remain separate from the ASP.NET hosting image.
 
 Before image/build redistribution, inventory the actual shipped dependency
 versions and base-image components, retain their copyright/license/NOTICE

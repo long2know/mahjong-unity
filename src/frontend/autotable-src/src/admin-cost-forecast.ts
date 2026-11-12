@@ -204,7 +204,7 @@ function wireCloseHandler(overlay: HTMLElement): void {
     closeOverlay();
     try {
       const url = new URL(window.location.href);
-      url.pathname = '/';
+      url.pathname = appUrl('/');
       url.search = '';
       window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
     } catch { /* ignore */ }
@@ -214,12 +214,12 @@ function wireCloseHandler(overlay: HTMLElement): void {
 function redirectToLobbyForSignIn(): void {
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/';
+    url.pathname = appUrl('/');
     url.search = '';
     url.hash = '';
     window.location.replace(url.toString());
   } catch {
-    window.location.href = '/';
+    window.location.href = appUrl('/');
   }
 }
 
@@ -321,3 +321,4 @@ export async function openCommentaryCostForecastPanel(days: number): Promise<voi
   overlay.innerHTML = renderSummary(forecast);
   wireCloseHandler(overlay);
 }
+import { appFetch as fetch, appUrl } from './app-url';

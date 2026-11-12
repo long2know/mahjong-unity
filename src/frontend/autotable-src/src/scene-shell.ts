@@ -6,7 +6,7 @@ import { showToast } from './toast';
 
 let game: Game | null = null;
 
-/** Model, room and DOM controls mount independently of a missing Unity build. */
+/** Model, room and DOM controls mount before the WebGL renderer is ready. */
 export async function mountScene(): Promise<Client> {
   if (game) return game.client;
   void loadPatternOrderingFromApi();

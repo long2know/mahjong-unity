@@ -92,3 +92,4 @@ export async function loadPatternOrderingFromApi(): Promise<void> {
     /* hardcoded fallback stays — nothing to do */
   }
 }
+import { appFetch as fetch } from './app-url';

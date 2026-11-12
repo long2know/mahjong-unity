@@ -1,5 +1,5 @@
 {
-  "name": "autotable",
+  "name": "mahjong-web",
   "version": "1.0.0",
   "author": "Paweł Marczewski <pwmarcz@gmail.com>",
   "license": "MIT",
@@ -9,13 +9,13 @@
     "build": "npm run build:vite",
     "build:vite": "vite build",
     "typecheck": "tsc --noEmit",
-    "test:unity": "node --test tests/node/unity-*.test.mjs",
     "watch": "vite build --watch",
     "build:metric": "node scripts/build-with-cache-metric.js",
     "build:post": "node scripts/generate-sw-manifest.js",
     "capture:screenshots": "node scripts/capture-screenshots.js",
     "verify:bundle-sync": "node scripts/verify-bundle-in-sync.js",
-    "bundle:hash": "node scripts/bundle-hash.js"
+    "bundle:hash": "node scripts/bundle-hash.js",
+    "test:renderer": "node --test tests/node/renderer-*.test.mjs tests/node/webgl-*.test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -40,5 +40,6 @@
     "jquery": "^3.7.1",
     "popper.js": "^1.16.1",
     "three": "^0.179.0"
-  }
+  },
+  "description": "Browser-native WebGL2 mahjong with the retained .NET game server"
 }

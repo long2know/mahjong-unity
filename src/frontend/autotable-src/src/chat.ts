@@ -875,3 +875,4 @@ export function installChatPanel(client: Client | null): void {
   renderChrome();
   if (!state.collapsed) setCollapsed(false);
 }
+import { appFetch as fetch } from './app-url';

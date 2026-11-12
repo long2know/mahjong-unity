@@ -9,7 +9,8 @@ import { cameraPerspective, getSettings, installPerspectiveSetting, installRende
 import { BufferedRendererSink } from './renderer/renderer-sink';
 import { RendererFrameAdapter } from './renderer/renderer-frame';
 import { RendererActionRouter } from './renderer/renderer-actions';
-import { UnityHost } from './renderer/unity-host';
+import { WebglHost } from './renderer/webgl-host';
+import type { HostHooks } from './renderer/renderer-host';
 import { TableCameraControls } from './renderer/table-camera-controls';
 import type { Presentation } from './renderer/renderer-contract';
 import { GameType } from './types';
@@ -17,7 +18,7 @@ import { GameType } from './types';
 export class Game {
   readonly client: Client;
   readonly world: World;
-  readonly renderer: UnityHost;
+  readonly renderer: WebglHost;
   readonly sink = new BufferedRendererSink();
   private readonly clientUi: ClientUi;
   private readonly soundPlayer: SoundPlayer;
@@ -60,7 +61,7 @@ export class Game {
       muted: document.getElementById('muted') as HTMLInputElement,
       sticky: document.getElementById('sticky') as HTMLInputElement,
     };
-    this.renderer = new UnityHost(document.getElementById('main')!, {
+    const hooks: HostHooks = {
       action: action => this.actions?.handle(action, this.tableCamera?.blocksGameplay ?? false),
       resized: viewport => {
         this.actions?.cancelGesture();
@@ -70,9 +71,11 @@ export class Game {
         if (this.adapter) this.updateSettings();
       },
       resumed: () => this.adapter?.refresh(),
-      failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Unity renderer unavailable; game commands remain browser-owned.'); },
-      notice: message => { document.getElementById('unity-notice')!.textContent = message; },
-    }, { allowUnqualifiedBuild: query.get('unityLocalBuild') === '1' });
+      failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Table renderer unavailable.'); },
+      notice: message => { document.getElementById('renderer-notice')!.textContent = message; },
+      resumeGameplay: () => this.tableCamera?.resumeGameplay() ?? true,
+    };
+    this.renderer = new WebglHost(document.getElementById('main')!, hooks);
     this.adapter = new RendererFrameAdapter(this.renderer.instanceId, this.client, this.world, this.sink, {
       clear: (sessionId, reason) => this.renderer.clear(sessionId, reason),
       publish: (layout, frame) => this.renderer.publish(layout, frame),
@@ -80,7 +83,7 @@ export class Game {
     });
     this.actions = new RendererActionRouter(this.adapter, {
       result: result => this.renderer.actionResult(result),
-      notice: message => { document.getElementById('unity-notice')!.textContent = message; },
+      notice: message => { document.getElementById('renderer-notice')!.textContent = message; },
       unavailable: message => this.adapter?.fail(message),
     });
     this.tableCamera = new TableCameraControls(this.renderer.canvas, {

@@ -107,7 +107,7 @@ public sealed class AuthController : ControllerBase
             Secure = HttpContext.Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromMinutes(10),
-            Path = "/",
+            Path = Hosting.AppMount.CookiePath(HttpContext.Request),
             IsEssential = true,
         };
         HttpContext.Response.Cookies.Append(OAuthService.StateCookieName, stateIssue.Nonce, cookieBase);
@@ -154,19 +154,19 @@ public sealed class AuthController : ControllerBase
         {
             return BadRequest(new { error = "Invalid state token." });
         }
-        HttpContext.Response.Cookies.Delete(OAuthService.StateCookieName);
+        HttpContext.Response.Cookies.Delete(OAuthService.StateCookieName, new CookieOptions { Path = Hosting.AppMount.CookiePath(Request) });
 
         // Pull the PKCE verifier + nonce from cookies (best-effort — the
         // cookies are only set on Wave-K-1+ Login paths but the existing
         // surface remains backward-compatible with providers that don't
         // require either).
         HttpContext.Request.Cookies.TryGetValue(OAuthService.PkceVerifierCookieName, out var codeVerifier);
-        HttpContext.Response.Cookies.Delete(OAuthService.PkceVerifierCookieName);
+        HttpContext.Response.Cookies.Delete(OAuthService.PkceVerifierCookieName, new CookieOptions { Path = Hosting.AppMount.CookiePath(Request) });
         HttpContext.Request.Cookies.TryGetValue(OAuthService.NonceCookieName, out var expectedNonce);
-        HttpContext.Response.Cookies.Delete(OAuthService.NonceCookieName);
+        HttpContext.Response.Cookies.Delete(OAuthService.NonceCookieName, new CookieOptions { Path = Hosting.AppMount.CookiePath(Request) });
 
         HttpContext.Request.Cookies.TryGetValue(OAuthService.ReturnUrlCookieName, out var returnUrl);
-        HttpContext.Response.Cookies.Delete(OAuthService.ReturnUrlCookieName);
+        HttpContext.Response.Cookies.Delete(OAuthService.ReturnUrlCookieName, new CookieOptions { Path = Hosting.AppMount.CookiePath(Request) });
 
         var redirectUri = BuildCallbackUri(provider);
         var info = await _oauth.ExchangeAndFetchUserInfoAsync(
@@ -194,7 +194,8 @@ public sealed class AuthController : ControllerBase
 
         await _cookies.IssueAsync(HttpContext, identity.PlayerId, identity.Id, ct: ct);
 
-        return string.IsNullOrWhiteSpace(returnUrl) ? Redirect("/") : Redirect(returnUrl);
+        return string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+            ? Redirect(Request.PathBase.Add("/").ToUriComponent()) : Redirect(returnUrl);
     }
 
     /// <summary>Issues a magic-link email + token.</summary>
@@ -292,7 +293,7 @@ public sealed class AuthController : ControllerBase
         // Linking another provider is structurally identical to the login
         // flow except the caller's mahjong_pid is pinned by the active
         // auth session — return a redirect URL the UI can navigate to.
-        var redirect = Url.Action(nameof(Login), new { provider, returnUrl = "/" })!;
+        var redirect = Url.Action(nameof(Login), new { provider, returnUrl = Request.PathBase.Add("/").ToUriComponent() })!;
         return Ok(new { redirectUrl = redirect });
     }
 

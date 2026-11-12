@@ -12,7 +12,7 @@ export interface ActionPort {
 }
 interface Gesture { token: string; session: string; actor: number; anchor: LiveEntity; entities: LiveEntity[] }
 
-/** Unity supplies semantic intent only; every wire write stays in the retained World/Client pipeline. */
+/** Renderers supply semantic intent only; every wire write stays in the retained World/Client pipeline. */
 export class RendererActionRouter {
   private seen = new Set<string>();
   private epoch = '';
@@ -28,7 +28,7 @@ export class RendererActionRouter {
       action = value;
     } catch {
       this.cancelGesture();
-      this.port.unavailable('Malformed Unity action. No game command was sent.');
+      this.port.unavailable('Malformed renderer action. No game command was sent.');
       return null;
     }
     const { adapter } = this;
@@ -46,11 +46,11 @@ export class RendererActionRouter {
       return value;
     };
     if (action.instanceId !== adapter.instanceId || action.sessionId !== adapter.sessionId) {
-      this.port.notice('Ignored an action from an obsolete Unity session.');
+      this.port.notice('Ignored an action from an obsolete renderer session.');
       return result('ignored', 'stale-session', false);
     }
     if (this.seen.has(action.actionId)) {
-      this.port.notice('Ignored a duplicate Unity action.');
+      this.port.notice('Ignored a duplicate renderer action.');
       return result('ignored', null, false);
     }
     this.seen.add(action.actionId);

@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { gameHarness, plain, sourceLoader } from '../../src/frontend/autotable-src/tests/node/unity-test-support.mjs';
+import { gameHarness, plain, sourceLoader } from '../../src/frontend/autotable-src/tests/node/renderer-test-support.mjs';
 
-test('Editor topology fixture contains the exact retained Changsha wall, river and player slot geometry', t => {
+test('topology fixture contains the exact retained Changsha wall, river and player slot geometry', t => {
   const h = gameHarness();
   t.after(h.close);
   h.join();
   h.snapshot([]);
   const actual = { ...plain(h.adapter.layout), instanceId: 'fixture-instance',
     sessionId: 'fixture-session', layoutRevision: 1 };
-  const path = new URL('../../unity/MahjongRenderer/Assets/Tests/Editor/ChangshaLayout.json', import.meta.url);
+  const path = new URL('./fixtures/ChangshaLayout.json', import.meta.url);
   const fixture = JSON.parse(fs.readFileSync(path, 'utf8'));
   assert.deepEqual(fixture, actual, 'Regenerate the Editor fixture from the retained source, never hand-copy wall geometry');
   const wall = fixture.slots.find(slot => slot.slotName === 'wall.7.0@0');
@@ -50,7 +50,7 @@ function actualGame({ advanceAnimations = false } = {}) {
     createElement: tag => new Element(tag),
     getElementById: id => find(body, id),
   });
-  for (const id of ['main', 'loading', 'perspective', 'tile-labels', 'benchmark', 'muted', 'sticky', 'unity-notice']) {
+  for (const id of ['main', 'loading', 'perspective', 'tile-labels', 'benchmark', 'muted', 'sticky', 'renderer-notice']) {
     const element = new Element(id === 'main' ? 'main' : 'input');
     element.id = id;
     element.checked = id === 'perspective';
@@ -136,23 +136,18 @@ test('actual Game auto-layout resize leaves the matching separate-hand viewport,
   assert.equal(h.game.adapter.latest.presentation.handLayout, 'in-table');
   assert.equal(h.game.renderer.viewport.handBandCssPx, 0);
   const transmitted = [];
-  // Only the receiver boundary is simulated; every measurement, hook, and
-  // outbound DTO is produced by the actual Game/UnityHost implementation.
-  h.game.renderer.instance = {
-    SendMessage(receiver, method, json) {
-      assert.equal(receiver, 'MahjongBridge');
-      if (method === 'SetViewport') transmitted.push(JSON.parse(json));
-    },
-    Quit: async () => {},
+  const resized = h.game.renderer.hooks.resized;
+  h.game.renderer.hooks.resized = viewport => {
+    resized(viewport);
+    if (h.game.renderer.viewport === viewport) transmitted.push(plain(viewport));
   };
-  h.game.renderer.handshake = true;
   const before = h.game.renderer.viewport.resizeRevision;
   h.resize(390, 844);
   assert.equal(h.game.adapter.latest.presentation.boardLayout, 'rectangular');
   assert.equal(h.game.adapter.latest.presentation.handLayout, 'separate');
   assert(h.game.renderer.viewport.resizeRevision > before);
   assert(h.game.renderer.viewport.handBandCssPx > 0,
-    'Actual Game resize hook re-enters UnityHost measurement; the newest separate-hand measurement must win');
+    'Actual Game resize hook re-enters WebglHost measurement; the newest separate-hand measurement must win');
   assert.equal(transmitted.length, 1, 'A superseded outer measurement must not be transmitted');
   assert.equal(transmitted[0].handBandCssPx, h.game.renderer.viewport.handBandCssPx);
   assert.equal(transmitted[0].resizeRevision, h.game.renderer.viewport.resizeRevision);

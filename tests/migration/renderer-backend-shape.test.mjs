@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, plain, thing } from '../../src/frontend/autotable-src/tests/node/unity-test-support.mjs';
+import { gameHarness, plain, thing } from '../../src/frontend/autotable-src/tests/node/renderer-test-support.mjs';
 
 for (const dealMode of ['auto', 'manual']) {
   test(`real Client/World caller preserves backend variant but publishes exact renderer conditions (${dealMode})`, t => {

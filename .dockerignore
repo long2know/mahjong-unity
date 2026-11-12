@@ -100,13 +100,9 @@ compose.override.yml
 .DS_Store
 Thumbs.db
 
-# Runtime builds consume only the real, validated Unity output, not editor caches.
+# Retired engine exports and all local artifacts are never image build inputs.
 unity/
-# Reopen the parent before excluding its children; its negation must not admit other artifacts.
-!artifacts/
-artifacts/**
-!artifacts/unity-webgl/
-!artifacts/unity-webgl/**
+artifacts/
 
 # These exclusions must follow the artifact exception: never copy licensing,
 # operator configuration, database files, or build/test logs into an image.
@@ -126,8 +122,6 @@ artifacts/**
 **/*.db
 **/*.sqlite
 **/*.sqlite3
-artifacts/unity-webgl/**/*.log
-artifacts/unity-webgl/**/*.tmp
 **/.test-fixtures/
 **/__pycache__/
 **/*.pyc

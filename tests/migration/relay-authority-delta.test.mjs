@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, thing } from '../../src/frontend/autotable-src/tests/node/unity-test-support.mjs';
+import { gameHarness, thing } from '../../src/frontend/autotable-src/tests/node/renderer-test-support.mjs';
 
 for (const variant of ['FOUR_PLAYER', 'THREE_PLAYER', 'BAMBOO', 'MINEFIELD']) {
   test(`actual ${variant} relay FULL followed by standard seat DELTA remains renderable without invented FULL`, t => {

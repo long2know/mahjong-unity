@@ -245,3 +245,4 @@ export async function setGamePublic(args: {
 export function navigateToGame(gameId: string): void {
   window.location.replace(buildRoomJoinUrl(gameId));
 }
+import { appFetch as fetch } from './app-url';
