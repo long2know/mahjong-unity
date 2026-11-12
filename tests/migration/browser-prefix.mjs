@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { installInputTrace, probeProvenance } from './browser-input-trace.mjs';
 
 const root = process.cwd();
 const require = createRequire(path.join(root, 'src/frontend/autotable-src/package.json'));
@@ -13,9 +15,14 @@ const prefix = target.pathname.replace(/\/$/, '');
 const publicRoot = target.origin + prefix;
 const name = process.env.PREFIX_CASE_NAME ?? 'native-prefix';
 assert.match(name, /^[a-z0-9-]+$/);
-const output = path.join(root, 'artifacts/base-url', name);
+const outputRoot = process.env.PREFIX_OUTPUT_ROOT ?? 'artifacts/base-url';
+const traceRoot = process.env.PREFIX_TRACE_ROOT ?? 'artifacts/runtime-input-trace/canonical';
+assert(path.resolve(root, outputRoot).startsWith(path.join(root, 'artifacts') + path.sep));
+assert(path.resolve(root, traceRoot).startsWith(path.join(root, 'artifacts/runtime-input-trace') + path.sep));
+const output = path.join(root, outputRoot, name);
 fs.mkdirSync(output, { recursive: true });
 const receipt = { status: 'running', target: publicRoot, prefix,
+  ...probeProvenance(root),
   qualification: process.env.PREFIX_QUALIFICATION ?? 'Native ASP.NET path-base browser case; not nginx evidence',
   requests: [], sockets: [], sent: [], pageErrors: [], cases: [] };
 const browser = await chromium.launch({
@@ -24,6 +31,7 @@ const browser = await chromium.launch({
     '--ignore-certificate-errors', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'],
 });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'allow', ignoreHTTPSErrors: true });
+await context.addInitScript(installInputTrace);
 await context.addInitScript(() => {
   const NativeSocket = window.WebSocket;
   window.__prefixSockets = [];
@@ -49,6 +57,23 @@ async function ready() {
     && window.game.renderer.scene.committed?.frame.session.snapshotReady
     && window.game.renderer.scene.committed.frame.entities.length > 50, null, { timeout: 45000 });
 }
+async function saveInputTrace(stage) {
+  if (receipt.inputTrace) return;
+  const trace = await page.evaluate(() => window.__runtimeInputTrace?.snapshot()).catch(() => null);
+  if (!trace?.attached) return;
+  const file = path.join(traceRoot, name, 'input-trace.json');
+  fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+  const content = JSON.stringify({ applicationSourceSha: receipt.applicationSourceSha,
+    apiSourceSha: receipt.apiSourceSha, applicationManifestSha256: receipt.applicationManifestSha256,
+    probeSourceSha: receipt.probeSourceSha, probeFiles: receipt.probeFiles,
+    qualification: receipt.qualification, prefix, stage,
+    requestedGesture: { kind: 'page.mouse.dblclick', delay: 20 },
+    rawDiscardCount: receipt.sent.flatMap(message => message.entries ?? []).filter(entry => entry[0] === 'discard').length,
+    ...trace }, null, 2) + '\n';
+  fs.writeFileSync(path.join(root, file), content);
+  receipt.inputTrace = { path: file, sha256: createHash('sha256').update(content).digest('hex'),
+    stage, records: trace.records.length, dropped: trace.dropped, observerErrors: trace.observerErrors };
+}
 try {
   const health = await (await context.request.get(target.origin + prefix + '/health')).json();
   const buildResponse = await context.request.get(publicRoot + '/web-build.json');
@@ -57,6 +82,9 @@ try {
   assert.equal(build.sourceRevision, health.buildSha);
   if (process.env.EXPECTED_SOURCE_SHA) assert.equal(build.sourceRevision, process.env.EXPECTED_SOURCE_SHA);
   receipt.source = build.sourceRevision;
+  receipt.applicationSourceSha = build.sourceRevision;
+  receipt.apiSourceSha = health.buildSha;
+  receipt.applicationManifestSha256 = createHash('sha256').update(await buildResponse.body()).digest('hex');
   assert(!buildResponse.headers()['content-security-policy'].includes("'wasm-unsafe-eval'"));
   const entry = await context.request.get(publicRoot + '/?action=none', { maxRedirects: 0 });
   assert.equal(entry.status(), 200, 'the public mount must serve the UI directly, never redirect to a legacy suffix');
@@ -90,6 +118,7 @@ try {
     gameId: room, createGame: room, variant: 'changsha', seat: '0', botCount: '3', dealMode: 'auto', seed: '20261010',
   }));
   await ready();
+  await page.evaluate(() => window.__runtimeInputTrace.attach());
   await page.waitForFunction(() => window.__prefixSockets.some(socket => socket.url.includes('/hubs/changsha') && socket.readyState === 1));
   const hubCount = await page.evaluate(() => window.__prefixSockets.filter(socket => socket.url.includes('/hubs/changsha')).length);
   await page.evaluate(() => window.__prefixSockets.find(socket => socket.url.includes('/hubs/changsha') && socket.readyState === 1).close());
@@ -101,16 +130,24 @@ try {
   const tile = await page.evaluate(() => {
     const scene = window.game.renderer.scene;
     const entity = scene.committed.frame.entities.find(entity => entity.interaction.canDiscard && entity.appearance.showFace);
-    return { id: entity.entityId, ...scene.project(entity.entityId) };
+    const tile = { id: entity.entityId, ...scene.project(entity.entityId) };
+    window.__runtimeInputTrace.mark('target-selected', tile);
+    return tile;
   });
   const box = await page.locator('#webgl-canvas').boundingBox();
   const targetPoint = { x: box.x + tile.x, y: box.y + tile.y };
-  assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, targetPoint), 'webgl-canvas');
+  assert.equal(await page.evaluate(({ x, y }) => {
+    window.__runtimeInputTrace.mark('dblclick-request', { x, y, delay: 20 });
+    return document.elementFromPoint(x, y)?.id;
+  }, targetPoint), 'webgl-canvas');
   const before = receipt.sent.flatMap(message => message.entries ?? []).filter(entry => entry[0] === 'discard').length;
   await page.mouse.dblclick(targetPoint.x, targetPoint.y, { delay: 20 });
   await page.waitForFunction(id => !window.game.adapter.latest.localHand.entityIds.includes(id), tile.id);
   await page.waitForTimeout(150);
   assert.equal(receipt.sent.flatMap(message => message.entries ?? []).filter(entry => entry[0] === 'discard').length, before + 1);
+  await saveInputTrace('authoritative-discard-assertions-passed');
+  assert.equal(receipt.inputTrace.observerErrors, 0, 'input trace observers must be intact');
+  assert.equal(receipt.inputTrace.dropped, 0, 'the bounded trace must retain the entire gesture');
   await page.screenshot({ path: path.join(output, 'mounted-game-progressed.png'), fullPage: true });
   receipt.cases.push({ name: 'actual-authoritative-discard-and-assets-under-mount', serverRemovedFromHand: true });
   await page.locator('#settings-button').click(); await page.keyboard.press('Escape');
@@ -166,6 +203,7 @@ try {
   receipt.status = 'passed';
 } catch (error) {
   receipt.status = 'failed'; receipt.error = error.message;
+  await saveInputTrace('failed');
   receipt.inputState = await page.evaluate(() => {
     const renderer = window.game?.renderer;
     return { state: renderer?.state, inputBlocked: renderer?.inputBlocked, suspended: renderer?.suspended,

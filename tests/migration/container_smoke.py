@@ -14,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from runtime_probe import artifact_output, probe_provenance
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "artifacts/test-results/web-container"
@@ -27,10 +28,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
     parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--output-dir", default="artifacts/test-results/web-container",
+                        help="Checkout-relative artifact directory; defaults preserve publisher paths.")
     args = parser.parse_args()
     if not re.fullmatch(r"[a-f0-9]{40}", args.source_sha):
         raise ValueError("An exact clean source SHA is required.")
-    OUT.mkdir(parents=True, exist_ok=True)
+    output = artifact_output(ROOT, args.output_dir)
+    output.mkdir(parents=True, exist_ok=True)
     name = "mahjong-web-smoke-" + uuid.uuid4().hex
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
@@ -38,9 +42,10 @@ def main():
     assert port != 5086
     base = f"http://127.0.0.1:{port}"
     receipt = {"artifactKind": "mahjong-web-container-runtime", "status": "running", "source": args.source_sha,
+               "applicationSourceSha": args.source_sha, **probe_provenance(ROOT),
                "image": args.image, "origin": base, "requests": [], "qualification": "real Docker build/runtime/static smoke; browser gameplay separate",
                "recordedAtUtc": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-    save = lambda: (OUT / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    save = lambda: (output / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     environment = dict(os.environ, Authentication__JwtSigningKeys__0=base64.b64encode(os.urandom(48)).decode(),
                        Auth__JwtSigningKeys__0=base64.b64encode(os.urandom(48)).decode())
     attempted = False

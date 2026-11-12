@@ -106,7 +106,10 @@ class PublicationTests(unittest.TestCase):
             self.assertIn("          name: candidate-runtime-${{ github.run_id }}-${{ github.run_attempt }}\n", steps[upload])
             self.assertIn("          if-no-files-found: error\n", steps[upload])
             paths = textwrap.dedent(steps[upload].split("          path: |\n", 1)[1]).strip().splitlines()
-            expected = textwrap.dedent(canonical.split("          path: |\n", 1)[1]).strip().splitlines()
+            canonical_uploads = [step for step in re.split(r"(?m)(?=^      - )", canonical)
+                                 if re.search(r"(?m)^          name: web-image-runtime$", step)]
+            self.assertEqual(len(canonical_uploads), 1)
+            expected = textwrap.dedent(canonical_uploads[0].split("          path: |\n", 1)[1]).strip().splitlines()
             self.assertEqual(paths, ["source/" + path for path in expected])
             self.assertIn(re.search(r"actions/setup-node@[0-9a-f]{40}", canonical).group(), "".join(steps[build + 1:runtime]))
 
