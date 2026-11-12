@@ -117,6 +117,7 @@ try {
   await page.locator('#lobby-toggle').click();
   assert.equal(new URL(page.url()).origin, target.origin);
   assert.equal(new URL(page.url()).pathname, prefix + '/');
+  await page.locator('#lobby-close').click();
   const previousRoom = new URL(page.url()).searchParams.get('gameId');
   await Promise.all([
     page.waitForURL(url => url.searchParams.get('gameId') !== previousRoom && url.pathname === prefix + '/'),
