@@ -1320,9 +1320,6 @@ using (var scope = app.Services.CreateScope())
 var changshaRuntime = app.Services.GetRequiredService<IChangshaGameRuntime>();
 await changshaRuntime.HydrateAsync(app.Services, app.Lifetime.ApplicationStopping);
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
 var autotablePath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "../../../frontend/autotable"));
 Mahjong.Autotable.Api.Hosting.BrowserStaticHosting.UseAutotableFiles(app, autotablePath, app.Configuration, app.Logger);
 
