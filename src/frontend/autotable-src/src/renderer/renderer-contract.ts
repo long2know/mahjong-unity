@@ -117,9 +117,13 @@ type Schema = {
 };
 const definitions = schema.definitions as unknown as Record<string, Schema>;
 export class ContractError extends Error {}
+class ValidationFailure {
+  constructor(readonly path: string) {}
+}
 
 function valid(rule: Schema, value: unknown, path: string): void {
-  const fail = (): never => { throw new ContractError(`Invalid renderer DTO at ${path}.`); };
+  // Union/conditional probes commonly fail on valid DTOs; capture a stack only at rejection.
+  const fail = (): never => { throw new ValidationFailure(path); };
   const matches = (candidate: Schema): boolean => {
     try { valid(candidate, value, path); return true; } catch { return false; }
   };
@@ -170,7 +174,11 @@ function valid(rule: Schema, value: unknown, path: string): void {
 export function assertDto<T>(definition: string, value: unknown): asserts value is T {
   const rule = definitions[definition];
   if (!rule) throw new ContractError('Unknown renderer DTO definition.');
-  valid(rule, value, definition);
+  try { valid(rule, value, definition); }
+  catch (error) {
+    if (error instanceof ValidationFailure) throw new ContractError(`Invalid renderer DTO at ${error.path}.`);
+    throw error;
+  }
 }
 
 export function opaqueId(prefix: string): string {
