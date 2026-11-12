@@ -5,7 +5,7 @@ import type { Client } from './client';
 
 let mounted = false;
 
-/** Retained DOM effects mount without waiting for Unity or claiming a rendered-frame receipt. */
+/** DOM effects mount independently of the GPU rendered-frame receipt. */
 export async function mountEffects(game: Game, client: Client): Promise<void> {
   if (!mounted) {
     mounted = true;

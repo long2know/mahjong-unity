@@ -99,6 +99,7 @@ function harness({ status = 200, deferMetadata = false } = {}) {
     modules[key] = module.exports;
     return module.exports;
   };
+  load('app-url.ts', './app-url');
   const gameState = load('game-state.ts', './game-state');
   load('base-client.ts', './base-client');
   const { Client } = load('client.ts', './client');

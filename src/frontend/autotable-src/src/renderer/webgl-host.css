@@ -1,0 +1,16 @@
+.webgl-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.webgl-seat {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    max-width: 9rem;
+    padding: .18rem .4rem;
+    border-radius: .3rem;
+    color: #e5eee9;
+    background: rgba(8, 24, 27, .86);
+    font: 600 clamp(9px, 1.15vw, 13px)/1.2 system-ui, sans-serif;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.webgl-seat.active { color: #ffe4a0; border: 1px solid #cdb56d; }

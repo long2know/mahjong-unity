@@ -211,7 +211,7 @@ function dispatchSpectate(): void {
 
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/spectate';
+    url.pathname = appUrl('/spectate');
     url.searchParams.delete('action');
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   } catch {
@@ -333,7 +333,7 @@ async function fetchHandoffAndOpenSpectator(gameId: string): Promise<void> {
   // the canonical reference for a spectator session.
   const encodedId = encodeURIComponent(gameId);
   const encodedToken = encodeURIComponent(token);
-  const canonicalPath = `/spectate/${encodedId}`;
+  const canonicalPath = appUrl(`/spectate/${encodedId}`);
   const canonicalQuery = `?token=${encodedToken}`;
   const canonicalHash = `#/spectate/${encodedId}`;
   try {
@@ -368,12 +368,12 @@ function redirectToLobbyForSignIn(): void {
   // and re-try the spectator deep-link.
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/';
+    url.pathname = appUrl('/');
     url.search = '';
     url.hash = '';
     window.location.replace(url.toString());
   } catch {
-    window.location.href = '/';
+    window.location.href = appUrl('/');
   }
 }
 
@@ -399,7 +399,7 @@ async function showGameNotFoundToast(): Promise<void> {
 function dispatchTournament(): void {
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/tournament/list';
+    url.pathname = appUrl('/tournament/list');
     url.searchParams.delete('action');
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   } catch {
@@ -509,7 +509,7 @@ async function fetchAndOpenReplay(replayId: string): Promise<void> {
   // forward + share-link symmetry land at a clean path post-dispatch.
   try {
     const url = new URL(window.location.href);
-    url.pathname = `/replay/${encodeURIComponent(replayId)}`;
+    url.pathname = appUrl(`/replay/${encodeURIComponent(replayId)}`);
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   } catch {
     /* ignore */
@@ -561,7 +561,7 @@ function dispatchBracket(): void {
   const tournamentId = rawId;
   try {
     const url = new URL(window.location.href);
-    url.pathname = `/tournament/${encodeURIComponent(tournamentId)}/brackets`;
+    url.pathname = appUrl(`/tournament/${encodeURIComponent(tournamentId)}/brackets`);
     url.searchParams.delete('action');
     url.searchParams.delete('tournamentId');
     window.history.replaceState(
@@ -605,7 +605,7 @@ async function showTournamentNotFoundToast(): Promise<void> {
 function dispatchReplays(): void {
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/replays';
+    url.pathname = appUrl('/replays');
     url.searchParams.delete('action');
     window.history.replaceState(
       window.history.state,
@@ -653,7 +653,7 @@ async function mountReplaysListing(): Promise<void> {
 function dispatchAdminCost(): void {
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/admin/commentary-cost';
+    url.pathname = appUrl('/admin/commentary-cost');
     url.searchParams.delete('action');
     window.history.replaceState(
       window.history.state,
@@ -727,7 +727,7 @@ function dispatchCostForecast(): void {
 
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/admin/commentary-cost/forecast';
+    url.pathname = appUrl('/admin/commentary-cost/forecast');
     url.searchParams.delete('action');
     url.searchParams.delete('days');
     window.history.replaceState(
@@ -795,7 +795,7 @@ async function gateAndMountCostForecast(daysRaw: string | null): Promise<void> {
 function dispatchAdminPanel(): void {
   try {
     const url = new URL(window.location.href);
-    url.pathname = '/admin/policies';
+    url.pathname = appUrl('/admin/policies');
     url.searchParams.delete('action');
     window.history.replaceState(
       window.history.state,
@@ -884,3 +884,4 @@ export function handlePwaActionFromUrl(): boolean {
       return false;
   }
 }
+import { appFetch as fetch, appUrl } from './app-url';

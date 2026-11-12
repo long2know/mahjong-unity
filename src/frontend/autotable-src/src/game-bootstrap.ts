@@ -25,7 +25,7 @@ export async function bootstrapGame(): Promise<void> {
     const loading = document.getElementById('loading');
     if (loading) {
       loading.hidden = false;
-      loading.textContent = 'Unity table could not start in this browser. Reload the page; lobby/chat remain available.';
+      loading.textContent = 'Table renderer could not start in this browser. Reload the page; lobby/chat remain available.';
     }
   }
 }

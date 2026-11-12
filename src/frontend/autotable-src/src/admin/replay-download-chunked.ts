@@ -144,9 +144,10 @@ export const REPLAY_DOWNLOAD_CHUNKED_SPEC: AdminSurfaceSpec<ReplayChunkRow, neve
       render: (r) => r.warmthState === 'cold'
         ? ({ __html: '<span class="admin-panel-muted">cold</span>' })
         : ({
-          __html: `<a href="/api/admin/replays/${encodeURIComponent(r.replayId)}/chunks/${r.chunkIndex}" `
+          __html: `<a href="${appUrl(`/api/admin/replays/${encodeURIComponent(r.replayId)}/chunks/${r.chunkIndex}`)}" `
             + `class="admin-panel-link" download>Get chunk</a>`,
         }),
     },
   ],
 };
+import { appUrl } from '../app-url';

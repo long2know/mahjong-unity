@@ -369,3 +369,4 @@ export function applyOnboardingProfile(
 export function markOnboardingCompleteExported(): void {
   markOnboardingComplete();
 }
+import { appFetch as fetch } from './app-url';

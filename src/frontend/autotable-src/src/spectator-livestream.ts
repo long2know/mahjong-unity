@@ -77,7 +77,7 @@ export async function openSpectatorLivestream(opts: SpectatorLivestreamOptions):
     return;
   }
 
-  await attachAudio(url);
+  await attachAudio(appUrl(url));
   await subscribeSpectatorCount(opts.tableId);
 }
 
@@ -361,3 +361,4 @@ export function installSpectatorRoute(): void {
   // Fire once at install to catch deep-link arrivals.
   onHashChange();
 }
+import { appFetch as fetch, appUrl } from './app-url';

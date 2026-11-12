@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { root, require } from './unity-test-support.mjs';
+import { root, require } from './renderer-test-support.mjs';
 
 const { chromium } = require('@playwright/test');
 const { buildSync } = require('esbuild');
@@ -18,12 +18,12 @@ function productionModules() {
       contents: `
         import * as shell from './src/browser-shell.ts';
         import * as drawers from './src/ui/drawer-accessibility.ts';
-        import * as host from './src/renderer/unity-host.ts';
+        import * as host from './src/renderer/webgl-host.ts';
         import * as moves from './src/move-log.ts';
         import * as claims from './src/ui/claim-window-overlay.ts';
         window.shellSource = {
           'browser-shell.ts': shell, 'ui/drawer-accessibility.ts': drawers,
-          'renderer/unity-host.ts': host, 'move-log.ts': moves, 'ui/claim-window-overlay.ts': claims,
+          'renderer/webgl-host.ts': host, 'move-log.ts': moves, 'ui/claim-window-overlay.ts': claims,
         };
       `,
     },
@@ -36,7 +36,7 @@ const markup = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 const styles = [
   'node_modules/bootstrap/dist/css/bootstrap.css', 'src/style.css', 'src/main.css',
   'src/ui/hicks-mobile-sidebar.css', 'src/browser-shell.css', 'src/mobile-table.css',
-  'src/renderer/unity-host.css', 'src/ui/rule-action-controls.css', 'src/ui/claim-window-overlay.css',
+  'src/renderer/renderer-host.css', 'src/ui/rule-action-controls.css', 'src/ui/claim-window-overlay.css',
 ].map(file => fs.readFileSync(path.join(root, file), 'utf8')).join('\n');
 
 async function measure(page) {
@@ -74,7 +74,7 @@ async function measure(page) {
       variant: { ...rect(variant), scrollWidth: variant.scrollWidth, clientWidth: variant.clientWidth },
       turn: rect(document.getElementById('turn-banner')),
       reduced: getComputedStyle(document.getElementById('settings-button')).transitionDuration,
-      markers: [...document.querySelectorAll('#unity-renderer-ready, #scene-shell-ready')].length,
+      markers: [...document.querySelectorAll('#webgl-renderer-ready, #scene-shell-ready')].length,
     };
   });
 }
@@ -118,12 +118,12 @@ function assertLayout(result, state) {
   assert(result.clear.bottom - result.clear.top - result.viewport.handBandCssPx >= 120, `${at}: no clear board above hand`);
 }
 
-test('production shell + UnityHost reserve unobstructed controls, panels and hand space at phone, landscape and desktop sizes', async t => {
+test('production shell + WebglHost reserve unobstructed controls, panels and hand space at phone, landscape and desktop sizes', async t => {
   const executablePath = process.env.CHROMIUM_EXECUTABLE_PATH;
   if (executablePath) assert(fs.existsSync(executablePath), 'CHROMIUM_EXECUTABLE_PATH must point to an installed browser');
   // Chromium's singleton socket must stay below the Unix-domain path limit.
-  const runtime = path.join(root, 'tests/node/.b');
-  fs.mkdirSync(runtime);
+  const runtime = path.resolve(root, `../../../.work/shell-${process.pid}`);
+  fs.mkdirSync(runtime, { recursive: true });
   const previousTemp = process.env.TMPDIR;
   process.env.TMPDIR = runtime;
   let browser;
@@ -162,13 +162,13 @@ test('production shell + UnityHost reserve unobstructed controls, panels and han
           window.shellSource['browser-shell.ts'].installBrowserShell();
           const claim = new window.shellSource['ui/claim-window-overlay.ts'].ClaimWindowOverlay({}).buildDom();
           document.getElementById('browser-action-slot').appendChild(claim);
-          const { UnityHost } = window.shellSource['renderer/unity-host.ts'];
-          window.shellHost = new UnityHost(document.getElementById('main'), {
+          const { WebglHost } = window.shellSource['renderer/webgl-host.ts'];
+          window.shellHost = new WebglHost(document.getElementById('main'), {
             action() {}, resized() {}, resumed() {}, failure() {}, notice() {},
           });
           // No player is mounted. Only the actual host's DOM measurement and
           // validated viewport DTO are used to assert the rendering boundary.
-          document.getElementById('unity-status').hidden = true;
+          document.getElementById('renderer-status').hidden = true;
           window.shellHost.setPresentation({ handLayout: 'separate' });
         });
         let result = await measure(page);
@@ -293,11 +293,11 @@ test('production shell + UnityHost reserve unobstructed controls, panels and han
           document.body.className = 'variant-changsha theme-light';
           new window.shellSource['move-log.ts'].MoveLog({});
           window.shellSource['browser-shell.ts'].installBrowserShell();
-          const { UnityHost } = window.shellSource['renderer/unity-host.ts'];
-          window.shellHost = new UnityHost(document.getElementById('main'), {
+          const { WebglHost } = window.shellSource['renderer/webgl-host.ts'];
+          window.shellHost = new WebglHost(document.getElementById('main'), {
             action() {}, resized() {}, resumed() {}, failure() {}, notice() {},
           });
-          document.getElementById('unity-status').hidden = true;
+          document.getElementById('renderer-status').hidden = true;
           window.shellHost.setPresentation({ handLayout: 'separate' });
           const canvas = window.shellHost.canvas;
           const gl = canvas.getContext('webgl2');
@@ -318,7 +318,7 @@ test('production shell + UnityHost reserve unobstructed controls, panels and han
         await measure(page);
         for (const focused of [false, true]) {
           if (focused) {
-            await page.locator('#unity-canvas').focus();
+            await page.locator('#webgl-canvas').focus();
             await page.keyboard.press('ArrowLeft');
           }
           const screenshot = await page.screenshot();

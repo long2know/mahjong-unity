@@ -182,7 +182,7 @@ export class TableCameraControls {
     }
     this.contacts.delete(event.pointerId);
     if (this.contacts.size === 0) this.consumed = false;
-    // Do not unblock here: Unity may still be processing this contact's release.
+    // The renderer's release listener can still be processing this contact.
   };
 
   private canceled = (event: PointerEvent): void => {

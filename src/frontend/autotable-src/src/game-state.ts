@@ -213,3 +213,4 @@ onIdentityBootstrap(value => {
 onHubConnected(() => {
   if (roomId !== null) void refreshGameState();
 });
+import { appFetch as fetch } from './app-url';

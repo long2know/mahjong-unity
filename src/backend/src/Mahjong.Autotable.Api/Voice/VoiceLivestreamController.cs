@@ -84,7 +84,7 @@ public sealed class VoiceLivestreamController : ControllerBase
             gameId,
             ReconnectAuditEntry.KindVoiceLivestreamStart,
             ct);
-        return Ok(handle);
+        return Ok(handle with { PlaylistUrl = Request.PathBase.Add(handle.PlaylistUrl).ToUriComponent() });
     }
 
     [HttpPost("{gameId:guid}/stop")]
@@ -110,7 +110,7 @@ public sealed class VoiceLivestreamController : ControllerBase
             gameId,
             ReconnectAuditEntry.KindVoiceLivestreamStop,
             ct);
-        return Ok(handle);
+        return Ok(handle with { PlaylistUrl = Request.PathBase.Add(handle.PlaylistUrl).ToUriComponent() });
     }
 
     [HttpGet("{gameId:guid}/playlist.m3u8")]

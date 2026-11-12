@@ -183,7 +183,7 @@ function wireCloseHandler(overlay: HTMLElement): void {
     closeOverlay();
     try {
       const url = new URL(window.location.href);
-      url.pathname = '/';
+      url.pathname = appUrl('/');
       url.search = '';
       window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
     } catch { /* ignore */ }
@@ -250,3 +250,4 @@ export async function openReplaysListing(): Promise<void> {
   overlay.innerHTML = renderTable(rows);
   wireCloseHandler(overlay);
 }
+import { appFetch as fetch, appUrl } from './app-url';

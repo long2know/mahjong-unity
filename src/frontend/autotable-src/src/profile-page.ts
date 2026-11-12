@@ -542,3 +542,4 @@ function formatMemberSince(): string {
   } catch { /* ignore */ }
   return 'New member';
 }
+import { appFetch as fetch } from './app-url';

@@ -224,7 +224,7 @@ export async function gateAdminFetch(
 
 function redirectForSignIn(): void {
   try {
-    window.location.assign('/');
+    window.location.assign(appUrl('/'));
   } catch { /* ignore */ }
 }
 
@@ -389,3 +389,4 @@ export function collectFormValues(form: HTMLFormElement): Record<string, string>
   }
   return out;
 }
+import { appFetch as fetch, appUrl } from '../app-url';

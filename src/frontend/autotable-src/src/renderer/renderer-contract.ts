@@ -2,9 +2,6 @@ import schema from '../../../../../contracts/renderer-v1.schema.json';
 import type { Conditions, GameType, MatchInfo, ThingType } from '../types';
 
 export const CONTRACT_VERSION = '1.0.0' as const;
-export const UNITY_VERSION = '6000.3.24f1' as const;
-export const BRIDGE_RECEIVER = 'MahjongBridge';
-export const MANIFEST_URL = '/autotable/unity/renderer-build.json';
 
 export type Group = 'hand' | 'meld' | 'wall' | 'wall.open' | 'discard' | 'kita' | 'tray' | 'payment' | 'riichi' | 'marker';
 export type Phase = 'Seating' | 'RollingDice' | 'Dealing' | 'BreakPointMarked' | 'PickupRound1' | 'PickupRound2'
@@ -89,14 +86,6 @@ export interface Viewport extends Envelope {
   insetsCssPx: { top: number; right: number; bottom: number; left: number };
   handBandCssPx: number;
 }
-export interface Artifact { path: string; bytes: number; sha256: string }
-export interface BuildManifest {
-  artifactKind: 'unity-webgl'; contractVersion: typeof CONTRACT_VERSION; buildId: string; unityVersion: typeof UNITY_VERSION;
-  unityRevision: '4e7b9b5b6244'; compression: 'none'; threading: 'single-threaded'; developmentBuild: boolean;
-  baselineRevision: 'd10d351e543aa3e341960de9800828b6c0662a82'; rendererSourceRevision: string;
-  rendererSourceTreeSha256: string; sourceDirty: boolean; builtAtUtc: string;
-  loader: Artifact; framework: Artifact; data: Artifact; wasm: Artifact; streamingAssetsPath: string | null;
-}
 export type Intent =
   | { kind: 'discard'; entityId: string }
   | { kind: 'takePickup'; triggerEntityId: string }
@@ -112,7 +101,6 @@ export interface ActionResult extends SessionEnvelope {
   type: 'actionResult'; actionId: string; status: 'submitted' | 'local' | 'ignored' | 'rejected';
   reason: 'stale-session' | 'stale-entity' | 'not-actionable' | 'invalid-target' | 'protocol-unavailable' | null;
 }
-export interface Ready extends Envelope { type: 'ready'; buildId: string; unityVersion: typeof UNITY_VERSION }
 export interface FrameRendered extends SessionEnvelope { type: 'frameRendered'; frameId: number; layoutRevision: number }
 export interface RendererError extends Envelope {
   type: 'error'; sessionId: string | null;
@@ -120,7 +108,6 @@ export interface RendererError extends Envelope {
   message: string;
 }
 export type ClearReason = 'join' | 'disconnect' | 'authority-change' | 'protocol-unavailable' | 'dispose';
-export type ReceiverMethod = 'Configure' | 'Clear' | 'ApplyLayout' | 'ApplyFrame' | 'SetViewport' | 'SetPlayback' | 'CancelInput' | 'ReceiveActionResult';
 
 type Schema = {
   $ref?: string; type?: string; const?: unknown; enum?: unknown[]; properties?: Record<string, Schema>; required?: string[];

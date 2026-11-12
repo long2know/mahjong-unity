@@ -489,8 +489,8 @@ async function connectVoiceHub(): Promise<VoiceSignaller | null> {
 function voiceHubUrl(): string {
   const params = new URLSearchParams(window.location.search);
   const override = params.get('voiceHub');
-  if (override !== null && override !== '') return override;
-  return '/hubs/voice';
+  if (override !== null && override !== '') return appUrl(override);
+  return appUrl('/hubs/voice');
 }
 
 function wireSignaller(s: VoiceSignaller): void {
@@ -670,3 +670,4 @@ export function shutdownVoice(): void {
     stateUnsub = null;
   }
 }
+import { appFetch as fetch, appUrl } from './app-url';
