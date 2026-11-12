@@ -44,7 +44,7 @@ def main():
     receipt["imageId"] = image["Id"]
     save()
     try:
-        for index, prefix in enumerate(("/mahjong", "/games/mahjong", "/My%20Game")):
+        for index, prefix in enumerate(("", "/mahjong", "/games/mahjong", "/My%20Game")):
             name = "base-url-" + uuid.uuid4().hex
             network, app, proxy = name + "-net", name + "-app", name + "-nginx"
             fixture = OUT / name
@@ -124,15 +124,16 @@ http {
                         time.sleep(.5)
                 else:
                     raise ValueError("nginx-prefixed synthetic app never became healthy")
-                with urllib.request.urlopen(origin + prefix + "/autotable/web-build.json", context=context) as response:
+                with urllib.request.urlopen(origin + prefix + "/web-build.json", context=context) as response:
                     data = response.read(); build = json.loads(data)
                 assert build["sourceRevision"] == args.source_sha and build["engine"] == "webgl2"
                 case["webBuildSha256"] = hashlib.sha256(data).hexdigest()
-                try:
-                    urllib.request.urlopen(origin + "/api/identity", context=context)
-                    raise AssertionError("Wrong-root API unexpectedly escaped the configured prefix.")
-                except urllib.error.HTTPError as error:
-                    assert error.code == 404
+                if prefix:
+                    try:
+                        urllib.request.urlopen(origin + "/api/identity", context=context)
+                        raise AssertionError("Wrong-root API unexpectedly escaped the configured prefix.")
+                    except urllib.error.HTTPError as error:
+                        assert error.code == 404
                 browser_name = "hosted-nginx-" + str(index)
                 env = dict(os.environ, TMPDIR=str(ROOT / ".work"), PREFIX_CASE_NAME=browser_name,
                            PREFIX_QUALIFICATION="Actual pinned nginx TLS/prefix proxy to hardened canonical Docker image",

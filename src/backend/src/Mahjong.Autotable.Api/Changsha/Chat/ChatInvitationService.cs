@@ -98,7 +98,7 @@ public sealed class ChatInvitationService
             var invite = new TableInviteDto(
                 Guid.NewGuid().ToString(), senderPlayerId, profile.DisplayName, profile.AvatarColor,
                 recipientPlayerId, room.RoomId, access.PublicName,
-                $"/autotable/?gameId={Uri.EscapeDataString(room.RoomId)}&variant=changsha&join=1",
+                $"/?gameId={Uri.EscapeDataString(room.RoomId)}&variant=changsha&join=1",
                 now, now.Add(InviteLifetime));
             _pending.Add(key, invite);
             await _hub.Clients.Group(LobbyPresenceService.PlayerGroup(recipientPlayerId))

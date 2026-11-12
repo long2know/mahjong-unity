@@ -175,7 +175,7 @@ public class AutotableWsEndpointTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?seat={seat}");
+        var uri = new Uri(server.BaseAddress, $"ws?seat={seat}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);
     }

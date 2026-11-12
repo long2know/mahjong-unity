@@ -44,7 +44,7 @@ export function sourceLoader(globals = {}, overrides = {}) {
 
 /** Real primary client/collections and World/Setup/Slot/Thing/Movement; only unrelated browser services are stubbed. */
 export function gameHarness(variant = 'CHANGSHA', { spectator = false } = {}) {
-  const location = new URL(`http://renderer.test/autotable/?variant=${variant}${spectator ? '&seat=-1' : ''}`);
+  const location = new URL(`http://renderer.test/?variant=${variant}${spectator ? '&seat=-1' : ''}`);
   const sockets = [], frames = [], clears = [], failures = [], sounds = [];
   class Socket {
     static OPEN = 1; static CLOSING = 2; static CLOSED = 3;
@@ -90,7 +90,7 @@ export function gameHarness(variant = 'CHANGSHA', { spectator = false } = {}) {
   let revision = 1, seat = spectator ? null : 0, room = 'room-a';
   const join = (id = room, actor = seat, rev = 1) => {
     room = id; seat = actor; revision = rev;
-    client.join(`ws://renderer.test/autotable/ws?variant=${variant}`, room);
+    client.join(`ws://renderer.test/ws?variant=${variant}`, room);
     const socket = sockets.at(-1);
     socket.open();
     socket.receive({

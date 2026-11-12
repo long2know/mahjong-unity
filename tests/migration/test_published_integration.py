@@ -305,7 +305,7 @@ class PublishedIntegrationTests(unittest.TestCase):
         status, _, content = self.request("/api/matchmaking/lobby")
         self.assertEqual(200, status)
         self.assertEqual([], json.loads(content)["games"])
-        status, _, content = self.request("/autotable/")
+        status, _, content = self.request("/")
         self.assertEqual(200, status)
         self.assertIn(b'id="lobby-panel"', content)
         for path in (
@@ -317,7 +317,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             self.assertEqual(b"", content)
             self.assertNotEqual("text/html", headers.get_content_type())
             policy = headers["Content-Security-Policy"]
-            self.assertIn("'wasm-unsafe-eval'", policy)
+            self.assertNotIn("'wasm-unsafe-eval'", policy)
             self.assertNotIn("'unsafe-eval'", policy)
             self.assertNotIn("Cross-Origin-Opener-Policy", headers)
             self.assertNotIn("Cross-Origin-Embedder-Policy", headers)
@@ -329,7 +329,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             {"WebSockets", "ServerSentEvents", "LongPolling"},
             {transport["transport"] for transport in json.loads(content)["availableTransports"]},
         )
-        status, _, _ = self.request("/autotable/ws")
+        status, _, _ = self.request("/ws")
         self.assertEqual(400, status)
         self.receipt["checks"]["initialHttpAndMissingBuild"] = True
 
@@ -340,7 +340,7 @@ class PublishedIntegrationTests(unittest.TestCase):
             "gameId": alias, "variant": "changsha", "seat": 0,
             "botCount": 0, "dealMode": "manual", "seed": 20260917,
         })
-        owner = self.peer("/autotable/ws?" + query, cookie)
+        owner = self.peer("/ws?" + query, cookie)
         owner.send({"type": "NEW"})
         joined = owner.wait(lambda message: message.get("type") == "JOINED")
         self.assertEqual(alias, joined["gameId"])
@@ -421,7 +421,7 @@ class PublishedIntegrationTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertNotIn(alias, [game["gameId"] for game in json.loads(content)["games"]])
         owner.close()
-        reconnect = self.peer("/autotable/ws?" + urllib.parse.urlencode({
+        reconnect = self.peer("/ws?" + urllib.parse.urlencode({
             "gameId": alias, "variant": "changsha", "join": 1,
         }), cookie)
         reconnect.send({"type": "JOIN", "gameId": alias})

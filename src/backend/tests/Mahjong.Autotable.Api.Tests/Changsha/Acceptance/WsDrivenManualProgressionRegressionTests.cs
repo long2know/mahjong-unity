@@ -83,7 +83,7 @@ public sealed class WsDrivenManualProgressionRegressionTests(ITestOutputHelper o
 
         var wsClient = server.CreateWebSocketClient();
         var uri = new Uri(server.BaseAddress,
-            $"autotable/ws?variant=changsha&dealMode=manual&botCount=3&botDifficulty=Hard"
+            $"ws?variant=changsha&dealMode=manual&botCount=3&botDifficulty=Hard"
             + $"&handCount=4&seat=1&seed=4100&gameId={relayGameId}");
         using var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         var reader = Task.Run(async () =>

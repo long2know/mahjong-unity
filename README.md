@@ -10,9 +10,9 @@ engine bundle or external Autotable installation/service is required.**
 Unsupported WebGL2 and GPU context loss fail visibly; there is no engine fallback.
 
 All five established modes remain: **Changsha, four-player, three-player, Bamboo
-and Minefield**. Existing lobby/chat, identity/reconnect, APIs and transport paths
-are retained. `/autotable/`, `/autotable/ws` and `/hubs/changsha` are compatibility
-addresses, not calls to an external Autotable server.
+and Minefield**. Existing lobby/chat, identity/reconnect and APIs are retained.
+The UI lives directly at the configured public mount, the raw relay at `/ws`,
+and SignalR at `/hubs/changsha`, all relative to that mount.
 
 ## Run from source
 
@@ -26,7 +26,7 @@ dotnet restore src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.cspro
 bash scripts/run-web.sh
 ```
 
-Open **http://127.0.0.1:5087/autotable/** and create a table normally.
+Open **http://127.0.0.1:5087/** and create a table normally.
 This foreground runner uses fresh synthetic SQLite/signing state under ignored
 `artifacts/webgl-only/`. It does not import an operator database/configuration or
 download another renderer. Set `MAHJONG_PORT` for another free loopback port and
@@ -44,7 +44,7 @@ bash build.sh --tag mahjong-web:local
 docker compose up -d --build
 ```
 
-New Compose installations default to **http://127.0.0.1:8950/autotable/**.
+New Compose installations default to **http://127.0.0.1:8950/**.
 Production uses a persistent `/data` volume, non-root UID/GID 1000, read-only
 root filesystem, dropped capabilities and no-new-privileges.
 
@@ -57,7 +57,8 @@ rollback image, not silently redirected; the new publishing path uses
 No registry promotion occurs during a source build or PR CI.
 
 To host below a path instead of site root, set runtime **`BASE_URL=/mahjong`**
-and open `/mahjong/autotable/` (or `/mahjong`, which redirects there).
+and open **https://games.long2know.com/mahjong/** behind your proxy. Only the
+trailing slash is canonicalized; no extra application suffix is added.
 No image rebuild is needed. See [runtime mount/nginx configuration](docs/integration/base-url.md)
 for nested/escaped paths, WebSocket forwarding, trusted proxies and healthchecks.
 

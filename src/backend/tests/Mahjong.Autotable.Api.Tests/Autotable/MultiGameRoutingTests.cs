@@ -204,7 +204,7 @@ public class MultiGameRoutingTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?gameId={encodedGameId}&seat=0");
+        var uri = new Uri(server.BaseAddress, $"ws?gameId={encodedGameId}&seat=0");
 
         // The server validates ?gameId= at the top of HandleConnectionAsync;
         // the WS handshake itself succeeds (the upgrade has already completed
@@ -236,7 +236,7 @@ public class MultiGameRoutingTests : IAsyncLifetime
 
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws?gameId={tooLong}&seat=0");
+        var uri = new Uri(server.BaseAddress, $"ws?gameId={tooLong}&seat=0");
 
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         try
@@ -326,7 +326,7 @@ public class MultiGameRoutingTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var uri = new Uri(server.BaseAddress, $"autotable/ws{query}");
+        var uri = new Uri(server.BaseAddress, $"ws{query}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new RelaySession(ws);
     }

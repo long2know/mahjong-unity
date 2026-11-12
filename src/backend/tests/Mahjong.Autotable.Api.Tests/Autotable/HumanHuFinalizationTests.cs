@@ -175,7 +175,7 @@ public sealed class HumanHuFinalizationTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode=auto&botCount=3";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}&dealMode=auto&botCount=3";
         var ws = await wsClient.ConnectAsync(new Uri(server.BaseAddress, path), CancellationToken.None);
         return new WsSession(ws);
     }

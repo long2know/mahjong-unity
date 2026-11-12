@@ -265,7 +265,7 @@ public class AutotableDisconnectSeatReleaseTests : IAsyncLifetime
     {
         var server = _factory!.Server;
         var wsClient = server.CreateWebSocketClient();
-        var path = $"autotable/ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
+        var path = $"ws?seat={seat}&gameId={Uri.EscapeDataString(gameId)}";
         var uri = new Uri(server.BaseAddress, path);
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         var session = new WsSession(ws);

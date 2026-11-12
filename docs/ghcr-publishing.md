@@ -17,7 +17,7 @@ After pushing, that same job pulls the build output's immutable
 From the approved source checkout it must pass both canonical
 `tests/migration/container_smoke.py` and `container_proxy_smoke.py` runners
 with that exact image reference and source SHA. Root hardening/static/health
-checks and actual nginx TLS/browser checks at three runtime prefixes therefore
+checks and actual nginx TLS/browser checks at root plus three runtime prefixes therefore
 exercise the published candidate, not a separately built source-CI image.
 Failure of either runner fails packaging and prevents the identity summary.
 The always-uploaded `candidate-runtime-RUN-ATTEMPT` artifact uses an explicit

@@ -1304,7 +1304,7 @@ if (rateLimitingEnabled)
 app.UseMiddleware<Mahjong.Autotable.Api.Audit.IdempotencyMiddleware>();
 
 // Raw WebSockets (separate transport from SignalR) — required for the
-// upstream pwmarcz/autotable bundle's WS protocol at /autotable/ws.
+// retained tabletop client protocol at /ws within the public mount.
 app.UseWebSockets();
 
 using (var scope = app.Services.CreateScope())

@@ -83,10 +83,18 @@ public sealed class AppMountTests
             using var client = app.GetTestClient();
             var prefix = publicBase == "/" ? "" : publicBase;
             using var landing = await client.GetAsync(prefix + "/?action=new-game");
-            Assert.Equal(HttpStatusCode.Redirect, landing.StatusCode);
-            Assert.Equal(prefix + "/autotable/?action=new-game", landing.Headers.Location!.OriginalString);
-            Assert.Equal(script, await client.GetStringAsync(prefix + "/autotable/main.1234abcd.js"));
-            using var headers = await client.GetAsync(prefix + "/autotable/main.1234abcd.js");
+            Assert.Equal(HttpStatusCode.OK, landing.StatusCode);
+            Assert.Null(landing.Headers.Location);
+            Assert.Equal("<title>MOUNT TEST</title>", await landing.Content.ReadAsStringAsync());
+            if (prefix.Length > 0)
+            {
+                using var bare = await client.GetAsync(prefix + "?action=new-game");
+                Assert.Equal(HttpStatusCode.Redirect, bare.StatusCode);
+                Assert.Equal(prefix + "/?action=new-game", bare.Headers.Location!.OriginalString);
+            }
+            Assert.Equal(script, await client.GetStringAsync(prefix + "/main.1234abcd.js"));
+            using var headers = await client.GetAsync(prefix + "/main.1234abcd.js");
+            Assert.Equal("application/javascript", headers.Content.Headers.ContentType!.MediaType);
             Assert.Contains("report-uri " + prefix + "/api/csp-report",
                 headers.Headers.GetValues("Content-Security-Policy").Single());
             var api = await client.GetStringAsync(prefix + "/api/mount");
@@ -94,18 +102,20 @@ public sealed class AppMountTests
             Assert.Contains("\"pathBase\":\"" + prefix + "\"", api);
             Assert.Contains("\"cookiePath\":\"" + (prefix.Length == 0 ? "/" : prefix + "/") + "\"", api);
             Assert.Equal("healthy", await client.GetStringAsync("/health"));
+            foreach (var missing in new[] { "/autotable/", "/autotable/ws", "/missing.js", "/api/missing" })
+                Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(prefix + missing)).StatusCode);
             if (prefix.Length > 0) Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/mount")).StatusCode);
             if (prefix == "/mahjong")
             {
                 var canonical = await app.GetTestServer().SendAsync(context =>
                 {
                     context.Request.Method = "GET";
-                    context.Request.Path = "/mahjong/autotable/";
+                    context.Request.Path = "/mahjong/";
                     context.Request.QueryString = new("?keep=one");
-                    context.Features.Get<IHttpRequestFeature>()!.RawTarget = "/%6dahjong/autotable/?keep=one";
+                    context.Features.Get<IHttpRequestFeature>()!.RawTarget = "/%6dahjong/?keep=one";
                 });
                 Assert.Equal(StatusCodes.Status302Found, canonical.Response.StatusCode);
-                Assert.Equal("/mahjong/autotable/?keep=one", canonical.Response.Headers.Location);
+                Assert.Equal("/mahjong/?keep=one", canonical.Response.Headers.Location);
             }
         }
         finally { Directory.Delete(fixture, true); }

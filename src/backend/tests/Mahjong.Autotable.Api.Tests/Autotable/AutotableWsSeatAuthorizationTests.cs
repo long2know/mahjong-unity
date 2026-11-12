@@ -934,7 +934,7 @@ public sealed class AutotableWsSeatAuthorizationTests : IAsyncLifetime
             request.Headers["Cookie"] = $"{PlayerIdentityService.CookieName}={cookie}";
         var uri = new Uri(
             _factory.Server.BaseAddress,
-            $"autotable/ws?gameId={Uri.EscapeDataString(relayGameId)}&{query}");
+            $"ws?gameId={Uri.EscapeDataString(relayGameId)}&{query}");
         var session = new WsSession(await client.ConnectAsync(uri, CancellationToken.None));
         try
         {
@@ -960,7 +960,7 @@ public sealed class AutotableWsSeatAuthorizationTests : IAsyncLifetime
             request.Headers["Cookie"] = $"{PlayerIdentityService.CookieName}={cookie}";
         var uri = new Uri(
             _factory.Server.BaseAddress,
-            $"autotable/ws?gameId={Uri.EscapeDataString(relayGameId)}&{query}");
+            $"ws?gameId={Uri.EscapeDataString(relayGameId)}&{query}");
         return new WsSession(await client.ConnectAsync(uri, CancellationToken.None));
     }
 

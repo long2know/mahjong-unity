@@ -247,7 +247,7 @@ public sealed class PlayerIdentityImpersonationWsTests : IAsyncLifetime
                 req.Headers["Cookie"] = $"{PlayerIdentityService.CookieName}={cookieValue}";
         }
         var uri = new Uri(server.BaseAddress,
-            $"autotable/ws?bots=false&gameId={Uri.EscapeDataString(gameId)}");
+            $"ws?bots=false&gameId={Uri.EscapeDataString(gameId)}");
         return new WsSession(await wsClient.ConnectAsync(uri, CancellationToken.None));
     }
 

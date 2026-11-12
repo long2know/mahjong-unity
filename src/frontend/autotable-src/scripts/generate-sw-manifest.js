@@ -34,9 +34,8 @@ const MANIFEST_PATH = path.join(DIST, 'manifest-precache.json');
 const SW_SRC = path.join(SRC_DIR, 'sw.js');
 const SW_DEST = path.join(DIST, 'sw.js');
 
-// Eager lobby chunk pattern: `autotable-src.<8hex>.{js,css}` is the
-// parcel-emitted name of the bootstrap bundle.
-const EAGER_RE = /^autotable-src\.[0-9a-f]+\.(js|css)$/i;
+// Eager lobby bootstrap bundle.
+const EAGER_RE = /^mahjong\.[0-9a-f]+\.(js|css)$/i;
 // Small unhashed files we want on install (always live at root).
 const UNHASHED_ALLOW = new Set([
   'index.html',

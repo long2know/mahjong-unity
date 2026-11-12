@@ -337,7 +337,7 @@ public sealed class Issue153DefaultGameLifecycleTests : IAsyncLifetime
             wsClient.ConfigureRequest = req =>
                 req.Headers["Cookie"] = $"mahjong_pid={signed}";
         }
-        var uri = new Uri(server.BaseAddress, $"autotable/ws{queryString}");
+        var uri = new Uri(server.BaseAddress, $"ws{queryString}");
         var ws = await wsClient.ConnectAsync(uri, CancellationToken.None);
         return new WsSession(ws);
     }
