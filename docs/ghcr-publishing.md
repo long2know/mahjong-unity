@@ -12,6 +12,21 @@ Unity manifest, Editor receipt, activation or engine artifact is an input.
 It publishes only unique `candidate-RUN-ATTEMPT` and
 `sha-SOURCE-RUN-ATTEMPT` tags with build provenance, never `latest`.
 
+After pushing, that same job pulls the build output's immutable
+`ghcr.io/long2know/mahjong-web@sha256:...` index reference for `linux/amd64`.
+From the approved source checkout it must pass both canonical
+`tests/migration/container_smoke.py` and `container_proxy_smoke.py` runners
+with that exact image reference and source SHA. Root hardening/static/health
+checks and actual nginx TLS/browser checks at three runtime prefixes therefore
+exercise the published candidate, not a separately built source-CI image.
+Failure of either runner fails packaging and prevents the identity summary.
+The always-uploaded `candidate-runtime-RUN-ATTEMPT` artifact uses an explicit
+receipt/log/PNG allowlist; fixture databases, signing keys and TLS private keys
+are excluded. Its receipts bind the published index reference, resolved image
+ID, source SHA and prefix results. Automated checks qualify the pulled
+Linux/amd64 runtime only; independent digest acceptance and protected promotion
+remain separate requirements.
+
 PR source/image CI does **not** publish to any registry. Its real image smoke
 is supplementary evidence for an independently accepted candidate digest.
 
