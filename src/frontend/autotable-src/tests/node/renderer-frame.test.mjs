@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, plain, thing, sourceLoader } from './renderer-test-support.mjs';
+import { gameHarness, plain, thing, sourceLoader, require } from './renderer-test-support.mjs';
 
 test('actual model placeholders never cross the bridge before a bound FULL snapshot', t => {
   const h = gameHarness();
@@ -193,6 +193,78 @@ test('the frozen schema rejects hidden face leaks, unsafe numbers and extra priv
     { faceIndex: null, knownFace: false, showFace: false, backIndex: 0, valueIndex: null, physicalTileId: 3 },
     { faceIndex: Infinity, knownFace: true, showFace: true, backIndex: 0, valueIndex: null },
   ]) assert.throws(() => assertDto('Appearance', appearance));
+});
+
+test('valid nullable/conditional DTO branches do not construct exception stacks; failures retain ContractError and paths', () => {
+  let errors = 0;
+  class CountedError extends Error {
+    constructor(...args) { super(...args); errors++; }
+  }
+  const { assertDto, ContractError } = sourceLoader({ Error: CountedError }).load('renderer/renderer-contract.ts');
+  const appearance = { faceIndex: null, knownFace: false, showFace: false, backIndex: 0, valueIndex: null };
+  for (let i = 0; i < 10; i++) assertDto('Appearance', appearance);
+  assert.equal(errors, 0, 'successful anyOf/if branch probes must not allocate full Error stacks');
+  appearance.showFace = true;
+  assert.throws(() => assertDto('Appearance', appearance),
+    error => error instanceof ContractError && /Invalid renderer DTO at Appearance/.test(error.message));
+  assert.equal(errors, 1, 'only a rejected DTO crossing the public boundary constructs an Error');
+});
+
+test('every call revalidates mutable entity, seat, layout and viewport data without cached-valid identity', t => {
+  const h = gameHarness(); t.after(h.close); h.join();
+  const frame = h.snapshot([['4', thing('hand.0@0', 1)], ['h_back', thing('wall.0.1@0', null)]]);
+  const layout = h.adapter.layout;
+  const viewport = h.load('renderer/renderer-viewport.ts').rendererViewport(h.adapter.instanceId, 1,
+    { width: 960, height: 640, dpr: 1, separateHand: false, insets: { top: 0, right: 0, bottom: 0, left: 0 } });
+  const { assertDto, ContractError } = h.load('renderer/renderer-contract.ts');
+  const patches = [
+    ['RendererFrame', frame, frame.entities[0].appearance, 'physicalTileId', 7],
+    ['RendererFrame', frame, frame.entities[0].pose.position, 'x', Infinity],
+    ['RendererFrame', frame, frame.session, 'actorSeat', 9],
+    ['RendererFrame', frame, frame, 'layoutRevision', 0],
+    ['RendererLayout', layout, layout.slots[0].poses[0].rotation, 'w', NaN],
+    ['RendererLayout', layout, layout.canonicalBoard, 'width', 175],
+    ['Viewport', viewport, viewport, 'widthCssPx', NaN],
+    ['Viewport', viewport, viewport, 'resizeRevision', 0],
+  ];
+  for (const [definition, dto, target, key, invalid] of patches) {
+    assert.doesNotThrow(() => assertDto(definition, dto));
+    const existed = Object.hasOwn(target, key), old = target[key];
+    target[key] = invalid;
+    assert.throws(() => assertDto(definition, dto), error => error instanceof ContractError, `${definition}.${key}`);
+    if (existed) target[key] = old; else delete target[key];
+    assert.doesNotThrow(() => assertDto(definition, dto));
+  }
+});
+
+test('validation decisions match the accepted draft7 schema for mutable valid and malformed DTOs', t => {
+  const h = gameHarness(); t.after(h.close); h.join();
+  const frame = h.snapshot([['4', thing('hand.0@0', 1)], ['h_back', thing('wall.0.1@0', null)]]);
+  const { assertDto } = h.load('renderer/renderer-contract.ts');
+  const schema = require('../../../contracts/renderer-v1.schema.json');
+  const Ajv = require('ajv');
+  const oracle = new Ajv({ strictNumbers: true });
+  const viewport = h.load('renderer/renderer-viewport.ts').rendererViewport(h.adapter.instanceId, 1,
+    { width: 960, height: 640, dpr: 1, separateHand: false, insets: { top: 0, right: 0, bottom: 0, left: 0 } });
+  const fixtures = [['RendererFrame', frame], ['RendererLayout', h.adapter.layout], ['Viewport', viewport],
+    ['Appearance', frame.entities[0].appearance], ['Presentation', frame.presentation]];
+  for (const [definition, fixture] of fixtures) {
+    const reference = oracle.compile({ $schema: schema.$schema, definitions: schema.definitions,
+      $ref: '#/definitions/' + definition });
+    const samples = [plain(fixture), null, false, 1, 'invalid', [], { ...plain(fixture), injectedPrivateField: true }];
+    for (const key of Object.keys(fixture)) {
+      const missing = plain(fixture); delete missing[key]; samples.push(missing);
+      samples.push({ ...plain(fixture), [key]: { malformed: true } });
+    }
+    if (definition === 'Appearance') samples.push(
+      { faceIndex: 1, knownFace: false, showFace: false, backIndex: 0, valueIndex: null },
+      { faceIndex: null, knownFace: false, showFace: true, backIndex: 0, valueIndex: null });
+    for (const sample of samples) {
+      let accepted = true;
+      try { assertDto(definition, sample); } catch { accepted = false; }
+      assert.equal(accepted, reference(sample), definition + ': ' + JSON.stringify(sample).slice(0, 100));
+    }
+  }
 });
 
 test('malformed model UPDATE fan-out clears private state synchronously instead of publishing a partially applied frame', t => {

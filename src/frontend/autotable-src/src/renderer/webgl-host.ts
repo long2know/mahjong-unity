@@ -34,7 +34,6 @@ export class WebglHost implements RendererHost {
   private inFlight: { frame: Frame; viewport: number; started: number } | null = null;
   private animation = 0;
   private startupTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastSentAt = -Infinity;
   private inputBlocked = true;
 
   constructor(private readonly main: HTMLElement, private readonly hooks: HostHooks) {
@@ -211,12 +210,11 @@ export class WebglHost implements RendererHost {
     try {
       this.receipt();
       if (this.inFlight && performance.now() - this.inFlight.started > 30000) throw Error('WebGL stopped completing GPU frames.');
-      if (!this.inFlight && this.queue && performance.now() - this.lastSentAt >= 1000 / 30) {
+      if (!this.inFlight && this.queue) {
         const { layout, frame } = this.queue;
         this.queue = null;
         this.scene.draw(layout, frame, this.viewport);
         this.inFlight = { frame, viewport: this.viewport.resizeRevision, started: performance.now() };
-        this.lastSentAt = performance.now();
       }
       this.schedule();
     } catch (error) { this.unavailable(error instanceof Error ? error.message : 'WebGL frame failed.'); }

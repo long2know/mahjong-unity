@@ -118,59 +118,74 @@ type Schema = {
 const definitions = schema.definitions as unknown as Record<string, Schema>;
 export class ContractError extends Error {}
 
-function valid(rule: Schema, value: unknown, path: string): void {
-  const fail = (): never => { throw new ContractError(`Invalid renderer DTO at ${path}.`); };
+function valid(rule: Schema, value: unknown, path: string): string | null {
+  // Expected union/conditional mismatches are results, not thrown exceptions.
   const matches = (candidate: Schema): boolean => {
-    try { valid(candidate, value, path); return true; } catch { return false; }
+    try { return valid(candidate, value, path) === null; } catch { return false; }
   };
   if (rule.$ref) {
     const target = definitions[rule.$ref.replace('#/definitions/', '')];
-    if (!target) fail();
-    valid(target, value, path);
+    if (!target) return path;
+    const failure = valid(target, value, path);
+    if (failure !== null) return failure;
   }
-  if ('const' in rule && value !== rule.const) fail();
-  if (rule.enum && !rule.enum.includes(value)) fail();
-  if (rule.anyOf && !rule.anyOf.some(matches)) fail();
-  if (rule.oneOf && rule.oneOf.filter(matches).length !== 1) fail();
-  if (rule.allOf) for (const child of rule.allOf) valid(child, value, path);
-  if (rule.if && rule.then && matches(rule.if)) valid(rule.then, value, path);
+  if ('const' in rule && value !== rule.const) return path;
+  if (rule.enum && !rule.enum.includes(value)) return path;
+  if (rule.anyOf && !rule.anyOf.some(matches)) return path;
+  if (rule.oneOf && rule.oneOf.filter(matches).length !== 1) return path;
+  if (rule.allOf) for (const child of rule.allOf) {
+    const failure = valid(child, value, path);
+    if (failure !== null) return failure;
+  }
+  if (rule.if && rule.then && matches(rule.if)) {
+    const failure = valid(rule.then, value, path);
+    if (failure !== null) return failure;
+  }
   switch (rule.type) {
-    case 'null': if (value !== null) fail(); break;
-    case 'boolean': if (typeof value !== 'boolean') fail(); break;
-    case 'integer': if (typeof value !== 'number' || !Number.isSafeInteger(value)) fail(); break;
-    case 'number': if (typeof value !== 'number' || !Number.isFinite(value)) fail(); break;
-    case 'string': if (typeof value !== 'string') fail(); break;
-    case 'array': if (!Array.isArray(value)) fail(); break;
-    case 'object': if (!value || typeof value !== 'object' || Array.isArray(value)) fail(); break;
+    case 'null': if (value !== null) return path; break;
+    case 'boolean': if (typeof value !== 'boolean') return path; break;
+    case 'integer': if (typeof value !== 'number' || !Number.isSafeInteger(value)) return path; break;
+    case 'number': if (typeof value !== 'number' || !Number.isFinite(value)) return path; break;
+    case 'string': if (typeof value !== 'string') return path; break;
+    case 'array': if (!Array.isArray(value)) return path; break;
+    case 'object': if (!value || typeof value !== 'object' || Array.isArray(value)) return path; break;
   }
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || (rule.minimum !== undefined && value < rule.minimum)
       || (rule.maximum !== undefined && value > rule.maximum)
-      || (rule.exclusiveMinimum !== undefined && value <= rule.exclusiveMinimum)) fail();
+      || (rule.exclusiveMinimum !== undefined && value <= rule.exclusiveMinimum)) return path;
   }
   if (typeof value === 'string' && ((rule.minLength !== undefined && value.length < rule.minLength)
     || (rule.maxLength !== undefined && value.length > rule.maxLength)
-    || (rule.pattern && !new RegExp(rule.pattern).test(value)))) fail();
+    || (rule.pattern && !new RegExp(rule.pattern).test(value)))) return path;
   if (Array.isArray(value)) {
     if ((rule.minItems !== undefined && value.length < rule.minItems)
       || (rule.maxItems !== undefined && value.length > rule.maxItems)
-      || (rule.uniqueItems && new Set(value.map(item => JSON.stringify(item))).size !== value.length)) fail();
-    if (rule.items) value.forEach((item, i) => valid(rule.items!, item, `${path}[${i}]`));
+      || (rule.uniqueItems && new Set(value.map(item => JSON.stringify(item))).size !== value.length)) return path;
+    if (rule.items) for (let i = 0; i < value.length; i++) {
+      const failure = valid(rule.items, value[i], `${path}[${i}]`);
+      if (failure !== null) return failure;
+    }
   } else if (value && typeof value === 'object') {
     const object = value as Record<string, unknown>;
-    for (const key of rule.required ?? []) if (!Object.prototype.hasOwnProperty.call(object, key)) fail();
-    if (rule.additionalProperties === false && Object.keys(object).some(key => !Object.prototype.hasOwnProperty.call(rule.properties, key))) fail();
+    for (const key of rule.required ?? []) if (!Object.prototype.hasOwnProperty.call(object, key)) return path;
+    if (rule.additionalProperties === false && Object.keys(object).some(key => !Object.prototype.hasOwnProperty.call(rule.properties, key))) return path;
     for (const [key, child] of Object.entries(rule.properties ?? {})) {
-      if (Object.prototype.hasOwnProperty.call(object, key)) valid(child, object[key], `${path}.${key}`);
+      if (Object.prototype.hasOwnProperty.call(object, key)) {
+        const failure = valid(child, object[key], `${path}.${key}`);
+        if (failure !== null) return failure;
+      }
     }
   }
+  return null;
 }
 
 /** Validate against the accepted schema itself, including nested extra-field/privacy restrictions. */
 export function assertDto<T>(definition: string, value: unknown): asserts value is T {
   const rule = definitions[definition];
   if (!rule) throw new ContractError('Unknown renderer DTO definition.');
-  valid(rule, value, definition);
+  const failure = valid(rule, value, definition);
+  if (failure !== null) throw new ContractError(`Invalid renderer DTO at ${failure}.`);
 }
 
 export function opaqueId(prefix: string): string {
