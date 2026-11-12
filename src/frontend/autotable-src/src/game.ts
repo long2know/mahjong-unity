@@ -164,7 +164,6 @@ export class Game {
   mainLoop(_time: number): void {
     if (this.disposed) return;
     this.frameHandle = requestAnimationFrame(next => this.mainLoop(next));
-    if (document.hidden || !document.hasFocus()) return;
     this.lookDown.update();
     this.zoom.update();
     const presentation = this.presentation(getSettings());

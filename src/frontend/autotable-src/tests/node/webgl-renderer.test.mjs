@@ -254,7 +254,7 @@ for (const hz of [60, 120]) {
     assert.equal(f.jobs.size, 0, 'idle hosts must stop scheduling after the final genuine completion');
   });
 
-  test(`production Game feeds ${hz}Hz animation opportunities only while focused and stops after disposal`, () => {
+  test(`production Game feeds ${hz}Hz animation opportunities and stops after disposal`, () => {
     const document = { hidden: false, hasFocus: () => focused };
     let focused = true, count = 0, handle = 0;
     const jobs = new Map();
@@ -277,10 +277,10 @@ for (const hz of [60, 120]) {
     game.mainLoop(0);
     for (let frame = 1; frame <= hz; frame++) tick(frame * 1000 / hz);
     assert.equal(count, hz + 1, 'World/adapter animation production must not retain an independent 30Hz gate');
-    focused = false; tick(1100); assert.equal(count, hz + 1);
-    focused = true; document.hidden = true; tick(1200); assert.equal(count, hz + 1);
-    document.hidden = false; tick(1300); assert.equal(count, hz + 2);
-    game.disposed = true; tick(1400); assert.equal(count, hz + 2);
+    focused = false; document.hidden = true; tick(1100);
+    assert.equal(count, hz + 2, 'retain existing background model refresh; the host separately gates GPU work on focus');
+    focused = true; document.hidden = false; tick(1200); assert.equal(count, hz + 3);
+    game.disposed = true; tick(1300); assert.equal(count, hz + 3);
     assert.equal(jobs.size, 0);
   });
 }
