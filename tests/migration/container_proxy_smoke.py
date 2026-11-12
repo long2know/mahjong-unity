@@ -56,6 +56,9 @@ def main():
                 command("docker", "network", "create", network); attempted.append(("network", network))
                 info = json.loads(command("docker", "network", "inspect", network))[0]
                 subnet = ipaddress.ip_network(info["IPAM"]["Config"][0]["Subnet"])
+                # Let Docker select a free pool, then make its IPAM subnet explicit for fixed peer IPs.
+                command("docker", "network", "rm", network)
+                command("docker", "network", "create", "--subnet", str(subnet), network)
                 app_ip, proxy_ip = str(subnet.network_address + 2), str(subnet.network_address + 3)
                 with socket.socket() as sock:
                     sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]
