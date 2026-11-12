@@ -3,6 +3,41 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { gameHarness, plain, sourceLoader } from '../../src/frontend/autotable-src/tests/node/renderer-test-support.mjs';
 
+test('actual ClientUi titles retain the online suffix through disconnect and restoration', () => {
+  const html = fs.readFileSync(new URL('../../src/frontend/autotable-src/index.html', import.meta.url), 'utf8');
+  const title = { innerText: html.match(/<title>([^<]+)<\/title>/)[1] };
+  const server = { classList: { add() {}, remove() {} } };
+  const loader = sourceLoader({
+    window: { location: new URL('http://title.test/?variant=four_player&gameId=title-room') },
+    document: {
+      getElementById: () => server,
+      getElementsByTagName: name => name === 'title' ? [title] : [],
+    },
+  }, {
+    'profile.ts': {}, 'lobby.ts': {}, 'identity.ts': {},
+    'ui/rule-action-controls.ts': {}, 'i18n.ts': {},
+  });
+  const { ClientUi } = loader.load('client-ui.ts');
+  let reconnects = 0;
+  const ui = Object.assign(Object.create(ClientUi.prototype), {
+    client: { protocolUnavailableReason: null, seat: null },
+    currentGameIdElement: null, reconnectSeat: null, terminalJoinRejection: null,
+    setStatus() {}, onNickChange() {}, setUrlState() {}, clearGameIdError() {},
+    applySpectatorClass() {}, hideBanner() {}, showBannerSuccess() {}, clearReconnectTimer() {},
+    scheduleReconnect() { reconnects++; },
+  });
+  const game = { gameId: 'title-room' };
+  const titles = [title.innerText];
+  ui.onConnect(game);
+  titles.push(title.innerText);
+  ui.onDisconnect(game);
+  titles.push(title.innerText);
+  ui.onConnect(game);
+  titles.push(title.innerText);
+  assert.deepEqual(titles, ['Mahjong', 'Mahjong (online)', 'Mahjong', 'Mahjong (online)']);
+  assert.equal(reconnects, 1, 'a dropped connection still schedules the existing reconnect flow');
+});
+
 test('topology fixture contains the exact retained Changsha wall, river and player slot geometry', t => {
   const h = gameHarness();
   t.after(h.close);

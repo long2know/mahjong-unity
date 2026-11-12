@@ -90,7 +90,7 @@ try {
   assert.equal(entry.status(), 200, 'the public mount must serve the UI directly, never redirect to a legacy suffix');
   assert.equal(entry.headers().location, undefined);
   assert(entry.headers()['content-type'].startsWith('text/html'));
-  assert((await entry.text()).includes('Mahjong Web'));
+  assert.match(await entry.text(), /<title>Mahjong<\/title>/);
   receipt.entryResponse = { status: entry.status(), location: null };
   if (prefix) {
     const bare = await context.request.get(publicRoot + '?action=none', { maxRedirects: 0 });
@@ -100,6 +100,8 @@ try {
   }
   await page.goto(publicRoot + '/?action=none', { waitUntil: 'domcontentloaded' });
   assert.equal(new URL(page.url()).pathname, prefix + '/');
+  receipt.browserTitles = { initial: await page.title() };
+  assert.equal(receipt.browserTitles.initial, 'Mahjong');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15000 });
   const sw = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
@@ -118,6 +120,8 @@ try {
     gameId: room, createGame: room, variant: 'changsha', seat: '0', botCount: '3', dealMode: 'auto', seed: '20261010',
   }));
   await ready();
+  receipt.browserTitles.changshaOnline = await page.title();
+  assert.equal(receipt.browserTitles.changshaOnline, 'Mahjong (online)');
   await page.evaluate(() => window.__runtimeInputTrace.attach());
   await page.waitForFunction(() => window.__prefixSockets.some(socket => socket.url.includes('/hubs/changsha') && socket.readyState === 1));
   const hubCount = await page.evaluate(() => window.__prefixSockets.filter(socket => socket.url.includes('/hubs/changsha')).length);
@@ -170,9 +174,27 @@ try {
   }));
   await ready();
   assert.equal(await page.evaluate(() => window.game.client.connectionMode), 'relay');
+  receipt.browserTitles.relayOnline = await page.title();
+  assert.equal(receipt.browserTitles.relayOnline, 'Mahjong (online)');
   assert(receipt.sockets.some(socket => socket.path === prefix + '/ws'));
   assert(receipt.sockets.every(socket => !socket.path.toLowerCase().includes('autotable')));
   receipt.cases.push({ name: 'actual-clean-relay-websocket-mounted', realSnapshotReady: true });
+  await page.evaluate(() => {
+    window.__prefixTitleTransitions = [document.title];
+    new MutationObserver(() => {
+      if (window.__prefixTitleTransitions.at(-1) !== document.title) {
+        window.__prefixTitleTransitions.push(document.title);
+      }
+    }).observe(document.querySelector('title'), { childList: true, subtree: true, characterData: true });
+    window.__prefixSockets.find(socket => new URL(socket.url).pathname.endsWith('/ws') && socket.readyState === 1).close();
+  });
+  await page.waitForFunction(() => window.__prefixTitleTransitions.length >= 3, null, { timeout: 15000 });
+  receipt.browserTitles.relayReconnect = await page.evaluate(() => window.__prefixTitleTransitions);
+  assert.deepEqual(receipt.browserTitles.relayReconnect, ['Mahjong (online)', 'Mahjong', 'Mahjong (online)']);
+  await ready();
+  assert.equal(await page.title(), 'Mahjong (online)');
+  assert.equal(new URL(page.url()).searchParams.get('gameId'), relayRoom);
+  receipt.cases.push({ name: 'actual-browser-titles-and-primary-websocket-restoration', ...receipt.browserTitles });
   const cookies = await context.cookies(publicRoot + '/');
   const identity = cookies.find(cookie => cookie.name === 'mahjong_pid');
   assert(identity && identity.path === (prefix || '') + '/');

@@ -20,14 +20,10 @@
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Mahjong Autotable — smoke', () => {
-  test('app loads with autotable title', async ({ page }) => {
+test.describe('Mahjong — smoke', () => {
+  test('app loads with Mahjong title', async ({ page }) => {
     await page.goto('');
-    // Upstream pwmarcz/autotable's index.html sets <title>Autotable</title>
-    // (src/frontend/autotable-src/index.html:5). Keep the match loose
-    // (case-insensitive substring) so a future title rebrand to e.g.
-    // "Mahjong Autotable" doesn't break the smoke.
-    await expect(page).toHaveTitle(/autotable/i);
+    await expect(page).toHaveTitle('Mahjong');
   });
 
   test('lobby is reachable on first load', async ({ page }) => {

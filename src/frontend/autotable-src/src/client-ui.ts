@@ -30,8 +30,8 @@ import { bootstrapIdentity, getIdentityBootstrapState } from './identity';
 import { isJoinOnly } from './room-join-url';
 
 
-const TITLE_DISCONNECTED = 'Autotable';
-const TITLE_CONNECTED = 'Autotable (online)';
+const TITLE_DISCONNECTED = 'Mahjong';
+const TITLE_CONNECTED = 'Mahjong (online)';
 
 // Phase J Wave 2 — exponential-backoff reconnect.  Replaces the pre-Wave-2
 // constant 2 s / 15-attempts loop with a 5-step backoff schedule

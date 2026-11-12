@@ -107,7 +107,7 @@ def main():
             if entry["path"].endswith(".js"):
                 assert file_headers.get_content_type() == "application/javascript"
         status, _, content = request("/")
-        assert status == 200 and b"Mahjong Web" in content
+        assert status == 200 and b"<title>Mahjong</title>" in content
         status, _, content = request("/renderer-module-graph.json")
         graph = json.loads(content)
         assert status == 200 and graph["engine"] == "webgl2"
