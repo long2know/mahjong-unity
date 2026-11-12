@@ -82,14 +82,18 @@ try {
   await page.waitForFunction(count => window.__prefixSockets.filter(socket => socket.url.includes('/hubs/changsha')).length > count
     && window.__prefixSockets.some(socket => socket.url.includes('/hubs/changsha') && socket.readyState === 1), hubCount,
   { timeout: 15000 });
+  await ready();
   receipt.cases.push({ name: 'actual-mounted-signalr-negotiate-websocket-and-reconnect', hubConnections: hubCount + 1 });
   const tile = await page.evaluate(() => {
     const scene = window.game.renderer.scene;
     const entity = scene.committed.frame.entities.find(entity => entity.interaction.canDiscard && entity.appearance.showFace);
     return { id: entity.entityId, ...scene.project(entity.entityId) };
   });
+  const box = await page.locator('#webgl-canvas').boundingBox();
+  const targetPoint = { x: box.x + tile.x, y: box.y + tile.y };
+  assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, targetPoint), 'webgl-canvas');
   const before = receipt.sent.flatMap(message => message.entries ?? []).filter(entry => entry[0] === 'discard').length;
-  await page.mouse.dblclick(tile.x, tile.y, { delay: 75 });
+  await page.mouse.dblclick(targetPoint.x, targetPoint.y, { delay: 20 });
   await page.waitForFunction(id => !window.game.adapter.latest.localHand.entityIds.includes(id), tile.id);
   await page.waitForTimeout(150);
   assert.equal(receipt.sent.flatMap(message => message.entries ?? []).filter(entry => entry[0] === 'discard').length, before + 1);
@@ -135,6 +139,11 @@ try {
   receipt.status = 'passed';
 } catch (error) {
   receipt.status = 'failed'; receipt.error = error.message;
+  receipt.inputState = await page.evaluate(() => {
+    const renderer = window.game?.renderer;
+    return { state: renderer?.state, inputBlocked: renderer?.inputBlocked, suspended: renderer?.suspended,
+      session: renderer?.scene?.committed?.frame.session, click: renderer?.input?.click };
+  }).catch(() => null);
   await page.screenshot({ path: path.join(output, 'failure.png'), fullPage: true }).catch(() => {});
   throw error;
 } finally {

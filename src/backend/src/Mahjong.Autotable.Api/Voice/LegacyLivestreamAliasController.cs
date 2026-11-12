@@ -76,17 +76,18 @@ public sealed class LegacyLivestreamAliasController : ControllerBase
         return RedirectPermanentPreserveMethod(canonical);
     }
 
-    private static string BuildCanonicalUrl(string tableId, string? rest)
+    private string BuildCanonicalUrl(string tableId, string? rest)
     {
+        var prefix = Request.PathBase.Add(CanonicalPrefix).ToUriComponent();
         var safeTable = Uri.EscapeDataString(tableId ?? string.Empty);
         if (string.IsNullOrWhiteSpace(rest))
         {
-            return $"{CanonicalPrefix}/{safeTable}";
+            return $"{prefix}/{safeTable}";
         }
         // The catch-all binder hands us the raw remainder without a
         // leading slash; preserve internal slashes (segment paths,
         // sub-resources) as-is.
-        return $"{CanonicalPrefix}/{safeTable}/{rest}";
+        return $"{prefix}/{safeTable}/{rest}";
     }
 
     private void StampDeprecationHeaders()
@@ -95,6 +96,6 @@ public sealed class LegacyLivestreamAliasController : ControllerBase
         headers[CacheControlHeader] = CacheControlDirective;
         headers[SunsetHeader] = SunsetDate;
         headers[DeprecationHeader] = "true";
-        headers[LinkHeader] = $"<{CanonicalPrefix}>; rel=\"sunset\"";
+        headers[LinkHeader] = $"<{Request.PathBase.Add(CanonicalPrefix).ToUriComponent()}>; rel=\"sunset\"";
     }
 }

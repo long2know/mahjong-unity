@@ -33,7 +33,8 @@ characters are supported. Existing separate full-URL email/OAuth options are
 not repurposed.
 
 All application APIs, raw WebSockets, SignalR negotiation/reconnect, guest/auth
-cookies, OAuth callback links, public navigation and static assets live under
+cookies, OAuth callback links, livestream aliases/returned playlist URLs,
+public navigation and static assets live under
 the prefix. `/autotable/` remains the compatibility route **inside** that mount.
 Wrong-root APIs are rejected, not silently served as a second installation.
 The unprefixed `/health` remains available for the internal Docker HEALTHCHECK;

@@ -118,3 +118,4 @@ jobs:
             artifacts/base-url/hosted-nginx/*/*.log
             artifacts/base-url/hosted-nginx-*/receipt.json
             artifacts/base-url/hosted-nginx-*/mounted-game-progressed.png
+            artifacts/base-url/hosted-nginx-*/failure.png

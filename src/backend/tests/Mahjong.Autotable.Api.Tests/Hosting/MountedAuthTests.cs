@@ -43,6 +43,13 @@ public sealed class MountedAuthTests
             Assert.Contains("code_challenge", query.Keys);
             Assert.All(login.Headers.GetValues("Set-Cookie"),
                 value => Assert.Contains("path=" + prefix + "/", value, StringComparison.OrdinalIgnoreCase));
+            using var playlist = await client.GetAsync(prefix + "/api/tables/synthetic/livestream/playlist.m3u8");
+            Assert.Equal(HttpStatusCode.MovedPermanently, playlist.StatusCode);
+            Assert.Equal(prefix + "/api/voice/livestream/synthetic/playlist.m3u8", playlist.Headers.Location!.OriginalString);
+            Assert.Equal("<" + prefix + "/api/voice/livestream>; rel=\"sunset\"", playlist.Headers.GetValues("Link").Single());
+            using var streamStart = await client.PostAsync(prefix + "/api/tables/synthetic/livestream/start", null);
+            Assert.Equal(HttpStatusCode.PermanentRedirect, streamStart.StatusCode);
+            Assert.Equal(prefix + "/api/voice/livestream/synthetic/start", streamStart.Headers.Location!.OriginalString);
         }
         finally { Directory.Delete(fixture, true); }
     }

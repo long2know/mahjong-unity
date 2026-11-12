@@ -154,7 +154,7 @@ async function discard(page, touch = false) {
   const at = await point(page, entity.entityId), count = commands('discard').length;
   const start = before.probe.actions.length;
   if (touch) await page.touchscreen.tap(at.x, at.y);
-  else await page.mouse.dblclick(at.x, at.y, { delay: 75 });
+  else await page.mouse.dblclick(at.x, at.y, { delay: 20 });
   await page.waitForFunction(({ start, id }) => window.__comparison.actions.slice(start)
     .some(action => action.intent.kind === 'discard' && action.intent.entityId === id), { start, id: entity.entityId });
   await page.waitForFunction(id => !window.game.adapter.latest.localHand.entityIds.includes(id), entity.entityId);

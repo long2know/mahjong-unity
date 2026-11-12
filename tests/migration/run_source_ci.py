@@ -24,6 +24,9 @@ BACKEND_SELECTORS = (
     ".Observability.SecurityHeadersMiddlewareTests", ".Autotable.ExistingRoomJoinTests",
     ".Autotable.AutotableWsRelayTests", ".Autotable.AutotableConfigJoinSemanticsTests",
     ".Autotable.HandResultAckWsTests", ".Autotable.AutotableHandshakeAndDealTriggerContractTests",
+    ".Phase_K_W9.Bishop.LivestreamPathAliasTests",
+    ".Phase_K_W9.Vasquez.BishopW9LivestreamPathCanonTests",
+    ".Phase_K_W8.Vasquez.BishopW8LivestreamAuthGateTests",
 )
 
 
@@ -52,7 +55,7 @@ def plans():
                     "-p:UseSharedCompilation=false", "--filter",
                     "|".join("FullyQualifiedName~" + selector for selector in BACKEND_SELECTORS),
                     "--logger", "trx;LogFileName=backend.trx", "--results-directory", RESULTS + "/backend"],
-                    kind="trx", expected=172),
+                    kind="trx", expected=187),
             command("api-publish", ["dotnet", "publish", "src/backend/src/Mahjong.Autotable.Api/Mahjong.Autotable.Api.csproj",
                     "--no-restore", "--disable-build-servers", "-p:UseSharedCompilation=false", "-p:UseAppHost=false",
                     "-c", "Release", "-o", "artifacts/web-source-api"], kind="publish"),
