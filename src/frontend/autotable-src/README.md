@@ -1,39 +1,27 @@
-# Mahjong Unity browser client
+# Mahjong Web browser client
 
-This directory contains the imported browser/model baseline pinned in `UPSTREAM_SHA`, plus the Unity renderer migration. The ASP.NET backend and its wire/rules remain outside this directory; `server/protocol.ts` is retained only for browser type imports.
+The default entry loads one browser-native WebGL2 host. There is no engine
+selector, build opt-in, Unity bridge/loader, fallback renderer or prebuilt player.
+`npm run build` emits `../autotable/` directly from this source and local artwork.
 
-## Active renderer boundary
+The retained Client/World/Setup/Slot/Thing/Movement and DOM lobby/chat/action
+controls are derived source, not a required external Autotable package/service.
+`COPYING` and `UPSTREAM_SHA` remain authoritative notices for upstream code;
+the .NET API comes from the owner's separate baseline project.
 
-- `src/game.ts` and `src/scene-shell.ts` start the real Client/World and retained lobby, DOM controls and effects independently of Unity availability.
-- `src/renderer/renderer-sink.ts` buffers math-only World render data.
-- `src/renderer/renderer-frame.ts` publishes coherent full v1 frames/layouts with session-scoped opaque identities, current viewer entitlements and private source lookups.
-- `src/renderer/renderer-actions.ts` validates semantic input and calls retained World/Slot/Movement/Client operations. Claim, own-turn and hand-result continuation remain browser DOM controls with their original runtime contexts.
-- `src/renderer/unity-host.ts` loads only `/autotable/unity/renderer-build.json` and the validated Unity-generated loader. It verifies contract/editor/provenance fields, safe same-origin paths, MIME, byte lengths, SHA-256 and wasm magic.
+- `renderer/renderer-sink.ts`: data-only model rendering seam.
+- `renderer/renderer-frame.ts`: viewer-safe full frame/layout projection,
+  session identities and private source lookups.
+- `renderer/renderer-actions.ts`: stale/duplicate/authority/gesture validation
+  through the existing model/transport path.
+- `renderer/webgl-host.ts`: DOM/viewport/focus lifecycle and GPU-fence receipts.
+- `renderer/webgl-scene.ts`, `webgl-layout.ts`, `webgl-input.ts`: instanced
+  drawing, physical tile finish, four felt regions, camera fit and native input.
+- `renderer/gpu/`: small in-repository shader/matrix/instancing/picking helpers.
+- `art/tiles/`: locally bundled CC0 face atlases; original source/license and
+  historical input receipt retained under `art/source/` and `import-provenance.json`.
 
-The seven receiver methods target `MahjongBridge`: `Configure`, `Clear`, `ApplyLayout`, `ApplyFrame`, `SetViewport`, `SetPlayback`, `ReceiveActionResult`. Callbacks use `window.MahjongUnityBridge.emit`. Only a matching C# `FrameRendered` receipt sets `unity-renderer-ready` and `scene-shell-ready`; `game-shell-ready` and `scene-effects-ready` are DOM-only markers.
-
-Missing, incompatible, corrupt or unsupported builds are visible unavailable states. No Three/WebGL/Canvas renderer is instantiated as a fallback. Historical GPU source files are unreachable from the active entry and the Vite graph rejects their reintroduction.
-
-## Display and input
-
-Perspective remains the default and the P shortcut follows the existing checkbox. Board layout and Local hand layout persist in `mahjong.settings.v1`. Automatic uses rectangular/separate below 768 measured CSS pixels, otherwise classic/in-table. Explicit choices override automatic fitting. Resize/orientation/visual viewport/DPR/insets changes update the real canvas buffer at capped DPR 2 and cancel active gestures before changed picking transforms.
-
-Unity v1 uses press/drag/release. The inherited sticky checkbox is visibly disabled because the frozen contract has no sticky configuration. The legacy benchmark switch is explicitly retired. Camera look-down/zoom and tile labels remain browser preferences; spectator viewpoints never grant actor authority.
-
-Development Unity builds are always rejected. A dirty-source non-development artifact may be inspected only with explicit `?unityLocalBuild=1` on localhost/127.0.0.1/IPv6 loopback; it remains unqualified for release.
-
-## Source validation
-
-Run from this directory:
-
-```sh
-npm ci --no-audit --no-fund
-node --test tests/node/room-startup-readiness.test.mjs tests/node/hand-result-render-and-wire.test.mjs tests/node/sc2-slot-owner.invariants.test.mjs tests/node/perspective-settings.test.mjs
-npm run test:unity
-npm run typecheck
-npm run build
-```
-
-Vite output is `../autotable/`. `renderer-module-graph.json` records the actual browser source graph, not a Unity build. Unit host fixtures simulate loader/bridge callbacks explicitly; they do not prove Unity compilation, rendered graphics or touch picking. Real Unity editor/player/browser/mobile validation requires the legitimate licensed build and remains separate.
-
-Original DOM result labels, the app icon and source-synthesized sound replace excluded atlas/images/font/PDF/static audio assets. `COPYING` and `UPSTREAM_SHA` are retained and copied to browser output. The original upstream code notice does not settle licensing of fork additions; repository notices/decisions govern redistribution.
+Run `npm run typecheck`, `npm run test:renderer`, and `npm run build`.
+The default build records `web-build.json` (engine/source/file hashes) and the
+actual `renderer-module-graph.json`. These are browser artifacts, not player
+manifests. Actual gameplay/device evidence is separate from unit/source checks.

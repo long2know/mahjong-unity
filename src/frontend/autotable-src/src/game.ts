@@ -9,8 +9,8 @@ import { cameraPerspective, getSettings, installPerspectiveSetting, installRende
 import { BufferedRendererSink } from './renderer/renderer-sink';
 import { RendererFrameAdapter } from './renderer/renderer-frame';
 import { RendererActionRouter } from './renderer/renderer-actions';
-import { UnityHost } from './renderer/unity-host';
-import type { HostHooks, RendererHost } from './renderer/renderer-host';
+import { WebglHost } from './renderer/webgl-host';
+import type { HostHooks } from './renderer/renderer-host';
 import { TableCameraControls } from './renderer/table-camera-controls';
 import type { Presentation } from './renderer/renderer-contract';
 import { GameType } from './types';
@@ -18,7 +18,7 @@ import { GameType } from './types';
 export class Game {
   readonly client: Client;
   readonly world: World;
-  readonly renderer: RendererHost;
+  readonly renderer: WebglHost;
   readonly sink = new BufferedRendererSink();
   private readonly clientUi: ClientUi;
   private readonly soundPlayer: SoundPlayer;
@@ -45,7 +45,7 @@ export class Game {
   private lookDownState = 0;
   keys: Set<string> = new Set();
 
-  constructor(rendererFactory?: (main: HTMLElement, hooks: HostHooks) => RendererHost) {
+  constructor() {
     this.lookDown.update();
     this.zoom.update();
     const query = new URLSearchParams(window.location.search);
@@ -72,15 +72,10 @@ export class Game {
       },
       resumed: () => this.adapter?.refresh(),
       failure: () => { this.actions?.cancelGesture(); this.adapter?.fail('Table renderer unavailable.'); },
-      notice: message => { document.getElementById('unity-notice')!.textContent = message; },
+      notice: message => { document.getElementById('renderer-notice')!.textContent = message; },
       resumeGameplay: () => this.tableCamera?.resumeGameplay() ?? true,
     };
-    this.renderer = rendererFactory
-      ? rendererFactory(document.getElementById('main')!, hooks)
-      : new UnityHost(document.getElementById('main')!, hooks, { allowUnqualifiedBuild: query.get('unityLocalBuild') === '1' });
-    if (query.get('renderer') === 'webgl2' && !rendererFactory) {
-      this.renderer.unavailable('The WebGL2 comparison renderer is not enabled in this build. No fallback was started.');
-    }
+    this.renderer = new WebglHost(document.getElementById('main')!, hooks);
     this.adapter = new RendererFrameAdapter(this.renderer.instanceId, this.client, this.world, this.sink, {
       clear: (sessionId, reason) => this.renderer.clear(sessionId, reason),
       publish: (layout, frame) => this.renderer.publish(layout, frame),
@@ -88,7 +83,7 @@ export class Game {
     });
     this.actions = new RendererActionRouter(this.adapter, {
       result: result => this.renderer.actionResult(result),
-      notice: message => { document.getElementById('unity-notice')!.textContent = message; },
+      notice: message => { document.getElementById('renderer-notice')!.textContent = message; },
       unavailable: message => this.adapter?.fail(message),
     });
     this.tableCamera = new TableCameraControls(this.renderer.canvas, {

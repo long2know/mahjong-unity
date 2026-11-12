@@ -18,7 +18,7 @@ body.browser-shell-active.theme-light {
 }
 /* The inherited reduced-motion rule gives every element a tiny transition.
    Never measure a halfway-positioned canvas/header as the native safe area. */
-body.browser-shell-active :is(#main.unity-table, #browser-shell, .browser-panels) {
+body.browser-shell-active :is(#main.webgl-table, #browser-shell, .browser-panels) {
     transition: none !important;
 }
 #browser-shell {

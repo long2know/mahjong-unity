@@ -30,8 +30,7 @@ services:
       dockerfile: Dockerfile
       args:
         BUILD_SHA: ${BUILD_SHA:-local}
-        ALLOW_SOURCE_DIRTY: ${ALLOW_SOURCE_DIRTY:-0}
-    image: ${MAHJONG_IMAGE:-mahjong-unity:local}
+    image: ${MAHJONG_IMAGE:-mahjong-web:local}
     platform: ${MAHJONG_PLATFORM:-linux/amd64}
     ports:
       - target: 8080
@@ -40,6 +39,10 @@ services:
         protocol: tcp
     volumes:
       - mahjong-data:/data
+      - bootstrap-cache:/app/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       BUILD_SHA: ${BUILD_SHA:-local}
@@ -51,3 +54,4 @@ services:
 
 volumes:
   mahjong-data:
+  bootstrap-cache:

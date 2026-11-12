@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceLoader, gameHarness, thing, plain, require } from './unity-test-support.mjs';
+import { sourceLoader, gameHarness, thing, plain, require } from './renderer-test-support.mjs';
 const { Matrix4 } = require('three');
 
 function inputFixture() {
@@ -145,7 +145,7 @@ test('source poses and actual retained ray/AABB picking share one geometry basis
   const f = modelFixture(t);
   const pose = f.sourcePose({ position: { x: 87, y: 87, z: 2 }, rotation: { x: 0, y: 0, z: 0, w: 1 },
     size: { x: 6, y: 9, z: 4 } });
-  const { pickTile } = f.h.load('renderer-webgl2/picking.ts');
+  const { pickTile } = f.h.load('renderer/gpu/picking.ts');
   const modelData = f.tileModel(pose);
   const hit = pickTile({ modelData, instanceCount: 1 }, { origin: [0, 1, 0], direction: [0, -1, 0] });
   assert.equal(hit.instanceIndex, 0);
@@ -163,7 +163,7 @@ test('the reused instanced mesh releases every allocated vertex/index/instance b
     bindBuffer() {}, bindVertexArray() {}, bufferData() {}, enableVertexAttribArray() {},
     vertexAttribPointer() {}, vertexAttribDivisor() {}, getAttribLocation() { return 0; },
   };
-  const { createTileMesh, disposeTileMesh } = sourceLoader().load('renderer-webgl2/tile-mesh.ts');
+  const { createTileMesh, disposeTileMesh } = sourceLoader().load('renderer/gpu/tile-mesh.ts');
   for (let iteration = 0; iteration < 3; iteration++) {
     const mesh = createTileMesh(gl, {}, 512);
     assert(buffers.size > 3);

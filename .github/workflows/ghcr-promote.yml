@@ -37,10 +37,10 @@ concurrency:
 
 jobs:
   promote:
-    if: github.repository == 'long2know/mahjong-unity' && github.ref == 'refs/heads/main'
+    if: github.repository == 'long2know/mahjong-web' && github.ref == 'refs/heads/main'
     environment:
       name: ghcr-production
-      url: https://github.com/long2know/mahjong-unity/pull/${{ inputs.acceptance_pr }}
+      url: https://github.com/long2know/mahjong-web/pull/${{ inputs.acceptance_pr }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

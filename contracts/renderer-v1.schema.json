@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "urn:mahjong-unity:renderer:1.0.0",
-  "title": "Mahjong browser/Unity renderer boundary v1",
+  "$id": "urn:mahjong-web:renderer:1.0.0",
+  "title": "Mahjong viewer-safe browser renderer boundary v1",
   "definitions": {
     "Vector3": {
       "type": "object",
@@ -1479,124 +1479,6 @@
         "handBandCssPx"
       ]
     },
-    "ArtifactFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "path": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9_./-]+$"
-        },
-        "bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
-        }
-      },
-      "required": [
-        "path",
-        "bytes",
-        "sha256"
-      ]
-    },
-    "BuildManifest": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "artifactKind": {
-          "const": "unity-webgl"
-        },
-        "contractVersion": {
-          "const": "1.0.0"
-        },
-        "buildId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "unityVersion": {
-          "const": "6000.3.24f1"
-        },
-        "unityRevision": {
-          "const": "4e7b9b5b6244"
-        },
-        "compression": {
-          "const": "none"
-        },
-        "threading": {
-          "const": "single-threaded"
-        },
-        "developmentBuild": {
-          "type": "boolean"
-        },
-        "baselineRevision": {
-          "const": "d10d351e543aa3e341960de9800828b6c0662a82"
-        },
-        "rendererSourceRevision": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{40}$"
-        },
-        "rendererSourceTreeSha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
-        },
-        "sourceDirty": {
-          "type": "boolean"
-        },
-        "builtAtUtc": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "loader": {
-          "$ref": "#/definitions/ArtifactFile"
-        },
-        "framework": {
-          "$ref": "#/definitions/ArtifactFile"
-        },
-        "data": {
-          "$ref": "#/definitions/ArtifactFile"
-        },
-        "wasm": {
-          "$ref": "#/definitions/ArtifactFile"
-        },
-        "streamingAssetsPath": {
-          "anyOf": [
-            {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9_./-]+$"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "artifactKind",
-        "contractVersion",
-        "buildId",
-        "unityVersion",
-        "unityRevision",
-        "compression",
-        "threading",
-        "developmentBuild",
-        "baselineRevision",
-        "rendererSourceRevision",
-        "rendererSourceTreeSha256",
-        "sourceDirty",
-        "builtAtUtc",
-        "loader",
-        "framework",
-        "data",
-        "wasm",
-        "streamingAssetsPath"
-      ]
-    },
     "RendererAction": {
       "type": "object",
       "additionalProperties": false,
@@ -1912,38 +1794,6 @@
         "reason"
       ]
     },
-    "Ready": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "contractVersion": {
-          "const": "1.0.0"
-        },
-        "instanceId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "type": {
-          "const": "ready"
-        },
-        "buildId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "unityVersion": {
-          "const": "6000.3.24f1"
-        }
-      },
-      "required": [
-        "contractVersion",
-        "instanceId",
-        "type",
-        "buildId",
-        "unityVersion"
-      ]
-    },
     "FrameRendered": {
       "type": "object",
       "additionalProperties": false,
@@ -2064,16 +1914,10 @@
       "$ref": "#/definitions/ActionResult"
     },
     {
-      "$ref": "#/definitions/Ready"
-    },
-    {
       "$ref": "#/definitions/FrameRendered"
     },
     {
       "$ref": "#/definitions/RendererError"
-    },
-    {
-      "$ref": "#/definitions/BuildManifest"
     }
   ]
 }

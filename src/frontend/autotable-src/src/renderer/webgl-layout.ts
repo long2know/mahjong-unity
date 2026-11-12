@@ -1,8 +1,8 @@
 import { Box3, Matrix4, Quaternion, Vector3 } from 'three';
 import type { Entity, Frame, Layout, Pose, Viewport } from './renderer-contract';
-import { TILE_DEPTH, TILE_HEIGHT, TILE_WIDTH } from '../renderer-webgl2/tile-mesh';
-import { perspective4 } from '../renderer-webgl2/math';
-import { orthographic4 } from '../renderer-webgl2/camera';
+import { TILE_DEPTH, TILE_HEIGHT, TILE_WIDTH } from './gpu/tile-mesh';
+import { perspective4 } from './gpu/math';
+import { orthographic4 } from './gpu/camera';
 
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface RenderPose { position: Vector3; rotation: Quaternion; scale: number }
@@ -362,7 +362,7 @@ function separateHand(plan: WebglPlan, layout: Layout, frame: Frame, localWidth:
   }
 }
 
-// Layout stays in the already-qualified source/Unity basis; reflect Z only at the GL boundary.
+// Layout stays in the retained source basis; reflect Z only at the GL boundary.
 const reflect = new Matrix4().makeScale(1, 1, -1);
 export function tileModel(pose: RenderPose, kind = 'TILE'): Float32Array {
   const dimensions = meshSize(kind);

@@ -1,10 +1,10 @@
 import { Matrix4, Vector3 } from 'three';
-import { compileProgram } from '../renderer-webgl2';
+import { compileProgram } from './gpu/program';
 import {
   beveledTileGeometry, createTileMesh, disposeTileMesh, drawTileMesh, setTileInstance, uploadTileInstances,
   TILE_DEPTH, TILE_HEIGHT, TILE_INSTANCE_VS, type TileMesh,
-} from '../renderer-webgl2/tile-mesh';
-import { invertMatrix4, pickTile, type PickRay } from '../renderer-webgl2/picking';
+} from './gpu/tile-mesh';
+import { invertMatrix4, pickTile, type PickRay } from './gpu/picking';
 import type { Frame, Layout, Viewport } from './renderer-contract';
 import { buildWebglPlan, fittedCamera, tileModel, type Rect, type RenderPose, type WebglPlan } from './webgl-layout';
 import { pickableModels, tileMaterialId, tileSurface } from './webgl-style';
@@ -100,8 +100,8 @@ export class WebglScene {
 
   static async create(canvas: HTMLCanvasElement): Promise<WebglScene> {
     const urls = [
-      new URL('../../../../../unity/MahjongRenderer/Assets/Resources/Art/Faces.png', import.meta.url).href,
-      new URL('../../../../../unity/MahjongRenderer/Assets/Resources/Art/FacesLabelled.png', import.meta.url).href,
+      new URL('../../art/tiles/Faces.png', import.meta.url).href,
+      new URL('../../art/tiles/FacesLabelled.png', import.meta.url).href,
     ];
     const images = await Promise.all(urls.map(url => new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();

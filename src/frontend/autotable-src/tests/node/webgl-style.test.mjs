@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceLoader, gameHarness, thing, plain, require } from './unity-test-support.mjs';
+import { sourceLoader, gameHarness, thing, plain, require } from './renderer-test-support.mjs';
 const { Matrix4, Vector3 } = require('three');
 
 test('beveled tile has outward unit normals, complete face UVs and the exact original outer bounds', () => {
-  const { tileGeometry, beveledTileGeometry, TILE_DEPTH } = sourceLoader().load('renderer-webgl2/tile-mesh.ts');
+  const { tileGeometry, beveledTileGeometry, TILE_DEPTH } = sourceLoader().load('renderer/gpu/tile-mesh.ts');
   const old = tileGeometry(), mesh = beveledTileGeometry();
   assert(mesh.positions.length > old.positions.length);
   assert(mesh.positions.length / 3 <= 200 && mesh.indices.length / 3 < 128, 'shared geometry stays small');
@@ -104,7 +104,7 @@ test('rivers, contact shadows and expanded cue meshes cannot intercept or enlarg
   const loader = sourceLoader();
   const { pickableModels } = loader.load('renderer/webgl-style.ts');
   const { sourcePose, tileModel } = loader.load('renderer/webgl-layout.ts');
-  const { pickTile } = loader.load('renderer-webgl2/picking.ts');
+  const { pickTile } = loader.load('renderer/gpu/picking.ts');
   const pose = sourcePose({ position: { x: 87, y: 87, z: 2 },
     rotation: { x: 0, y: 0, z: 0, w: 1 }, size: { x: 6, y: 9, z: 4 } });
   const canonical = tileModel(pose), expanded = Float32Array.from(
@@ -129,7 +129,7 @@ test('the real instanced upload/draw path accepts shared beveled geometry and re
     drawElementsInstanced(_mode, count, _type, _offset, instances) { draws.push({ count, instances }); },
   };
   const { beveledTileGeometry, createTileMesh, setTileInstance, uploadTileInstances, drawTileMesh, disposeTileMesh } =
-    loader.load('renderer-webgl2/tile-mesh.ts');
+    loader.load('renderer/gpu/tile-mesh.ts');
   const geometry = beveledTileGeometry(), mesh = createTileMesh(gl, {}, 512, geometry);
   assert(uploads.includes(geometry.positions) && uploads.includes(geometry.normals) && uploads.includes(geometry.indices));
   setTileInstance(mesh, 0, Float32Array.from(new Matrix4().elements), 37);

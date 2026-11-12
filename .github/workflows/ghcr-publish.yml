@@ -1,78 +1,58 @@
-name: Package approved Unity build to GHCR
-
+name: Package WebGL source candidate to GHCR
 on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Exact clean same-repository dev PR head SHA matching the genuine Unity manifest
+        description: Exact clean same-repository dev PR head SHA
         required: true
         type: string
       source_pr:
-        description: Same-repository PR to dev whose exact head SHA is authorized for candidate packaging
+        description: Same-repository PR to dev authorizing candidate source
         required: true
         type: string
-      release_id:
-        description: Same-repository DRAFT build-input release ID
-        required: true
-        type: string
-      asset_id:
-        description: Exact uploaded bundle asset ID in that draft
-        required: true
-        type: string
-      bundle_sha256:
-        description: Independently recorded SHA256 of the genuine bundle
-        required: true
-        type: string
-
 permissions:
   contents: read
-
 concurrency:
   group: ghcr-candidate
   cancel-in-progress: false
-
 jobs:
   package:
-    if: github.repository == 'long2know/mahjong-unity' && github.ref == 'refs/heads/main'
+    if: github.repository == 'long2know/mahjong-web' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
-      # GitHub requires push-capable access to read an unpublished DRAFT release.
-      contents: write
+      contents: read
       pull-requests: read
       packages: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: publisher
           persist-credentials: false
-      - name: Check publishing contracts
+      - name: Validate publishing contracts
         run: python3 -B publisher/tests/migration/test_ghcr_publish.py
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.source_sha }}
           path: source
           fetch-depth: 0
           persist-credentials: false
-      - name: Authenticate draft input and verify exact clean source and artifact hashes
+      - name: Verify clean exact same-repository source (no prebuilt player inputs)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_ROOT: ${{ github.workspace }}/source
           SOURCE_SHA: ${{ inputs.source_sha }}
           SOURCE_PR: ${{ inputs.source_pr }}
-          RELEASE_ID: ${{ inputs.release_id }}
-          ASSET_ID: ${{ inputs.asset_id }}
-          BUNDLE_SHA256: ${{ inputs.bundle_sha256 }}
         run: python3 -B publisher/scripts/ghcr_publish.py prepare
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build canonical runtime image; never move latest here
+      - name: Build source candidate; never move latest or legacy aliases
         id: build
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: ./source
           file: ./source/Dockerfile
@@ -80,25 +60,16 @@ jobs:
           push: true
           provenance: true
           tags: |
-            ghcr.io/long2know/mahjong-unity:candidate-${{ github.run_id }}-${{ github.run_attempt }}
-            ghcr.io/long2know/mahjong-unity:sha-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+            ghcr.io/long2know/mahjong-web:candidate-${{ github.run_id }}-${{ github.run_attempt }}
+            ghcr.io/long2know/mahjong-web:sha-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           labels: |
-            org.opencontainers.image.source=https://github.com/long2know/mahjong-unity
+            org.opencontainers.image.source=https://github.com/long2know/mahjong-web
             org.opencontainers.image.revision=${{ inputs.source_sha }}
-          build-args: |
-            BUILD_SHA=${{ inputs.source_sha }}
-            ALLOW_SOURCE_DIRTY=0
-      - name: Record pullable candidate, not runtime acceptance
+          build-args: BUILD_SHA=${{ inputs.source_sha }}
+      - name: Record candidate identity (not runtime acceptance)
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
           SOURCE_SHA: ${{ inputs.source_sha }}
-          BUNDLE_SHA256: ${{ inputs.bundle_sha256 }}
-          ASSET_ID: ${{ inputs.asset_id }}
         run: |
-          {
-            echo '### Candidate published (not approved for latest)'
-            printf 'Image: `ghcr.io/long2know/mahjong-unity@%s`\n' "$DIGEST"
-            printf 'Candidate: `candidate-%s-%s`\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
-            printf 'Source: `%s`; input asset: `%s`; bundle SHA256: `%s`\n' "$SOURCE_SHA" "$ASSET_ID" "$BUNDLE_SHA256"
-            echo 'Runtime/browser/device acceptance and explicit protected promotion are still required.'
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf 'Candidate: `ghcr.io/long2know/mahjong-web@%s`\nSource: `%s`\nNo latest or legacy alias moved.\n' \
+            "$DIGEST" "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"

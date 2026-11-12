@@ -1320,7 +1320,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 var autotablePath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "../../../frontend/autotable"));
-Mahjong.Autotable.Api.Hosting.UnityStaticHosting.UseAutotableFiles(app, autotablePath, app.Configuration, app.Logger);
+Mahjong.Autotable.Api.Hosting.BrowserStaticHosting.UseAutotableFiles(app, autotablePath, app.Configuration, app.Logger);
 
 // Phase J Wave 6 — /api/health is a probe surface. Excluded from rate
 // limiting via DisableRateLimiting() (works whether the middleware is

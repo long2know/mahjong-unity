@@ -175,7 +175,7 @@ function main() {
   }
   const manifest = {
     generatedAt: new Date().toISOString(),
-    version: 'autotable-unity-v1',
+    version: 'mahjong-web-v1',
     assets: assets.map(name => `./${name}`),
   };
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');

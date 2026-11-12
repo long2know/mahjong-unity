@@ -354,13 +354,6 @@ public sealed class SecurityHeadersMiddleware
         //    request was clearly for a file (path has a known extension)
         //    and the framework hasn't already set an explicit Cache-Control.
         var path = ctx.Request.Path.Value;
-        if (ctx.Request.Path.StartsWithSegments(Hosting.UnityStaticHosting.RequestPath))
-        {
-            // Unity's loader/manifest are mutable even when a filename resembles a Vite hash.
-            headers["Cache-Control"] = "no-cache, must-revalidate";
-            AppendVary(headers, "Accept-Encoding");
-            return;
-        }
         if (!string.IsNullOrEmpty(path))
         {
             var lower = path.ToLowerInvariant();

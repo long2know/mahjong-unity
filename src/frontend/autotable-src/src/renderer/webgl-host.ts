@@ -6,7 +6,7 @@ import type { HostHooks, HostState, RendererHost } from './renderer-host';
 import { rendererViewport } from './renderer-viewport';
 import { WebglScene } from './webgl-scene';
 import { WebglInput } from './webgl-input';
-import './unity-host.css';
+import './renderer-host.css';
 import './webgl-host.css';
 
 export class WebglHost implements RendererHost {
@@ -38,25 +38,25 @@ export class WebglHost implements RendererHost {
   private inputBlocked = true;
 
   constructor(private readonly main: HTMLElement, private readonly hooks: HostHooks) {
-    main.classList.add('unity-table');
+    main.classList.add('webgl-table');
     main.dataset.renderer = 'webgl2';
     document.body.dataset.rendererEngine = 'webgl2';
     this.canvas = document.createElement('canvas');
-    this.canvas.id = 'unity-canvas';
+    this.canvas.id = 'webgl-canvas';
     this.canvas.dataset.engine = 'webgl2';
     this.canvas.tabIndex = 0;
-    this.canvas.setAttribute('aria-label', 'Mahjong table — experimental WebGL2 renderer');
+    this.canvas.setAttribute('aria-label', 'Mahjong table — WebGL2 renderer');
     this.canvas.addEventListener('contextmenu', event => event.preventDefault(), { signal: this.events.signal });
     this.canvas.addEventListener('webglcontextlost', event => {
       event.preventDefault();
       this.unavailable('WebGL context was lost. Reload table to recreate GPU resources; no renderer fallback was started.');
     }, { signal: this.events.signal });
     this.panel = document.createElement('section');
-    this.panel.id = 'unity-status';
+    this.panel.id = 'renderer-status';
     this.panel.setAttribute('role', 'status');
     this.panel.setAttribute('aria-live', 'polite');
     const heading = document.createElement('h2');
-    heading.textContent = 'Experimental WebGL2 table';
+    heading.textContent = 'Mahjong Web';
     this.description = document.createElement('p');
     this.description.textContent = 'Preparing tile artwork and GPU resources…';
     const reload = document.createElement('button');
@@ -65,7 +65,7 @@ export class WebglHost implements RendererHost {
     reload.addEventListener('click', () => window.location.reload(), { signal: this.events.signal });
     this.panel.append(heading, this.description, reload);
     this.insets = document.createElement('div');
-    this.insets.className = 'unity-inset-probe';
+    this.insets.className = 'renderer-inset-probe';
     this.insets.setAttribute('aria-hidden', 'true');
     main.append(this.canvas, this.panel, this.insets);
     const loading = document.getElementById('loading');
@@ -105,7 +105,7 @@ export class WebglHost implements RendererHost {
     this.watchStartup();
     try {
       if (!('WebGL2RenderingContext' in window) || typeof ResizeObserver === 'undefined') {
-        this.unavailable('This comparison requires WebGL2 and ResizeObserver.', 'unsupported');
+        this.unavailable('This table requires WebGL2 and ResizeObserver.', 'unsupported');
         return;
       }
       const scene = await WebglScene.create(this.canvas);
@@ -127,7 +127,7 @@ export class WebglHost implements RendererHost {
       });
       this.state = 'awaiting-ready';
       this.watchStartup();
-      this.hooks.notice('Experimental WebGL2 renderer. Shift + right-drag pans; existing camera controls orbit, zoom and reset.');
+      this.hooks.notice('Shift + right-drag pans; Alt-left/middle drag or two fingers orbit, zoom and reset.');
       this.schedule();
     } catch (error) {
       this.unavailable(error instanceof Error ? error.message : 'WebGL2 startup failed.');
