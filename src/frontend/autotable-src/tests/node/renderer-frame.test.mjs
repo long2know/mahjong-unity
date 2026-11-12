@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gameHarness, plain, thing, sourceLoader } from './renderer-test-support.mjs';
+import { gameHarness, plain, thing, sourceLoader, require } from './renderer-test-support.mjs';
 
 test('actual model placeholders never cross the bridge before a bound FULL snapshot', t => {
   const h = gameHarness();
@@ -234,6 +234,36 @@ test('every call revalidates mutable entity, seat, layout and viewport data with
     assert.throws(() => assertDto(definition, dto), error => error instanceof ContractError, `${definition}.${key}`);
     if (existed) target[key] = old; else delete target[key];
     assert.doesNotThrow(() => assertDto(definition, dto));
+  }
+});
+
+test('validation decisions match the accepted draft7 schema for mutable valid and malformed DTOs', t => {
+  const h = gameHarness(); t.after(h.close); h.join();
+  const frame = h.snapshot([['4', thing('hand.0@0', 1)], ['h_back', thing('wall.0.1@0', null)]]);
+  const { assertDto } = h.load('renderer/renderer-contract.ts');
+  const schema = require('../../../contracts/renderer-v1.schema.json');
+  const Ajv = require('ajv');
+  const oracle = new Ajv({ strictNumbers: true });
+  const viewport = h.load('renderer/renderer-viewport.ts').rendererViewport(h.adapter.instanceId, 1,
+    { width: 960, height: 640, dpr: 1, separateHand: false, insets: { top: 0, right: 0, bottom: 0, left: 0 } });
+  const fixtures = [['RendererFrame', frame], ['RendererLayout', h.adapter.layout], ['Viewport', viewport],
+    ['Appearance', frame.entities[0].appearance], ['Presentation', frame.presentation]];
+  for (const [definition, fixture] of fixtures) {
+    const reference = oracle.compile({ $schema: schema.$schema, definitions: schema.definitions,
+      $ref: '#/definitions/' + definition });
+    const samples = [plain(fixture), null, false, 1, 'invalid', [], { ...plain(fixture), injectedPrivateField: true }];
+    for (const key of Object.keys(fixture)) {
+      const missing = plain(fixture); delete missing[key]; samples.push(missing);
+      samples.push({ ...plain(fixture), [key]: { malformed: true } });
+    }
+    if (definition === 'Appearance') samples.push(
+      { faceIndex: 1, knownFace: false, showFace: false, backIndex: 0, valueIndex: null },
+      { faceIndex: null, knownFace: false, showFace: true, backIndex: 0, valueIndex: null });
+    for (const sample of samples) {
+      let accepted = true;
+      try { assertDto(definition, sample); } catch { accepted = false; }
+      assert.equal(accepted, reference(sample), definition + ': ' + JSON.stringify(sample).slice(0, 100));
+    }
   }
 });
 

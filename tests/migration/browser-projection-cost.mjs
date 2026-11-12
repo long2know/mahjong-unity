@@ -62,8 +62,9 @@ try {
       if (!active) return;
       opportunities++;
       if (!host.inFlight && host.queue) readyButUnsubmitted++;
-      if (now - started - lastChange >= 750) {
-        lastChange = now - started;
+      const elapsed = Math.max(0, now - started);
+      if (elapsed - lastChange >= 750) {
+        lastChange = elapsed;
         const target = Math.floor(lastChange / 750) % 2;
         game.lookDown.start(target * .7); game.zoom.start(target * .1);
       }
@@ -79,9 +80,12 @@ try {
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     return { elapsedMilliseconds, opportunities, readyButUnsubmitted, glDrawCalls, submitted, completions,
       completedMetricDelta: host.metrics.renderedFrames - initialCompleted, cpuWorld, cpuProjection, cpuScene,
+      hostState: host.state, adapterFailed: game.adapter.failed, status: document.getElementById('renderer-status')?.textContent,
       normalizedScene, renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) };
   });
   assert.equal(result.completedMetricDelta, result.completions.length);
+  assert.equal(result.hostState, 'ready', result.status);
+  assert.equal(result.adapterFailed, false);
   const summary = samples => {
     const values = samples.slice().sort((a, b) => a - b);
     return { median: values[Math.floor(values.length / 2)], p95: values[Math.floor(values.length * .95)], samples: values.length };
